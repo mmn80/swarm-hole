@@ -27,7 +27,7 @@ fn spawn_main_lights(mut commands: Commands) {
         cascade_shadow_config: CascadeShadowConfigBuilder {
             num_cascades: 4,
             minimum_distance: 0.1,
-            maximum_distance: 1000.0,
+            maximum_distance: 200.0,
             first_cascade_far_bound: 5.0,
             overlap_proportion: 0.2,
         }

@@ -12,6 +12,7 @@ use swarm_hole::{
     camera::MainCameraPlugin,
     light::{MainLightsPlugin, INFINITE_TEMP_COLOR},
     materials::BasicMaterialsPlugin,
+    physics::MainPhysicsPlugin,
     player::PlayerPlugin,
     terrain::TerrainPlugin,
 };
@@ -39,6 +40,7 @@ fn main() {
         .add_plugins((PhysicsPlugins::default(), PhysicsDebugPlugin::default()))
         .add_plugins((
             BasicMaterialsPlugin,
+            MainPhysicsPlugin,
             MainCameraPlugin,
             MainLightsPlugin,
             TerrainPlugin,

@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::*;
 
-use crate::materials::BasicMaterials;
+use crate::{
+    materials::BasicMaterials,
+    physics::{Layer, ALL_LAYERS},
+};
 
 pub struct TerrainPlugin;
 
@@ -42,6 +45,7 @@ fn setup_terrain(
                 },
                 RigidBody::Static,
                 Collider::cuboid(ground_size.x, ground_size.y, ground_size.z),
+                CollisionLayers::new([Layer::Ground], ALL_LAYERS),
             ))
             .id();
         cmd.entity(id)
@@ -60,8 +64,9 @@ fn setup_terrain(
                 material: materials.building.clone(),
                 ..default()
             },
-            RigidBody::Kinematic,
+            RigidBody::Static,
             Collider::cuboid(bld_size.x, bld_size.y, bld_size.z),
+            CollisionLayers::new([Layer::Building], ALL_LAYERS),
         ))
         .id();
     cmd.entity(building_id)
