@@ -1,0 +1,19 @@
+[package]
+name = "swarm-hole"
+version = "0.1.0"
+authors = ["Călin Ardelean <mmn80cpu@gmail.com>"]
+edition = "2021"
+
+publish = false
+
+[dependencies]
+rand = "0.8"
+rand_distr = "0.4"
+bevy = { version = "0.12.0", features = ["dynamic_linking"] }
+bevy_xpbd_3d = { version = "0.3", features = ["parallel"] }
+
+[profile.dev]
+opt-level = 3
+
+[profile.dev.package."*"]
+opt-level = 3
