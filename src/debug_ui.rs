@@ -7,7 +7,7 @@ impl Plugin for DebugUiPlugin {
         app.init_resource::<DebugUi>()
             .add_event::<DebugUiEvent>()
             .add_systems(Startup, setup_debug_ui)
-            .add_systems(Update, (listen_debug_commands, update_debug_ui));
+            .add_systems(Update, listen_debug_commands);
     }
 }
 
@@ -43,7 +43,7 @@ impl DebugUi {
 enum DebugUiCommandParseState {
     Inactive,
     ReadingCommand(String),
-    ReadingParam(DebugUiCommand, String),
+    ReadingParam(DebugUiCommand, String, String),
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -79,73 +79,6 @@ impl DebugUiCommandConfig {
 pub struct DebugUiEvent {
     pub command: DebugUiCommand,
     pub param: i32,
-}
-
-fn listen_debug_commands(
-    keyboard: Res<Input<KeyCode>>,
-    mut debug_ui: ResMut<DebugUi>,
-    mut ev_char: EventReader<ReceivedCharacter>,
-    mut ev_debug_ui: EventWriter<DebugUiEvent>,
-) {
-    match &debug_ui.state {
-        DebugUiCommandParseState::Inactive => {
-            if keyboard.just_released(KeyCode::Grave) {
-                debug_ui.state = DebugUiCommandParseState::ReadingCommand("".to_string());
-            }
-        }
-        DebugUiCommandParseState::ReadingCommand(buffer) => {
-            if keyboard.just_pressed(KeyCode::Escape) {
-                debug_ui.state = DebugUiCommandParseState::Inactive;
-            } else if !ev_char.is_empty() {
-                let mut new_buffer = buffer.clone();
-                for ev in ev_char.read() {
-                    if !ev.char.is_control() {
-                        new_buffer.push(ev.char);
-                    }
-                }
-                if let Some((command, has_param)) = debug_ui
-                    .commands
-                    .iter()
-                    .find(|cmd| cmd.key_string == new_buffer)
-                    .map(|cmd| (cmd.command, cmd.has_param))
-                {
-                    if has_param {
-                        debug_ui.state =
-                            DebugUiCommandParseState::ReadingParam(command, "".to_string());
-                    } else {
-                        ev_debug_ui.send(DebugUiEvent { command, param: 0 });
-                        debug_ui.state = DebugUiCommandParseState::Inactive;
-                    }
-                } else {
-                    debug_ui.state = DebugUiCommandParseState::ReadingCommand(new_buffer);
-                }
-            }
-        }
-        DebugUiCommandParseState::ReadingParam(command, buffer) => {
-            if keyboard.just_pressed(KeyCode::Escape) {
-                debug_ui.state = DebugUiCommandParseState::Inactive;
-            } else if keyboard.just_pressed(KeyCode::Return) {
-                if let Ok(param) = buffer.parse::<i32>() {
-                    ev_debug_ui.send(DebugUiEvent {
-                        command: *command,
-                        param,
-                    });
-                    debug_ui.state = DebugUiCommandParseState::Inactive;
-                } else {
-                    error!("Parsing string '{buffer}' as number failed.");
-                    debug_ui.state = DebugUiCommandParseState::Inactive;
-                }
-            } else if !ev_char.is_empty() {
-                let mut new_buffer = buffer.clone();
-                for ev in ev_char.read() {
-                    if !ev.char.is_control() {
-                        new_buffer.push(ev.char);
-                    }
-                }
-                DebugUiCommandParseState::ReadingParam(*command, new_buffer);
-            }
-        }
-    }
 }
 
 #[derive(Component)]
@@ -194,22 +127,101 @@ fn setup_debug_ui(mut cmd: Commands) {
     });
 }
 
-fn update_debug_ui(
-    debug_ui: Res<DebugUi>,
-    mut query: Query<(&mut Text, &mut Style), With<DebugUiText>>,
+fn listen_debug_commands(
+    keyboard: Res<Input<KeyCode>>,
+    time: Res<Time<Real>>,
+    mut debug_ui: ResMut<DebugUi>,
+    mut ev_char: EventReader<ReceivedCharacter>,
+    mut ev_debug_ui: EventWriter<DebugUiEvent>,
+    mut q_text: Query<(&mut Text, &mut Style), With<DebugUiText>>,
+    mut time_since_hidden: Local<Option<f32>>,
 ) {
-    for (mut text, mut style) in &mut query {
-        match &debug_ui.state {
-            DebugUiCommandParseState::Inactive => {
-                style.display = Display::None;
+    let Ok((mut text, mut style)) = q_text.get_single_mut() else {
+        return;
+    };
+    match &debug_ui.state {
+        DebugUiCommandParseState::Inactive => {
+            if style.display != Display::None {
+                if time_since_hidden.is_none() {
+                    *time_since_hidden = Some(time.elapsed_seconds());
+                } else {
+                    let time_sec = time_since_hidden.unwrap();
+                    if (time.elapsed_seconds() - time_sec).abs() > 1. {
+                        style.display = Display::None;
+                        *time_since_hidden = None;
+                    }
+                }
             }
-            DebugUiCommandParseState::ReadingCommand(buffer) => {
-                style.display = Display::Flex;
-                text.sections[0].value = format!("{buffer}");
+
+            if keyboard.just_released(KeyCode::Grave) {
+                debug_ui.state = DebugUiCommandParseState::ReadingCommand("".to_string());
             }
-            DebugUiCommandParseState::ReadingParam(_command, buffer) => {
+        }
+        DebugUiCommandParseState::ReadingCommand(buffer) => {
+            style.display = Display::Flex;
+            if keyboard.just_pressed(KeyCode::Escape) {
+                debug_ui.state = DebugUiCommandParseState::Inactive;
+            } else if !ev_char.is_empty() {
+                let mut new_buffer = buffer.clone();
+                for ev in ev_char.read() {
+                    if !ev.char.is_control() {
+                        new_buffer.push(ev.char);
+                    }
+                }
+                text.sections[0].value = format!(":{new_buffer}");
+
+                if let Some((command, has_param)) = debug_ui
+                    .commands
+                    .iter()
+                    .find(|cmd| cmd.key_string == new_buffer)
+                    .map(|cmd| (cmd.command, cmd.has_param))
+                {
+                    if has_param {
+                        debug_ui.state = DebugUiCommandParseState::ReadingParam(
+                            command,
+                            new_buffer,
+                            "".to_string(),
+                        );
+                    } else {
+                        ev_debug_ui.send(DebugUiEvent { command, param: 0 });
+                        debug_ui.state = DebugUiCommandParseState::Inactive;
+                    }
+                } else {
+                    debug_ui.state = DebugUiCommandParseState::ReadingCommand(new_buffer);
+                }
+            } else {
+                text.sections[0].value = format!(":{buffer}");
+            }
+        }
+        DebugUiCommandParseState::ReadingParam(command, key_string, buffer) => {
+            if keyboard.just_pressed(KeyCode::Escape) {
+                debug_ui.state = DebugUiCommandParseState::Inactive;
+            } else if keyboard.just_pressed(KeyCode::Return) {
+                if let Ok(param) = buffer.parse::<i32>() {
+                    ev_debug_ui.send(DebugUiEvent {
+                        command: *command,
+                        param,
+                    });
+                    debug_ui.state = DebugUiCommandParseState::Inactive;
+                } else {
+                    error!("Parsing string '{buffer}' as number failed.");
+                    debug_ui.state = DebugUiCommandParseState::Inactive;
+                }
+            } else if !ev_char.is_empty() {
+                let mut new_buffer = buffer.clone();
+                for ev in ev_char.read() {
+                    if !ev.char.is_control() {
+                        new_buffer.push(ev.char);
+                    }
+                }
                 style.display = Display::Flex;
-                text.sections[0].value = format!("{buffer}");
+                text.sections[0].value = format!(":{key_string}{new_buffer}");
+
+                debug_ui.state = DebugUiCommandParseState::ReadingParam(
+                    *command,
+                    key_string.clone(),
+                    new_buffer,
+                );
             }
         }
     }
