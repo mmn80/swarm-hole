@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::{math::*, prelude::*, SubstepSchedule, SubstepSet};
 
+use crate::debug_ui::{DebugUiCommand, DebugUiEvent};
+
 pub struct MainPhysicsPlugin;
 
 impl Plugin for MainPhysicsPlugin {
@@ -49,8 +51,13 @@ fn kinematic_collision(
     }
 }
 
-fn physics_debug_ui(keyboard: Res<Input<KeyCode>>, mut debug_config: ResMut<PhysicsDebugConfig>) {
-    if keyboard.just_pressed(KeyCode::P) && keyboard.pressed(KeyCode::ControlLeft) {
-        debug_config.enabled = !debug_config.enabled;
+fn physics_debug_ui(
+    mut ev_debug_ui: EventReader<DebugUiEvent>,
+    mut debug_config: ResMut<PhysicsDebugConfig>,
+) {
+    for ev in ev_debug_ui.read() {
+        if ev.command == DebugUiCommand::TogglePhysicsDebug {
+            debug_config.enabled = !debug_config.enabled;
+        }
     }
 }

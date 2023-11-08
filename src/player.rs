@@ -3,6 +3,7 @@ use bevy_xpbd_3d::{math::*, prelude::*, PhysicsSchedule, PhysicsStepSet};
 
 use crate::{
     camera::MainCameraFocusEvent,
+    debug_ui::DebugUi,
     materials::BasicMaterials,
     physics::{Layer, ALL_LAYERS},
 };
@@ -68,6 +69,7 @@ fn setup_player(
 
 fn move_player(
     keyboard: Res<Input<KeyCode>>,
+    debug_ui: Res<DebugUi>,
     mut q_player: Query<(&Transform, &Player, &mut LinearVelocity, &ShapeHits)>,
     mut ev_refocus: EventWriter<MainCameraFocusEvent>,
 ) {
@@ -82,21 +84,22 @@ fn move_player(
         linear_velocity.y -= 0.4;
     }
 
-    if keyboard.pressed(KeyCode::W) || keyboard.pressed(KeyCode::Up) {
-        linear_velocity.z -= player.speed;
-    }
-    if keyboard.pressed(KeyCode::A) || keyboard.pressed(KeyCode::Left) {
-        linear_velocity.x -= player.speed;
-    }
-    if keyboard.pressed(KeyCode::S) || keyboard.pressed(KeyCode::Down) {
-        linear_velocity.z += player.speed;
-    }
-    if keyboard.pressed(KeyCode::D) || keyboard.pressed(KeyCode::Right) {
-        linear_velocity.x += player.speed;
-    }
-
-    if keyboard.just_pressed(KeyCode::Space) && !ground_hits.is_empty() {
-        linear_velocity.y += 20.0;
+    if !debug_ui.has_focus() {
+        if keyboard.pressed(KeyCode::W) || keyboard.pressed(KeyCode::Up) {
+            linear_velocity.z -= player.speed;
+        }
+        if keyboard.pressed(KeyCode::A) || keyboard.pressed(KeyCode::Left) {
+            linear_velocity.x -= player.speed;
+        }
+        if keyboard.pressed(KeyCode::S) || keyboard.pressed(KeyCode::Down) {
+            linear_velocity.z += player.speed;
+        }
+        if keyboard.pressed(KeyCode::D) || keyboard.pressed(KeyCode::Right) {
+            linear_velocity.x += player.speed;
+        }
+        if keyboard.just_pressed(KeyCode::Space) && !ground_hits.is_empty() {
+            linear_velocity.y += 20.0;
+        }
     }
 
     linear_velocity.x *= 0.8;

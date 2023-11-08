@@ -1,4 +1,5 @@
 pub mod camera;
+pub mod debug_ui;
 pub mod light;
 pub mod materials;
 pub mod physics;

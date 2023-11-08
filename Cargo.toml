@@ -9,8 +9,8 @@ publish = false
 [dependencies]
 rand = "0.8"
 rand_distr = "0.4"
-bevy = { version = "0.12.0", features = ["dynamic_linking"] }
-bevy_xpbd_3d = { version = "0.3", features = ["parallel"] }
+bevy = { version = "0.12", features = ["dynamic_linking"] }
+bevy_xpbd_3d = { version = "0.3", features = ["simd"] }
 
 [profile.dev]
 opt-level = 3

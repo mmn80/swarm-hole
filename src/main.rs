@@ -10,6 +10,7 @@ use bevy_xpbd_3d::prelude::*;
 
 use swarm_hole::{
     camera::MainCameraPlugin,
+    debug_ui::DebugUiPlugin,
     light::{MainLightsPlugin, INFINITE_TEMP_COLOR},
     materials::BasicMaterialsPlugin,
     physics::MainPhysicsPlugin,
@@ -39,6 +40,7 @@ fn main() {
         )
         .add_plugins((PhysicsPlugins::default(), PhysicsDebugPlugin::default()))
         .add_plugins((
+            DebugUiPlugin,
             BasicMaterialsPlugin,
             MainPhysicsPlugin,
             MainCameraPlugin,
