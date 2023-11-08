@@ -1,8 +1,7 @@
 use bevy::{
-    core_pipeline::{bloom::BloomSettings, clear_color::ClearColorConfig},
+    core_pipeline::bloom::BloomSettings,
     input::mouse::{MouseMotion, MouseWheel},
     prelude::*,
-    render::view::RenderLayers,
     window::PrimaryWindow,
 };
 
@@ -52,7 +51,6 @@ pub struct UiCamera;
 fn spawn_camera(mut cmd: Commands) {
     let translation = Vec3::new(0., START_DIST, START_DIST / 2.);
     let radius = translation.length();
-
     cmd.spawn((
         Camera3dBundle {
             transform: Transform::from_translation(translation).looking_at(Vec3::Y, Vec3::Y),
@@ -72,26 +70,7 @@ fn spawn_camera(mut cmd: Commands) {
             radius,
             ..default()
         },
-    ))
-    .with_children(|parent| {
-        parent.spawn((
-            Camera3dBundle {
-                transform: Transform::IDENTITY,
-                camera_3d: Camera3d {
-                    clear_color: ClearColorConfig::None,
-                    ..default()
-                },
-                camera: Camera {
-                    hdr: true,
-                    order: 1,
-                    ..default()
-                },
-                ..default()
-            },
-            RenderLayers::layer(UI_CAMERA_LAYER),
-            UiCamera,
-        ));
-    });
+    ));
 }
 
 /// zoom with scroll wheel, orbit with right mouse click
