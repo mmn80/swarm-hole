@@ -1,5 +1,4 @@
 use bevy::{
-    app::AppExit,
     prelude::*,
     render::{
         settings::{Backends, RenderCreation, WgpuSettings},
@@ -48,12 +47,5 @@ fn main() {
             TerrainPlugin,
             PlayerPlugin,
         ))
-        .add_systems(Update, exit_system)
         .run();
-}
-
-fn exit_system(keyboard: Res<Input<KeyCode>>, mut exit: EventWriter<AppExit>) {
-    if keyboard.just_released(KeyCode::Q) && keyboard.pressed(KeyCode::ControlLeft) {
-        exit.send(AppExit);
-    }
 }

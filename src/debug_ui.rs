@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{app::AppExit, prelude::*};
 
 pub struct DebugUiPlugin;
 
@@ -7,8 +7,15 @@ impl Plugin for DebugUiPlugin {
         app.init_resource::<DebugUi>()
             .add_event::<DebugUiEvent>()
             .add_systems(Startup, setup_debug_ui)
-            .add_systems(Update, listen_debug_commands);
+            .add_systems(Update, (process_debug_commands, show_debug_help, quit_game));
     }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum DebugUiCommand {
+    TogglePhysicsDebug,
+    ToggleDebugHelp,
+    QuitGame,
 }
 
 #[derive(Resource)]
@@ -20,10 +27,19 @@ pub struct DebugUi {
 impl Default for DebugUi {
     fn default() -> Self {
         Self {
-            commands: vec![DebugUiCommandConfig::new_simple(
-                DebugUiCommand::TogglePhysicsDebug,
-                "p",
-            )],
+            commands: vec![
+                DebugUiCommandConfig::new_simple(
+                    DebugUiCommand::TogglePhysicsDebug,
+                    "p",
+                    "toggle physics debug draw",
+                ),
+                DebugUiCommandConfig::new_simple(
+                    DebugUiCommand::ToggleDebugHelp,
+                    "h",
+                    "toggle showing this help",
+                ),
+                DebugUiCommandConfig::new_simple(DebugUiCommand::QuitGame, "q", "quit game"),
+            ],
             state: DebugUiCommandParseState::Inactive,
         }
     }
@@ -46,31 +62,29 @@ enum DebugUiCommandParseState {
     ReadingParam(DebugUiCommand, String, String),
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub enum DebugUiCommand {
-    TogglePhysicsDebug,
-}
-
 pub struct DebugUiCommandConfig {
     pub command: DebugUiCommand,
     pub key_string: String,
     pub has_param: bool,
+    pub help: String,
 }
 
 impl DebugUiCommandConfig {
-    pub fn new(command: DebugUiCommand, key_string: &str, has_param: bool) -> Self {
+    pub fn new(command: DebugUiCommand, key_string: &str, has_param: bool, help: &str) -> Self {
         Self {
             command,
             key_string: key_string.to_string(),
             has_param,
+            help: help.to_string(),
         }
     }
 
-    pub fn new_simple(command: DebugUiCommand, key_string: &str) -> Self {
+    pub fn new_simple(command: DebugUiCommand, key_string: &str, help: &str) -> Self {
         Self {
             command,
             key_string: key_string.to_string(),
             has_param: false,
+            help: help.to_string(),
         }
     }
 }
@@ -84,7 +98,40 @@ pub struct DebugUiEvent {
 #[derive(Component)]
 struct DebugUiText;
 
+#[derive(Component)]
+struct DebugHelpText;
+
 fn setup_debug_ui(mut cmd: Commands) {
+    cmd.spawn(NodeBundle {
+        style: Style {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        ..default()
+    })
+    .with_children(|parent| {
+        parent.spawn((
+            TextBundle::from_section(
+                "",
+                TextStyle {
+                    font_size: 20.0,
+                    ..default()
+                },
+            )
+            .with_text_alignment(TextAlignment::Left)
+            .with_style(Style {
+                display: Display::None,
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            }),
+            DebugHelpText,
+        ));
+    });
+
     cmd.spawn(NodeBundle {
         style: Style {
             width: Val::Percent(100.0),
@@ -127,11 +174,11 @@ fn setup_debug_ui(mut cmd: Commands) {
     });
 }
 
-fn listen_debug_commands(
+fn process_debug_commands(
     keyboard: Res<Input<KeyCode>>,
     time: Res<Time<Real>>,
     mut debug_ui: ResMut<DebugUi>,
-    mut ev_char: EventReader<ReceivedCharacter>,
+    ev_char: EventReader<ReceivedCharacter>,
     mut ev_debug_ui: EventWriter<DebugUiEvent>,
     mut q_text: Query<(&mut Text, &mut Style), With<DebugUiText>>,
     mut time_since_hidden: Local<Option<f32>>,
@@ -139,6 +186,7 @@ fn listen_debug_commands(
     let Ok((mut text, mut style)) = q_text.get_single_mut() else {
         return;
     };
+
     match &debug_ui.state {
         DebugUiCommandParseState::Inactive => {
             if style.display != Display::None {
@@ -157,17 +205,13 @@ fn listen_debug_commands(
                 debug_ui.state = DebugUiCommandParseState::ReadingCommand("".to_string());
             }
         }
+
         DebugUiCommandParseState::ReadingCommand(buffer) => {
             style.display = Display::Flex;
             if keyboard.just_pressed(KeyCode::Escape) {
                 debug_ui.state = DebugUiCommandParseState::Inactive;
             } else if !ev_char.is_empty() {
-                let mut new_buffer = buffer.clone();
-                for ev in ev_char.read() {
-                    if !ev.char.is_control() {
-                        new_buffer.push(ev.char);
-                    }
-                }
+                let new_buffer = append_chars(buffer, ev_char);
                 text.sections[0].value = format!(":{new_buffer}");
 
                 if let Some((command, has_param)) = debug_ui
@@ -193,6 +237,7 @@ fn listen_debug_commands(
                 text.sections[0].value = format!(":{buffer}");
             }
         }
+
         DebugUiCommandParseState::ReadingParam(command, key_string, buffer) => {
             if keyboard.just_pressed(KeyCode::Escape) {
                 debug_ui.state = DebugUiCommandParseState::Inactive;
@@ -208,12 +253,7 @@ fn listen_debug_commands(
                     debug_ui.state = DebugUiCommandParseState::Inactive;
                 }
             } else if !ev_char.is_empty() {
-                let mut new_buffer = buffer.clone();
-                for ev in ev_char.read() {
-                    if !ev.char.is_control() {
-                        new_buffer.push(ev.char);
-                    }
-                }
+                let new_buffer = append_chars(buffer, ev_char);
                 style.display = Display::Flex;
                 text.sections[0].value = format!(":{key_string}{new_buffer}");
 
@@ -223,6 +263,58 @@ fn listen_debug_commands(
                     new_buffer,
                 );
             }
+        }
+    }
+}
+
+fn append_chars(buffer: &String, mut ev_char: EventReader<'_, '_, ReceivedCharacter>) -> String {
+    let mut new_buffer = buffer.clone();
+    for ev in ev_char.read() {
+        if !ev.char.is_control() {
+            new_buffer.push(ev.char);
+        }
+    }
+    new_buffer
+}
+
+fn show_debug_help(
+    debug_ui: Res<DebugUi>,
+    mut ev_debug_ui: EventReader<DebugUiEvent>,
+    mut q_text: Query<(&mut Text, &mut Style), With<DebugHelpText>>,
+) {
+    for ev in ev_debug_ui.read() {
+        if ev.command == DebugUiCommand::ToggleDebugHelp {
+            let Ok((mut text, mut style)) = q_text.get_single_mut() else {
+                return;
+            };
+            if style.display == Display::None {
+                text.sections[0].value = debug_ui
+                    .commands
+                    .iter()
+                    .map(|cmd| {
+                        format!(
+                            "{}{} - {}\n",
+                            cmd.key_string,
+                            if cmd.has_param { "(param)" } else { "" },
+                            cmd.help
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .concat();
+                style.display = Display::Flex;
+            } else {
+                style.display = Display::None;
+            }
+            break;
+        }
+    }
+}
+
+fn quit_game(mut ev_debug_ui: EventReader<DebugUiEvent>, mut exit: EventWriter<AppExit>) {
+    for ev in ev_debug_ui.read() {
+        if ev.command == DebugUiCommand::QuitGame {
+            exit.send(AppExit);
+            return;
         }
     }
 }
