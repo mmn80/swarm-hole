@@ -16,7 +16,7 @@ impl Plugin for NpcPlugin {
         app.register_type::<Npc>()
             .init_resource::<NpcCommons>()
             .add_systems(Startup, setup_npc_commons)
-            .add_systems(Update, (spawn_npcs, move_npcs));
+            .add_systems(Update, (spawn_npcs, move_npcs, kill_npcs));
     }
 }
 
@@ -147,5 +147,14 @@ fn move_npcs(
             Vec2::new(player_pos.x - npc_pos.x, player_pos.z - npc_pos.z).normalize() * npc.speed;
         lin_vel.x = dir.x;
         lin_vel.z = dir.y;
+    }
+}
+
+#[derive(Component)]
+pub struct Kill;
+
+fn kill_npcs(q_npc: Query<Entity, With<Kill>>, mut cmd: Commands) {
+    for npc_ent in &q_npc {
+        cmd.entity(npc_ent).despawn_recursive();
     }
 }

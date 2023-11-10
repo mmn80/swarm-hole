@@ -5,6 +5,7 @@ use crate::{
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
     materials::BasicMaterials,
+    npc::Kill,
     physics::{Layer, ALL_LAYERS},
 };
 
@@ -112,4 +113,25 @@ fn move_player(
     });
 }
 
-fn shoot_npcs() {}
+fn shoot_npcs(
+    spatial_query: SpatialQuery,
+    q_player: Query<&Transform, With<Player>>,
+    mut cmd: Commands,
+) {
+    let Ok(tr) = q_player.get_single() else {
+        return;
+    };
+    if let Some(projection) = spatial_query.project_point(
+        tr.translation,
+        true,
+        SpatialQueryFilter::new().with_masks([Layer::NPC]),
+    ) {
+        let dist = (tr.translation - projection.point).length();
+        if dist < 1. {
+            let Some(mut npc) = cmd.get_entity(projection.entity) else {
+                return;
+            };
+            npc.insert(Kill);
+        }
+    }
+}
