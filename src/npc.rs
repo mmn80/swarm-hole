@@ -5,7 +5,8 @@ use rand::prelude::*;
 
 use crate::{
     debug_ui::{DebugUiCommand, DebugUiEvent},
-    physics::{Layer, ALL_LAYERS},
+    physics::Layer,
+    player::Player,
 };
 
 pub struct NpcPlugin;
@@ -15,7 +16,7 @@ impl Plugin for NpcPlugin {
         app.register_type::<Npc>()
             .init_resource::<NpcCommons>()
             .add_systems(Startup, setup_npc_commons)
-            .add_systems(Update, spawn_npcs);
+            .add_systems(Update, (spawn_npcs, move_npcs));
     }
 }
 
@@ -90,9 +91,11 @@ fn spawn_npcs(
         if ev.command == DebugUiCommand::SpawnNpcs {
             let count = ev.param;
             info!("spawning {count} NPCs...");
+
             let mut rng = thread_rng();
             let npc_idx =
                 WeightedIndex::new(npcs.npc_types.iter().map(|item| item.frequency)).unwrap();
+
             let w = ((count as f32).sqrt() / 2.).ceil() as i32;
             let dist = (NPC_DIST - 4.) / 2.;
             let mut n = 0;
@@ -112,7 +115,10 @@ fn spawn_npcs(
                             },
                             RigidBody::Kinematic,
                             Collider::ball(npc_type.radius),
-                            CollisionLayers::new([Layer::NPC], ALL_LAYERS),
+                            CollisionLayers::new(
+                                [Layer::NPC],
+                                [Layer::Player, Layer::Building, Layer::Ground],
+                            ),
                         ))
                         .id();
                     cmd.entity(id).insert(Name::new(format!("NPC ({id:?})")));
@@ -125,5 +131,21 @@ fn spawn_npcs(
             }
             break;
         }
+    }
+}
+
+fn move_npcs(
+    mut q_npc: Query<(&Npc, &Position, &mut LinearVelocity)>,
+    q_player: Query<&Position, With<Player>>,
+) {
+    let Ok(player_pos) = q_player.get_single() else {
+        return;
+    };
+    for (npc, npc_pos, mut lin_vel) in &mut q_npc {
+        lin_vel.y = 0.;
+        let dir =
+            Vec2::new(player_pos.x - npc_pos.x, player_pos.z - npc_pos.z).normalize() * npc.speed;
+        lin_vel.x = dir.x;
+        lin_vel.z = dir.y;
     }
 }

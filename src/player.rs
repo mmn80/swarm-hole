@@ -14,6 +14,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Player>()
             .add_systems(Startup, setup_player)
+            .add_systems(Update, shoot_npcs)
             .add_systems(
                 PhysicsSchedule,
                 move_player.before(PhysicsStepSet::BroadPhase),
@@ -110,3 +111,5 @@ fn move_player(
         focus: player_tr.translation,
     });
 }
+
+fn shoot_npcs() {}
