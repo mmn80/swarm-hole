@@ -28,7 +28,7 @@ fn setup_terrain(
     materials: Res<BasicMaterials>,
     mut cmd: Commands,
 ) {
-    let ground_size = Vec3::new(200.0, 1.0, 200.0);
+    let ground_size = Vec3::new(1000.0, 1.0, 1000.0);
 
     terrain.ground = Some({
         let id = cmd

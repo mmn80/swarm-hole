@@ -11,8 +11,9 @@ impl Plugin for DebugUiPlugin {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum DebugUiCommand {
+    SpawnNpcs,
     TogglePhysicsDebug,
     ToggleDebugHelp,
     QuitGame,
@@ -28,17 +29,22 @@ impl Default for DebugUi {
     fn default() -> Self {
         Self {
             commands: vec![
-                DebugUiCommandConfig::new_simple(
+                DebugUiCommandConfig::new_param(
+                    DebugUiCommand::SpawnNpcs,
+                    "n",
+                    "spawn a given number of NPCs",
+                ),
+                DebugUiCommandConfig::new(
                     DebugUiCommand::TogglePhysicsDebug,
                     "p",
                     "toggle physics debug draw",
                 ),
-                DebugUiCommandConfig::new_simple(
+                DebugUiCommandConfig::new(
                     DebugUiCommand::ToggleDebugHelp,
                     "h",
                     "toggle showing this help",
                 ),
-                DebugUiCommandConfig::new_simple(DebugUiCommand::QuitGame, "q", "quit game"),
+                DebugUiCommandConfig::new(DebugUiCommand::QuitGame, "q", "quit game"),
             ],
             state: DebugUiCommandParseState::Inactive,
         }
@@ -70,16 +76,16 @@ pub struct DebugUiCommandConfig {
 }
 
 impl DebugUiCommandConfig {
-    pub fn new(command: DebugUiCommand, key_string: &str, has_param: bool, help: &str) -> Self {
+    pub fn new_param(command: DebugUiCommand, key_string: &str, help: &str) -> Self {
         Self {
             command,
             key_string: key_string.to_string(),
-            has_param,
+            has_param: true,
             help: help.to_string(),
         }
     }
 
-    pub fn new_simple(command: DebugUiCommand, key_string: &str, help: &str) -> Self {
+    pub fn new(command: DebugUiCommand, key_string: &str, help: &str) -> Self {
         Self {
             command,
             key_string: key_string.to_string(),
@@ -255,7 +261,7 @@ fn process_debug_commands(
             } else if !ev_char.is_empty() {
                 let new_buffer = append_chars(buffer, ev_char);
                 style.display = Display::Flex;
-                text.sections[0].value = format!(":{key_string}{new_buffer}");
+                text.sections[0].value = format!(":{key_string}({new_buffer})");
 
                 debug_ui.state = DebugUiCommandParseState::ReadingParam(
                     *command,
@@ -295,7 +301,7 @@ fn show_debug_help(
                         format!(
                             "{}{} - {}\n",
                             cmd.key_string,
-                            if cmd.has_param { "(param)" } else { "" },
+                            if cmd.has_param { "(n)" } else { "" },
                             cmd.help
                         )
                     })

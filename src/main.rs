@@ -12,6 +12,7 @@ use swarm_hole::{
     debug_ui::DebugUiPlugin,
     light::{MainLightsPlugin, INFINITE_TEMP_COLOR},
     materials::BasicMaterialsPlugin,
+    npc::NpcPlugin,
     physics::MainPhysicsPlugin,
     player::PlayerPlugin,
     terrain::TerrainPlugin,
@@ -46,6 +47,7 @@ fn main() {
             MainLightsPlugin,
             TerrainPlugin,
             PlayerPlugin,
+            NpcPlugin,
         ))
         .run();
 }

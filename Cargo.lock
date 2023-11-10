@@ -1194,6 +1194,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f30e7476521f6f8af1a1c4c0b8cc94f0bee37d91763d0ca2665f299b6cd8aec"
 
 [[package]]
+name = "bvh2d"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b21ce88b40438dfdd9ff26dbdb1bb7be8a33b4919c0ed985ccab98164587e89a"
+dependencies = [
+ "glam",
+]
+
+[[package]]
 name = "bytemuck"
 version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1934,6 +1943,15 @@ name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
+
+[[package]]
+name = "hashbrown"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
+dependencies = [
+ "ahash",
+]
 
 [[package]]
 name = "hashbrown"
@@ -2815,6 +2833,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "polyanya"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "854f056d35f555f753a403b48bd1dd2c85f06e20401448fdc301a68d3e3f7c77"
+dependencies = [
+ "bvh2d",
+ "glam",
+ "hashbrown 0.13.2",
+ "smallvec",
+]
+
+[[package]]
 name = "pp-rs"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3263,6 +3293,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_xpbd_3d",
+ "polyanya",
  "rand",
  "rand_distr",
 ]
