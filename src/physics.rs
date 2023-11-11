@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::{math::*, prelude::*, SubstepSchedule, SubstepSet};
 
-use crate::debug_ui::{DebugUiCommand, DebugUiEvent};
+use crate::{
+    debug_ui::{DebugUiCommand, DebugUiEvent},
+    player::Player,
+};
 
 pub struct MainPhysicsPlugin;
 
@@ -27,7 +30,12 @@ pub const ALL_LAYERS: [Layer; 4] = [Layer::Player, Layer::NPC, Layer::Building, 
 fn kinematic_collision(
     collisions: Res<Collisions>,
     mut q_bodies: Query<(&RigidBody, &mut Position, &Rotation)>,
+    q_player: Query<&Transform, With<Player>>,
 ) {
+    let player_pos = q_player
+        .get_single()
+        .ok()
+        .map_or(Vec3::ZERO, |p| p.translation);
     for contacts in collisions.iter() {
         if !contacts.during_current_substep {
             continue;
@@ -47,7 +55,12 @@ fn kinematic_collision(
                     } else if rb1.is_kinematic() && rb2.is_kinematic() {
                         let mut normal = contact.global_normal1(rotation1);
                         normal.y = 0.;
-                        position2.0 += normal * contact.penetration;
+                        if (position1.0 - player_pos).length() < (position2.0 - player_pos).length()
+                        {
+                            position2.0 += normal * contact.penetration;
+                        } else {
+                            position1.0 -= normal * contact.penetration;
+                        }
                     }
                 }
             }
