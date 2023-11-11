@@ -40,7 +40,7 @@ fn setup_player(
     let id = cmd
         .spawn((
             Player { speed: 2. },
-            Health(100),
+            Health(100.),
             Laser::new(10., 10., 1., 1.),
             PbrBundle {
                 transform: Transform::from_xyz(0.0, player_height / 2., 0.0),

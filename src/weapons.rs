@@ -1,15 +1,64 @@
-use bevy::prelude::*;
+use bevy::{
+    core_pipeline::bloom::BloomSettings,
+    pbr::{NotShadowCaster, NotShadowReceiver},
+    prelude::*,
+};
 use bevy_xpbd_3d::prelude::*;
 
-use crate::{npc::Npc, physics::Layer, player::Player};
+use crate::{
+    npc::{Health, Npc},
+    physics::Layer,
+    player::Player,
+};
 
 pub struct WeaponsPlugin;
 
 impl Plugin for WeaponsPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Laser>()
-            .add_systems(Update, laser_target_npc);
+            .init_resource::<Weapons>()
+            .add_systems(Startup, setup_weapons)
+            .add_systems(
+                Update,
+                (
+                    laser_target_npc,
+                    laser_shoot_ray,
+                    laser_ray_update,
+                    laser_ray_despawn,
+                )
+                    .chain(),
+            );
     }
+}
+
+#[derive(Resource, Default)]
+pub struct Weapons {
+    pub laser_mesh: Handle<Mesh>,
+    pub laser_material: Handle<StandardMaterial>,
+}
+
+fn setup_weapons(
+    mut weapons: ResMut<Weapons>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    weapons.laser_mesh = meshes.add(
+        Mesh::try_from(shape::Cylinder {
+            radius: 0.1,
+            height: 1.,
+            resolution: 8,
+            segments: 1,
+        })
+        .unwrap(),
+    );
+    weapons.laser_material = materials.add(StandardMaterial {
+        base_color: Color::ORANGE_RED,
+        emissive: Color::YELLOW,
+        perceptual_roughness: 1.0,
+        metallic: 0.,
+        reflectance: 0.,
+        ..default()
+    });
 }
 
 #[derive(Component, Default, Reflect)]
@@ -37,13 +86,6 @@ impl Laser {
     }
 }
 
-#[derive(Component)]
-pub struct LaserRay {
-    pub source: Entity,
-    pub target: Entity,
-    pub time_started: f32,
-}
-
 fn laser_target_npc(
     time: Res<Time>,
     q_space: SpatialQuery,
@@ -51,7 +93,7 @@ fn laser_target_npc(
     q_npc: Query<&Transform, With<Npc>>,
 ) {
     for (mut laser, tr_player) in &mut q_laser {
-        if laser.ray.is_some() || time.elapsed_seconds() - laser.time_ended < laser.cooldown {
+        if laser.target.is_some() || time.elapsed_seconds() - laser.time_ended < laser.cooldown {
             continue;
         }
         let pos = tr_player.translation;
@@ -65,13 +107,132 @@ fn laser_target_npc(
             .iter()
             .filter_map(|ent| q_npc.get(*ent).ok().map(|tr| (ent, tr.translation)))
             .min_by(|(_, pos1), (_, pos2)| {
-                (*pos2 - pos)
+                (*pos1 - pos)
                     .length()
-                    .partial_cmp(&(*pos1 - pos).length())
-                    .unwrap_or(std::cmp::Ordering::Equal)
+                    .partial_cmp(&(*pos2 - pos).length())
+                    .unwrap()
             })
         {
             laser.target = Some(*hit_ent);
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct LaserRay {
+    pub source: Entity,
+    pub target: Entity,
+    pub time_started: f32,
+    pub dead: bool,
+}
+
+#[derive(Component)]
+pub struct LaserRayMesh;
+
+fn laser_shoot_ray(
+    time: Res<Time>,
+    weapons: Res<Weapons>,
+    mut q_laser: Query<(Entity, &mut Laser), With<Player>>,
+    mut cmd: Commands,
+) {
+    for (player_ent, mut laser) in &mut q_laser {
+        if laser.ray.is_none() {
+            let Some(target) = laser.target else {
+                continue;
+            };
+            let id = cmd
+                .spawn((
+                    LaserRay {
+                        source: player_ent,
+                        target,
+                        time_started: time.elapsed_seconds(),
+                        dead: false,
+                    },
+                    SpatialBundle::default(),
+                ))
+                .with_children(|parent| {
+                    parent.spawn((
+                        LaserRayMesh,
+                        PbrBundle {
+                            transform: Transform::IDENTITY,
+                            mesh: weapons.laser_mesh.clone(),
+                            material: weapons.laser_material.clone(),
+                            ..default()
+                        },
+                        BloomSettings {
+                            intensity: 0.9,
+                            ..default()
+                        },
+                        NotShadowCaster,
+                        NotShadowReceiver,
+                    ));
+                })
+                .id();
+            laser.ray = Some(id);
+        }
+    }
+}
+
+fn laser_ray_update(
+    time: Res<Time>,
+    mut q_ray: Query<(&mut LaserRay, &mut Transform, &Children), Without<LaserRayMesh>>,
+    mut q_ray_mesh: Query<&mut Transform, (With<LaserRayMesh>, Without<Laser>)>,
+    mut q_targets: Query<
+        (&Transform, Option<&Laser>, Option<&mut Health>),
+        (Without<LaserRay>, Without<LaserRayMesh>),
+    >,
+) {
+    for (mut ray, mut tr_ray, children) in &mut q_ray {
+        if ray.dead {
+            continue;
+        };
+        let (s, dps, duration) = {
+            let Ok((tr_laser, Some(laser), _)) = q_targets.get(ray.source) else {
+                ray.dead = true;
+                continue;
+            };
+            (tr_laser.translation, laser.dps, laser.duration)
+        };
+        let Ok((tr_target, _, Some(mut health))) = q_targets.get_mut(ray.target) else {
+            ray.dead = true;
+            continue;
+        };
+        let Some(child) = children.first() else {
+            ray.dead = true;
+            continue;
+        };
+        let Ok(mut tr_ray_mesh) = q_ray_mesh.get_mut(*child) else {
+            ray.dead = true;
+            continue;
+        };
+        if time.elapsed_seconds() - ray.time_started > duration {
+            ray.dead = true;
+            continue;
+        }
+
+        let t = tr_target.translation;
+        let ts = t - s;
+        let dir = ts.normalize();
+        tr_ray.translation = (s + t) / 2.;
+        tr_ray.look_to(dir.any_orthonormal_vector(), dir);
+        tr_ray_mesh.scale = Vec3::new(1., ts.length(), 1.);
+
+        health.take_damage(time.delta_seconds() * dps);
+    }
+}
+
+fn laser_ray_despawn(
+    q_ray: Query<(Entity, &LaserRay)>,
+    mut q_laser: Query<&mut Laser>,
+    mut cmd: Commands,
+) {
+    for (ray_ent, ray) in &q_ray {
+        if ray.dead {
+            cmd.entity(ray_ent).despawn_recursive();
+            if let Ok(mut laser) = q_laser.get_mut(ray.source) {
+                laser.ray = None;
+                laser.target = None;
+            }
         }
     }
 }

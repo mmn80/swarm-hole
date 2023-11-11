@@ -14,14 +14,14 @@ pub struct NpcPlugin;
 impl Plugin for NpcPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Npc>()
-            .init_resource::<NpcCommons>()
-            .add_systems(Startup, setup_npc_commons)
+            .init_resource::<Npcs>()
+            .add_systems(Startup, setup_npcs)
             .add_systems(Update, (spawn_npcs, move_npcs, die));
     }
 }
 
 #[derive(Resource, Default)]
-pub struct NpcCommons {
+pub struct Npcs {
     pub npc_types: Vec<NpcType>,
 }
 
@@ -39,8 +39,8 @@ pub struct Npc {
     pub speed: f32,
 }
 
-fn setup_npc_commons(
-    mut npcs: ResMut<NpcCommons>,
+fn setup_npcs(
+    mut npcs: ResMut<Npcs>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
@@ -88,11 +88,7 @@ fn setup_npc_commons(
 
 const NPC_DIST: f32 = 5.0;
 
-fn spawn_npcs(
-    npcs: Res<NpcCommons>,
-    mut ev_debug_ui: EventReader<DebugUiEvent>,
-    mut cmd: Commands,
-) {
+fn spawn_npcs(npcs: Res<Npcs>, mut ev_debug_ui: EventReader<DebugUiEvent>, mut cmd: Commands) {
     for ev in ev_debug_ui.read() {
         if ev.command == DebugUiCommand::SpawnNpcs {
             let count = ev.param;
@@ -115,7 +111,7 @@ fn spawn_npcs(
                             Npc {
                                 speed: npc_type.speed,
                             },
-                            Health(npc_type.hp),
+                            Health(npc_type.hp as f32),
                             PbrBundle {
                                 transform: Transform::from_xyz(x, npc_type.radius + 0.1, z),
                                 mesh: npc_type.mesh.clone(),
@@ -157,17 +153,21 @@ fn move_npcs(
 }
 
 #[derive(Component)]
-pub struct Health(pub u32);
+pub struct Health(pub f32);
 
 impl Health {
-    pub fn take_damage(&mut self, damage: u32) {
-        self.0 = if damage >= self.0 { 0 } else { self.0 - damage };
+    pub fn take_damage(&mut self, damage: f32) {
+        self.0 = if damage >= self.0 {
+            0.
+        } else {
+            self.0 - damage
+        };
     }
 }
 
 fn die(q_npc: Query<(Entity, &Health)>, mut cmd: Commands) {
     for (npc_ent, health) in &q_npc {
-        if health.0 <= 0 {
+        if health.0 <= f32::EPSILON {
             cmd.entity(npc_ent).despawn_recursive();
         }
     }
