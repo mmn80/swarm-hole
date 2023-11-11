@@ -5,7 +5,7 @@ use rand::prelude::*;
 
 use crate::{
     debug_ui::{DebugUiCommand, DebugUiEvent},
-    physics::Layer,
+    physics::{Layer, ALL_LAYERS},
     player::Player,
 };
 
@@ -26,6 +26,8 @@ pub struct NpcCommons {
 }
 
 pub struct NpcType {
+    pub hp: u32,
+    pub speed: f32,
     pub radius: f32,
     pub mesh: Handle<Mesh>,
     pub material: Handle<StandardMaterial>,
@@ -35,6 +37,17 @@ pub struct NpcType {
 #[derive(Component, Reflect)]
 pub struct Npc {
     speed: f32,
+    pub hp: u32,
+}
+
+impl Npc {
+    pub fn take_damage(&mut self, damage: u32) {
+        self.hp = if damage >= self.hp {
+            0
+        } else {
+            self.hp - damage
+        };
+    }
 }
 
 fn setup_npc_commons(
@@ -44,6 +57,8 @@ fn setup_npc_commons(
 ) {
     npcs.npc_types = vec![
         NpcType {
+            hp: 1,
+            speed: 2.,
             radius: 0.5,
             mesh: meshes.add(
                 Mesh::try_from(shape::Icosphere {
@@ -61,6 +76,8 @@ fn setup_npc_commons(
             frequency: 1.,
         },
         NpcType {
+            hp: 10,
+            speed: 1.5,
             radius: 1.,
             mesh: meshes.add(
                 Mesh::try_from(shape::Icosphere {
@@ -80,7 +97,7 @@ fn setup_npc_commons(
     ];
 }
 
-const NPC_DIST: f32 = 10.0;
+const NPC_DIST: f32 = 5.0;
 
 fn spawn_npcs(
     npcs: Res<NpcCommons>,
@@ -106,7 +123,10 @@ fn spawn_npcs(
                     let z = zi as f32 * NPC_DIST + rng.gen_range(-dist..dist);
                     let id = cmd
                         .spawn((
-                            Npc { speed: 2. },
+                            Npc {
+                                speed: npc_type.speed,
+                                hp: npc_type.hp,
+                            },
                             PbrBundle {
                                 transform: Transform::from_xyz(x, npc_type.radius + 0.1, z),
                                 mesh: npc_type.mesh.clone(),
@@ -115,10 +135,7 @@ fn spawn_npcs(
                             },
                             RigidBody::Kinematic,
                             Collider::ball(npc_type.radius),
-                            CollisionLayers::new(
-                                [Layer::NPC],
-                                [Layer::Player, Layer::Building, Layer::Ground],
-                            ),
+                            CollisionLayers::new([Layer::NPC], ALL_LAYERS),
                         ))
                         .id();
                     cmd.entity(id).insert(Name::new(format!("NPC ({id:?})")));
@@ -150,11 +167,10 @@ fn move_npcs(
     }
 }
 
-#[derive(Component)]
-pub struct Kill;
-
-fn kill_npcs(q_npc: Query<Entity, With<Kill>>, mut cmd: Commands) {
-    for npc_ent in &q_npc {
-        cmd.entity(npc_ent).despawn_recursive();
+fn kill_npcs(q_npc: Query<(Entity, &Npc)>, mut cmd: Commands) {
+    for (npc_ent, npc) in &q_npc {
+        if npc.hp <= 0 {
+            cmd.entity(npc_ent).despawn_recursive();
+        }
     }
 }

@@ -26,14 +26,14 @@ pub const ALL_LAYERS: [Layer; 4] = [Layer::Player, Layer::NPC, Layer::Building, 
 
 fn kinematic_collision(
     collisions: Res<Collisions>,
-    mut bodies: Query<(&RigidBody, &mut Position, &Rotation)>,
+    mut q_bodies: Query<(&RigidBody, &mut Position, &Rotation)>,
 ) {
     for contacts in collisions.iter() {
         if !contacts.during_current_substep {
             continue;
         }
         if let Ok([(rb1, mut position1, rotation1), (rb2, mut position2, _)]) =
-            bodies.get_many_mut([contacts.entity1, contacts.entity2])
+            q_bodies.get_many_mut([contacts.entity1, contacts.entity2])
         {
             for manifold in contacts.manifolds.iter() {
                 for contact in manifold.contacts.iter() {
@@ -44,6 +44,10 @@ fn kinematic_collision(
                         position1.0 -= contact.global_normal1(rotation1) * contact.penetration;
                     } else if rb2.is_kinematic() && !rb1.is_kinematic() {
                         position2.0 += contact.global_normal1(rotation1) * contact.penetration;
+                    } else if rb1.is_kinematic() && rb2.is_kinematic() {
+                        let mut normal = contact.global_normal1(rotation1);
+                        normal.y = 0.;
+                        position2.0 += normal * contact.penetration;
                     }
                 }
             }

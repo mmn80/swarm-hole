@@ -5,7 +5,7 @@ use crate::{
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
     materials::BasicMaterials,
-    npc::Kill,
+    npc::Npc,
     physics::{Layer, ALL_LAYERS},
 };
 
@@ -26,6 +26,7 @@ impl Plugin for PlayerPlugin {
 #[derive(Component, Reflect)]
 pub struct Player {
     speed: f32,
+    pub hp: u32,
 }
 
 fn setup_player(
@@ -39,7 +40,7 @@ fn setup_player(
 
     let id = cmd
         .spawn((
-            Player { speed: 2. },
+            Player { speed: 2., hp: 100 },
             PbrBundle {
                 transform: Transform::from_xyz(0.0, player_height / 2., 0.0),
                 mesh: meshes.add(Mesh::from(shape::Capsule {
@@ -116,7 +117,7 @@ fn move_player(
 fn shoot_npcs(
     spatial_query: SpatialQuery,
     q_player: Query<&Transform, With<Player>>,
-    mut cmd: Commands,
+    mut q_npc: Query<&mut Npc>,
 ) {
     let Ok(tr) = q_player.get_single() else {
         return;
@@ -127,11 +128,11 @@ fn shoot_npcs(
         SpatialQueryFilter::new().with_masks([Layer::NPC]),
     ) {
         let dist = (tr.translation - projection.point).length();
-        if dist < 1. {
-            let Some(mut npc) = cmd.get_entity(projection.entity) else {
+        if dist < 2. {
+            let Ok(mut npc) = q_npc.get_mut(projection.entity) else {
                 return;
             };
-            npc.insert(Kill);
+            npc.take_damage(5);
         }
     }
 }
