@@ -7,6 +7,7 @@ use crate::{
     debug_ui::{DebugUiCommand, DebugUiEvent},
     physics::{Layer, ALL_LAYERS},
     player::Player,
+    weapons::Laser,
 };
 
 pub struct NpcPlugin;
@@ -29,6 +30,7 @@ pub struct NpcType {
     pub hp: u32,
     pub speed: f32,
     pub radius: f32,
+    pub has_laser: bool,
     pub mesh: Handle<Mesh>,
     pub material: Handle<StandardMaterial>,
     pub frequency: f32,
@@ -49,6 +51,7 @@ fn setup_npcs(
             hp: 1,
             speed: 2.,
             radius: 0.5,
+            has_laser: false,
             mesh: meshes.add(
                 Mesh::try_from(shape::Icosphere {
                     radius: 0.5,
@@ -68,6 +71,7 @@ fn setup_npcs(
             hp: 10,
             speed: 1.5,
             radius: 1.,
+            has_laser: true,
             mesh: meshes.add(
                 Mesh::try_from(shape::Icosphere {
                     radius: 1.,
@@ -123,6 +127,9 @@ fn spawn_npcs(npcs: Res<Npcs>, mut ev_debug_ui: EventReader<DebugUiEvent>, mut c
                             CollisionLayers::new([Layer::NPC], ALL_LAYERS),
                         ))
                         .id();
+                    if npc_type.has_laser {
+                        cmd.entity(id).insert(Laser::new(10., 5., 0.2, 1., false));
+                    }
                     cmd.entity(id).insert(Name::new(format!("NPC ({id:?})")));
 
                     n += 1;
@@ -141,6 +148,11 @@ fn move_npcs(
     q_player: Query<&Position, With<Player>>,
 ) {
     let Ok(player_pos) = q_player.get_single() else {
+        for (_, _, mut lin_vel) in &mut q_npc {
+            lin_vel.x = 0.;
+            lin_vel.y = 0.;
+            lin_vel.z = 0.;
+        }
         return;
     };
     for (npc, npc_pos, mut lin_vel) in &mut q_npc {

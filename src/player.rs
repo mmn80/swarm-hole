@@ -41,7 +41,7 @@ fn setup_player(
         .spawn((
             Player { speed: 2. },
             Health(100.),
-            Laser::new(10., 10., 1., 1.),
+            Laser::new(15., 10., 1., 0.5, true),
             PbrBundle {
                 transform: Transform::from_xyz(0.0, player_height / 2., 0.0),
                 mesh: meshes.add(Mesh::from(shape::Capsule {
@@ -77,40 +77,37 @@ fn move_player(
     mut q_player: Query<(&Transform, &Player, &mut LinearVelocity, &ShapeHits)>,
     mut ev_refocus: EventWriter<MainCameraFocusEvent>,
 ) {
-    let Ok((player_tr, player, mut linear_velocity, ground_hits)) = q_player.get_single_mut()
-    else {
-        return;
-    };
+    for (player_tr, player, mut linear_velocity, ground_hits) in &mut q_player {
+        if !ground_hits.is_empty() {
+            linear_velocity.y = 0.0;
+        } else {
+            linear_velocity.y -= 0.4;
+        }
 
-    if !ground_hits.is_empty() {
-        linear_velocity.y = 0.0;
-    } else {
-        linear_velocity.y -= 0.4;
+        if !debug_ui.has_focus() {
+            if keyboard.pressed(KeyCode::W) || keyboard.pressed(KeyCode::Up) {
+                linear_velocity.z -= player.speed;
+            }
+            if keyboard.pressed(KeyCode::A) || keyboard.pressed(KeyCode::Left) {
+                linear_velocity.x -= player.speed;
+            }
+            if keyboard.pressed(KeyCode::S) || keyboard.pressed(KeyCode::Down) {
+                linear_velocity.z += player.speed;
+            }
+            if keyboard.pressed(KeyCode::D) || keyboard.pressed(KeyCode::Right) {
+                linear_velocity.x += player.speed;
+            }
+            if keyboard.just_pressed(KeyCode::Space) && !ground_hits.is_empty() {
+                linear_velocity.y += 20.0;
+            }
+        }
+
+        linear_velocity.x *= 0.8;
+        linear_velocity.y *= 0.98;
+        linear_velocity.z *= 0.8;
+
+        ev_refocus.send(MainCameraFocusEvent {
+            focus: player_tr.translation,
+        });
     }
-
-    if !debug_ui.has_focus() {
-        if keyboard.pressed(KeyCode::W) || keyboard.pressed(KeyCode::Up) {
-            linear_velocity.z -= player.speed;
-        }
-        if keyboard.pressed(KeyCode::A) || keyboard.pressed(KeyCode::Left) {
-            linear_velocity.x -= player.speed;
-        }
-        if keyboard.pressed(KeyCode::S) || keyboard.pressed(KeyCode::Down) {
-            linear_velocity.z += player.speed;
-        }
-        if keyboard.pressed(KeyCode::D) || keyboard.pressed(KeyCode::Right) {
-            linear_velocity.x += player.speed;
-        }
-        if keyboard.just_pressed(KeyCode::Space) && !ground_hits.is_empty() {
-            linear_velocity.y += 20.0;
-        }
-    }
-
-    linear_velocity.x *= 0.8;
-    linear_velocity.y *= 0.98;
-    linear_velocity.z *= 0.8;
-
-    ev_refocus.send(MainCameraFocusEvent {
-        focus: player_tr.translation,
-    });
 }

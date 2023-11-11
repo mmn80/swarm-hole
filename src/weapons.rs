@@ -21,7 +21,7 @@ impl Plugin for WeaponsPlugin {
             .add_systems(
                 Update,
                 (
-                    laser_target_npc,
+                    (laser_target_npc, laser_target_player),
                     laser_shoot_ray,
                     laser_ray_update,
                     laser_ray_despawn,
@@ -34,7 +34,8 @@ impl Plugin for WeaponsPlugin {
 #[derive(Resource, Default)]
 pub struct Weapons {
     pub laser_mesh: Handle<Mesh>,
-    pub laser_material: Handle<StandardMaterial>,
+    pub player_laser_material: Handle<StandardMaterial>,
+    pub npc_laser_material: Handle<StandardMaterial>,
 }
 
 fn setup_weapons(
@@ -51,9 +52,17 @@ fn setup_weapons(
         })
         .unwrap(),
     );
-    weapons.laser_material = materials.add(StandardMaterial {
-        base_color: Color::ORANGE_RED,
+    weapons.player_laser_material = materials.add(StandardMaterial {
+        base_color: Color::YELLOW,
         emissive: Color::YELLOW,
+        perceptual_roughness: 1.0,
+        metallic: 0.,
+        reflectance: 0.,
+        ..default()
+    });
+    weapons.npc_laser_material = materials.add(StandardMaterial {
+        base_color: Color::ORANGE_RED,
+        emissive: Color::ORANGE_RED,
         perceptual_roughness: 1.0,
         metallic: 0.,
         reflectance: 0.,
@@ -70,10 +79,11 @@ pub struct Laser {
     pub target: Option<Entity>,
     pub ray: Option<Entity>,
     pub time_ended: f32,
+    pub is_player: bool,
 }
 
 impl Laser {
-    pub fn new(range: f32, dps: f32, duration: f32, cooldown: f32) -> Self {
+    pub fn new(range: f32, dps: f32, duration: f32, cooldown: f32, is_player: bool) -> Self {
         Self {
             range,
             dps,
@@ -82,6 +92,7 @@ impl Laser {
             target: None,
             ray: None,
             time_ended: 0.,
+            is_player,
         }
     }
 }
@@ -118,6 +129,34 @@ fn laser_target_npc(
     }
 }
 
+fn laser_target_player(
+    time: Res<Time>,
+    mut q_laser: Query<(&mut Laser, &Transform), Without<Player>>,
+    q_player: Query<(Entity, &Transform), With<Player>>,
+) {
+    for (mut laser, tr_src) in &mut q_laser {
+        if laser.target.is_some() || time.elapsed_seconds() - laser.time_ended < laser.cooldown {
+            continue;
+        }
+        let src_pos = tr_src.translation;
+        let Some((player_ent, player_pos)) = q_player
+            .iter()
+            .map(|(ent, tr)| (ent, tr.translation))
+            .min_by(|p1, p2| {
+                (src_pos - p1.1)
+                    .length()
+                    .partial_cmp(&(src_pos - p2.1).length())
+                    .unwrap()
+            })
+        else {
+            continue;
+        };
+        if laser.range > (player_pos - src_pos).length() {
+            laser.target = Some(player_ent);
+        }
+    }
+}
+
 #[derive(Component)]
 pub struct LaserRay {
     pub source: Entity,
@@ -132,10 +171,10 @@ pub struct LaserRayMesh;
 fn laser_shoot_ray(
     time: Res<Time>,
     weapons: Res<Weapons>,
-    mut q_laser: Query<(Entity, &mut Laser), With<Player>>,
+    mut q_laser: Query<(Entity, &mut Laser)>,
     mut cmd: Commands,
 ) {
-    for (player_ent, mut laser) in &mut q_laser {
+    for (source, mut laser) in &mut q_laser {
         if laser.ray.is_none() {
             let Some(target) = laser.target else {
                 continue;
@@ -143,7 +182,7 @@ fn laser_shoot_ray(
             let id = cmd
                 .spawn((
                     LaserRay {
-                        source: player_ent,
+                        source,
                         target,
                         time_started: time.elapsed_seconds(),
                         dead: false,
@@ -156,7 +195,11 @@ fn laser_shoot_ray(
                         PbrBundle {
                             transform: Transform::IDENTITY,
                             mesh: weapons.laser_mesh.clone(),
-                            material: weapons.laser_material.clone(),
+                            material: if laser.is_player {
+                                weapons.player_laser_material.clone()
+                            } else {
+                                weapons.npc_laser_material.clone()
+                            },
                             ..default()
                         },
                         BloomSettings {
@@ -178,7 +221,7 @@ fn laser_ray_update(
     mut q_ray: Query<(&mut LaserRay, &mut Transform, &Children), Without<LaserRayMesh>>,
     mut q_ray_mesh: Query<&mut Transform, (With<LaserRayMesh>, Without<Laser>)>,
     mut q_targets: Query<
-        (&Transform, Option<&Laser>, Option<&mut Health>),
+        (&Transform, Option<&Laser>, Option<&mut Health>, Has<Player>),
         (Without<LaserRay>, Without<LaserRayMesh>),
     >,
 ) {
@@ -187,13 +230,17 @@ fn laser_ray_update(
             continue;
         };
         let (s, dps, duration) = {
-            let Ok((tr_laser, Some(laser), _)) = q_targets.get(ray.source) else {
+            let Ok((tr_laser, Some(laser), _, is_player)) = q_targets.get(ray.source) else {
                 ray.dead = true;
                 continue;
             };
-            (tr_laser.translation, laser.dps, laser.duration)
+            (
+                tr_laser.translation + if is_player { Vec3::Y * 0.8 } else { Vec3::ZERO },
+                laser.dps,
+                laser.duration,
+            )
         };
-        let Ok((tr_target, _, Some(mut health))) = q_targets.get_mut(ray.target) else {
+        let Ok((tr_target, _, Some(mut health), _)) = q_targets.get_mut(ray.target) else {
             ray.dead = true;
             continue;
         };
@@ -222,6 +269,7 @@ fn laser_ray_update(
 }
 
 fn laser_ray_despawn(
+    time: Res<Time>,
     q_ray: Query<(Entity, &LaserRay)>,
     mut q_laser: Query<&mut Laser>,
     mut cmd: Commands,
@@ -232,6 +280,7 @@ fn laser_ray_despawn(
             if let Ok(mut laser) = q_laser.get_mut(ray.source) {
                 laser.ray = None;
                 laser.target = None;
+                laser.time_ended = time.elapsed_seconds();
             }
         }
     }
