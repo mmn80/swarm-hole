@@ -16,7 +16,7 @@ impl Plugin for NpcPlugin {
         app.register_type::<Npc>()
             .init_resource::<NpcCommons>()
             .add_systems(Startup, setup_npc_commons)
-            .add_systems(Update, (spawn_npcs, move_npcs, kill_npcs));
+            .add_systems(Update, (spawn_npcs, move_npcs, die));
     }
 }
 
@@ -36,18 +36,7 @@ pub struct NpcType {
 
 #[derive(Component, Reflect)]
 pub struct Npc {
-    speed: f32,
-    pub hp: u32,
-}
-
-impl Npc {
-    pub fn take_damage(&mut self, damage: u32) {
-        self.hp = if damage >= self.hp {
-            0
-        } else {
-            self.hp - damage
-        };
-    }
+    pub speed: f32,
 }
 
 fn setup_npc_commons(
@@ -125,8 +114,8 @@ fn spawn_npcs(
                         .spawn((
                             Npc {
                                 speed: npc_type.speed,
-                                hp: npc_type.hp,
                             },
+                            Health(npc_type.hp),
                             PbrBundle {
                                 transform: Transform::from_xyz(x, npc_type.radius + 0.1, z),
                                 mesh: npc_type.mesh.clone(),
@@ -167,9 +156,18 @@ fn move_npcs(
     }
 }
 
-fn kill_npcs(q_npc: Query<(Entity, &Npc)>, mut cmd: Commands) {
-    for (npc_ent, npc) in &q_npc {
-        if npc.hp <= 0 {
+#[derive(Component)]
+pub struct Health(pub u32);
+
+impl Health {
+    pub fn take_damage(&mut self, damage: u32) {
+        self.0 = if damage >= self.0 { 0 } else { self.0 - damage };
+    }
+}
+
+fn die(q_npc: Query<(Entity, &Health)>, mut cmd: Commands) {
+    for (npc_ent, health) in &q_npc {
+        if health.0 <= 0 {
             cmd.entity(npc_ent).despawn_recursive();
         }
     }

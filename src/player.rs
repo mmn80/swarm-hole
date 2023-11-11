@@ -5,8 +5,9 @@ use crate::{
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
     materials::BasicMaterials,
-    npc::Npc,
+    npc::Health,
     physics::{Layer, ALL_LAYERS},
+    weapons::Laser,
 };
 
 pub struct PlayerPlugin;
@@ -15,7 +16,6 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Player>()
             .add_systems(Startup, setup_player)
-            .add_systems(Update, shoot_npcs)
             .add_systems(
                 PhysicsSchedule,
                 move_player.before(PhysicsStepSet::BroadPhase),
@@ -25,8 +25,7 @@ impl Plugin for PlayerPlugin {
 
 #[derive(Component, Reflect)]
 pub struct Player {
-    speed: f32,
-    pub hp: u32,
+    pub speed: f32,
 }
 
 fn setup_player(
@@ -40,7 +39,9 @@ fn setup_player(
 
     let id = cmd
         .spawn((
-            Player { speed: 2., hp: 100 },
+            Player { speed: 2. },
+            Health(100),
+            Laser::new(10., 10., 1., 1.),
             PbrBundle {
                 transform: Transform::from_xyz(0.0, player_height / 2., 0.0),
                 mesh: meshes.add(Mesh::from(shape::Capsule {
@@ -112,27 +113,4 @@ fn move_player(
     ev_refocus.send(MainCameraFocusEvent {
         focus: player_tr.translation,
     });
-}
-
-fn shoot_npcs(
-    spatial_query: SpatialQuery,
-    q_player: Query<&Transform, With<Player>>,
-    mut q_npc: Query<&mut Npc>,
-) {
-    let Ok(tr) = q_player.get_single() else {
-        return;
-    };
-    if let Some(projection) = spatial_query.project_point(
-        tr.translation,
-        true,
-        SpatialQueryFilter::new().with_masks([Layer::NPC]),
-    ) {
-        let dist = (tr.translation - projection.point).length();
-        if dist < 2. {
-            let Ok(mut npc) = q_npc.get_mut(projection.entity) else {
-                return;
-            };
-            npc.take_damage(5);
-        }
-    }
 }
