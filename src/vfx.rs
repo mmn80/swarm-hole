@@ -28,7 +28,7 @@ fn setup_vfx(mut vfx: ResMut<Vfx>, mut effects: ResMut<Assets<EffectAsset>>, mut
     let drag = writer.lit(2.).expr();
     let update_drag = LinearDragModifier::new(drag);
     let color = writer.prop("spawn_color").expr();
-    let init_color = SetAttributeModifier::new(Attribute::COLOR, color);
+    let init_color = SetAttributeModifier::new(Attribute::HDR_COLOR, color);
     let normal = writer.prop("normal");
     let pos = writer.lit(Vec3::ZERO);
     let init_pos = SetAttributeModifier::new(Attribute::POSITION, pos.expr());
@@ -41,7 +41,7 @@ fn setup_vfx(mut vfx: ResMut<Vfx>, mut effects: ResMut<Assets<EffectAsset>>, mut
     vfx.damage_particles = effects.add(
         EffectAsset::new(32768, spawner, writer.finish())
             .with_name("damage_particles")
-            .with_property("spawn_color", 0xFFFFFFFFu32.into())
+            .with_property("spawn_color", Vec4::splat(1.0).into())
             .with_property("normal", Vec3::ZERO.into())
             .init(init_pos)
             .init(init_vel)
@@ -53,7 +53,7 @@ fn setup_vfx(mut vfx: ResMut<Vfx>, mut effects: ResMut<Assets<EffectAsset>>, mut
                 mode: OrientMode::ParallelCameraDepthPlane,
             })
             .render(SetSizeModifier {
-                size: Vec2::splat(0.1).into(),
+                size: Vec2::splat(0.05).into(),
                 screen_space_size: false,
             }),
     );
@@ -83,9 +83,7 @@ fn update_vfx(
     for ev in ev_damage_particles.read() {
         tr_effect.translation = ev.position;
 
-        let c = ev.color.as_rgba_u8();
-        let color = 0xFF000000u32 | (c[2] as u32) << 16 | (c[1] as u32) << 8 | (c[0] as u32);
-        effect.set_property("spawn_color", color.into());
+        effect.set_property("spawn_color", Vec4::from(ev.color.as_rgba_f32()).into());
 
         let mut normal = ev.normal;
         normal.y = 0.;

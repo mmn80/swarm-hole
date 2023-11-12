@@ -39,6 +39,9 @@ pub struct Weapons {
     pub npc_laser_material: Handle<StandardMaterial>,
 }
 
+const PLAYER_LASER_COLOR: Color = Color::rgb(5.0, 5.0, 0.0);
+const NPC_LASER_COLOR: Color = Color::rgb(5.0, 2.0, 0.0);
+
 fn setup_weapons(
     mut weapons: ResMut<Weapons>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -54,16 +57,16 @@ fn setup_weapons(
         .unwrap(),
     );
     weapons.player_laser_material = materials.add(StandardMaterial {
-        base_color: Color::YELLOW,
-        emissive: Color::YELLOW,
+        base_color: PLAYER_LASER_COLOR,
+        emissive: PLAYER_LASER_COLOR,
         perceptual_roughness: 1.0,
         metallic: 0.,
         reflectance: 0.,
         ..default()
     });
     weapons.npc_laser_material = materials.add(StandardMaterial {
-        base_color: Color::ORANGE_RED,
-        emissive: Color::ORANGE_RED,
+        base_color: NPC_LASER_COLOR,
+        emissive: NPC_LASER_COLOR,
         perceptual_roughness: 1.0,
         metallic: 0.,
         reflectance: 0.,
@@ -244,9 +247,9 @@ fn laser_ray_update(
                 laser.dps,
                 laser.duration,
                 if is_player {
-                    Color::YELLOW
+                    PLAYER_LASER_COLOR
                 } else {
-                    Color::ORANGE_RED
+                    NPC_LASER_COLOR
                 },
             )
         };
