@@ -9,6 +9,7 @@ use crate::{
     npc::{Health, Npc},
     physics::Layer,
     player::Player,
+    vfx::DamageParticlesEvent,
 };
 
 pub struct WeaponsPlugin;
@@ -163,6 +164,7 @@ pub struct LaserRay {
     pub target: Entity,
     pub time_started: f32,
     pub dead: bool,
+    pub vfx_started: bool,
 }
 
 #[derive(Component)]
@@ -186,8 +188,9 @@ fn laser_shoot_ray(
                         target,
                         time_started: time.elapsed_seconds(),
                         dead: false,
+                        vfx_started: false,
                     },
-                    SpatialBundle::default(),
+                    SpatialBundle::from_transform(Transform::from_xyz(0., -10., 0.)),
                 ))
                 .with_children(|parent| {
                     parent.spawn((
@@ -218,6 +221,7 @@ fn laser_shoot_ray(
 
 fn laser_ray_update(
     time: Res<Time>,
+    mut ev_damage_particles: EventWriter<DamageParticlesEvent>,
     mut q_ray: Query<(&mut LaserRay, &mut Transform, &Children), Without<LaserRayMesh>>,
     mut q_ray_mesh: Query<&mut Transform, (With<LaserRayMesh>, Without<Laser>)>,
     mut q_targets: Query<
@@ -263,6 +267,14 @@ fn laser_ray_update(
         tr_ray.translation = (s + t) / 2.;
         tr_ray.look_to(dir.any_orthonormal_vector(), dir);
         tr_ray_mesh.scale = Vec3::new(1., ts.length(), 1.);
+
+        if !ray.vfx_started {
+            ray.vfx_started = true;
+            ev_damage_particles.send(DamageParticlesEvent {
+                position: t - dir * 1.,
+                normal: -dir,
+            });
+        }
 
         health.take_damage(time.delta_seconds() * dps);
     }

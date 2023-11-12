@@ -12,6 +12,7 @@ rand_distr = "0.4"
 bevy = { version = "0.12", features = ["dynamic_linking"] }
 bevy_xpbd_3d = { version = "0.3", features = ["simd"] }
 polyanya = "0.4"
+bevy_hanabi = { version = "0.8", default-features = false, features = ["3d"] }
 
 [profile.dev]
 opt-level = 3

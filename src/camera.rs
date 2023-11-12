@@ -61,11 +61,6 @@ fn spawn_camera(mut cmd: Commands) {
             ..default()
         },
         BloomSettings::default(),
-        //bevy::core_pipeline::fxaa::Fxaa::default(),
-        // FogSettings {
-        //     falloff: FogFalloff::from_visibility(1000.0),
-        //     ..default()
-        // },
         MainCamera {
             radius,
             ..default()

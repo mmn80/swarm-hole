@@ -6,4 +6,5 @@ pub mod npc;
 pub mod physics;
 pub mod player;
 pub mod terrain;
+pub mod vfx;
 pub mod weapons;

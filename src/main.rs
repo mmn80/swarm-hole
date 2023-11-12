@@ -1,10 +1,11 @@
 use bevy::{
     prelude::*,
     render::{
-        settings::{Backends, RenderCreation, WgpuSettings},
+        settings::{Backends, WgpuFeatures, WgpuSettings},
         RenderPlugin,
     },
 };
+use bevy_hanabi::prelude::*;
 use bevy_xpbd_3d::prelude::*;
 
 use swarm_hole::{
@@ -16,10 +17,18 @@ use swarm_hole::{
     physics::MainPhysicsPlugin,
     player::PlayerPlugin,
     terrain::TerrainPlugin,
+    vfx::VfxPlugin,
     weapons::WeaponsPlugin,
 };
 
 fn main() {
+    let mut wgpu_settings = WgpuSettings {
+        backends: Some(Backends::VULKAN),
+        ..Default::default()
+    };
+    wgpu_settings
+        .features
+        .set(WgpuFeatures::VERTEX_WRITABLE_STORAGE, true);
     App::new()
         .insert_resource(Msaa::Sample4)
         .insert_resource(ClearColor(INFINITE_TEMP_COLOR))
@@ -33,13 +42,14 @@ fn main() {
                     ..default()
                 })
                 .set(RenderPlugin {
-                    render_creation: RenderCreation::Automatic(WgpuSettings {
-                        backends: Some(Backends::VULKAN),
-                        ..Default::default()
-                    }),
+                    render_creation: wgpu_settings.into(),
                 }),
         )
-        .add_plugins((PhysicsPlugins::default(), PhysicsDebugPlugin::default()))
+        .add_plugins((
+            PhysicsPlugins::default(),
+            PhysicsDebugPlugin::default(),
+            HanabiPlugin,
+        ))
         .add_plugins((
             DebugUiPlugin,
             BasicMaterialsPlugin,
@@ -50,6 +60,7 @@ fn main() {
             PlayerPlugin,
             NpcPlugin,
             WeaponsPlugin,
+            VfxPlugin,
         ))
         .run();
 }
