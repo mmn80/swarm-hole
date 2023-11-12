@@ -5,6 +5,7 @@ use rand::prelude::*;
 
 use crate::{
     debug_ui::{DebugUiCommand, DebugUiEvent},
+    materials::BasicMaterials,
     physics::{Layer, ALL_LAYERS},
     player::Player,
     weapons::Laser,
@@ -31,6 +32,7 @@ pub struct NpcType {
     pub speed: f32,
     pub radius: f32,
     pub has_laser: bool,
+    pub xp_drop: u32,
     pub mesh: Handle<Mesh>,
     pub material: Handle<StandardMaterial>,
     pub frequency: f32,
@@ -39,6 +41,7 @@ pub struct NpcType {
 #[derive(Component, Reflect)]
 pub struct Npc {
     pub speed: f32,
+    pub xp_drop: u32,
 }
 
 fn setup_npcs(
@@ -52,6 +55,7 @@ fn setup_npcs(
             speed: 2.,
             radius: 0.5,
             has_laser: false,
+            xp_drop: 1,
             mesh: meshes.add(
                 Mesh::try_from(shape::Icosphere {
                     radius: 0.5,
@@ -72,6 +76,7 @@ fn setup_npcs(
             speed: 1.5,
             radius: 1.,
             has_laser: true,
+            xp_drop: 10,
             mesh: meshes.add(
                 Mesh::try_from(shape::Icosphere {
                     radius: 1.,
@@ -114,6 +119,7 @@ fn spawn_npcs(npcs: Res<Npcs>, mut ev_debug_ui: EventReader<DebugUiEvent>, mut c
                         .spawn((
                             Npc {
                                 speed: npc_type.speed,
+                                xp_drop: npc_type.xp_drop,
                             },
                             Health(npc_type.hp as f32),
                             PbrBundle {
@@ -177,9 +183,48 @@ impl Health {
     }
 }
 
-fn die(q_npc: Query<(Entity, &Health)>, mut cmd: Commands) {
-    for (npc_ent, health) in &q_npc {
+#[derive(Component)]
+pub struct XpDrop(pub u32);
+
+fn die(
+    mut meshes: ResMut<Assets<Mesh>>,
+    q_npc: Query<(Entity, &Health, &Transform, Option<&Npc>)>,
+    materials: Res<BasicMaterials>,
+    mut cmd: Commands,
+) {
+    for (npc_ent, health, tr_npc, npc) in &q_npc {
         if health.0 <= f32::EPSILON {
+            if let Some(npc) = npc {
+                let big_drop = npc.xp_drop > 5;
+                let (w, h) = if big_drop { (0.4, 0.4) } else { (0.2, 0.2) };
+                let p = tr_npc.translation;
+                let id = cmd
+                    .spawn((
+                        XpDrop(npc.xp_drop),
+                        PbrBundle {
+                            transform: Transform::from_translation(Vec3::new(p.x, h, p.z)),
+                            mesh: meshes.add(
+                                Mesh::try_from(shape::Icosphere {
+                                    radius: w,
+                                    subdivisions: 1,
+                                })
+                                .unwrap(),
+                            ),
+                            material: (if big_drop {
+                                materials.xp_drop_big.clone()
+                            } else {
+                                materials.xp_drop_small.clone()
+                            }),
+                            ..default()
+                        },
+                        RigidBody::Kinematic,
+                        Collider::ball(w),
+                        CollisionLayers::new([Layer::Building], [Layer::Building, Layer::Player]),
+                    ))
+                    .id();
+                cmd.entity(id)
+                    .insert(Name::new(format!("Xp Drop of {} ({id:?})", npc.xp_drop)));
+            }
             cmd.entity(npc_ent).despawn_recursive();
         }
     }
