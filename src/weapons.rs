@@ -190,7 +190,7 @@ fn laser_shoot_ray(
                         dead: false,
                         vfx_started: false,
                     },
-                    SpatialBundle::from_transform(Transform::from_xyz(0., -10., 0.)),
+                    SpatialBundle::default(),
                 ))
                 .with_children(|parent| {
                     parent.spawn((
@@ -203,6 +203,7 @@ fn laser_shoot_ray(
                             } else {
                                 weapons.npc_laser_material.clone()
                             },
+                            visibility: Visibility::Hidden,
                             ..default()
                         },
                         BloomSettings {
@@ -223,7 +224,7 @@ fn laser_ray_update(
     time: Res<Time>,
     mut ev_damage_particles: EventWriter<DamageParticlesEvent>,
     mut q_ray: Query<(&mut LaserRay, &mut Transform, &Children), Without<LaserRayMesh>>,
-    mut q_ray_mesh: Query<&mut Transform, (With<LaserRayMesh>, Without<Laser>)>,
+    mut q_ray_mesh: Query<(&mut Transform, &mut Visibility), (With<LaserRayMesh>, Without<Laser>)>,
     mut q_targets: Query<
         (&Transform, Option<&Laser>, Option<&mut Health>, Has<Player>),
         (Without<LaserRay>, Without<LaserRayMesh>),
@@ -257,7 +258,7 @@ fn laser_ray_update(
             ray.dead = true;
             continue;
         };
-        let Ok(mut tr_ray_mesh) = q_ray_mesh.get_mut(*child) else {
+        let Ok((mut tr_ray_mesh, mut vis_ray_mesh)) = q_ray_mesh.get_mut(*child) else {
             ray.dead = true;
             continue;
         };
@@ -272,6 +273,8 @@ fn laser_ray_update(
         tr_ray.translation = (s + t) / 2.;
         tr_ray.look_to(dir.any_orthonormal_vector(), dir);
         tr_ray_mesh.scale = Vec3::new(1., ts.length(), 1.);
+
+        *vis_ray_mesh = Visibility::Visible;
 
         if !ray.vfx_started {
             ray.vfx_started = true;
