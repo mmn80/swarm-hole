@@ -186,6 +186,20 @@ impl Health {
 #[derive(Component)]
 pub struct XpDrop(pub u32);
 
+impl XpDrop {
+    pub fn is_big(drop: u32) -> bool {
+        drop > 5
+    }
+
+    pub fn get_height(drop: u32) -> f32 {
+        if XpDrop::is_big(drop) {
+            0.4
+        } else {
+            0.2
+        }
+    }
+}
+
 fn die(
     mut meshes: ResMut<Assets<Mesh>>,
     q_npc: Query<(Entity, &Health, &Transform, Option<&Npc>)>,
@@ -195,22 +209,21 @@ fn die(
     for (npc_ent, health, tr_npc, npc) in &q_npc {
         if health.0 <= f32::EPSILON {
             if let Some(npc) = npc {
-                let big_drop = npc.xp_drop > 5;
-                let (w, h) = if big_drop { (0.4, 0.4) } else { (0.2, 0.2) };
+                let h = XpDrop::get_height(npc.xp_drop);
                 let p = tr_npc.translation;
                 let id = cmd
                     .spawn((
                         XpDrop(npc.xp_drop),
                         PbrBundle {
-                            transform: Transform::from_translation(Vec3::new(p.x, h, p.z)),
+                            transform: Transform::from_translation(Vec3::new(p.x, h + 0.02, p.z)),
                             mesh: meshes.add(
                                 Mesh::try_from(shape::Icosphere {
-                                    radius: w,
+                                    radius: h,
                                     subdivisions: 1,
                                 })
                                 .unwrap(),
                             ),
-                            material: (if big_drop {
+                            material: (if XpDrop::is_big(npc.xp_drop) {
                                 materials.xp_drop_big.clone()
                             } else {
                                 materials.xp_drop_small.clone()
@@ -218,7 +231,7 @@ fn die(
                             ..default()
                         },
                         RigidBody::Kinematic,
-                        Collider::ball(w),
+                        Collider::ball(h),
                         CollisionLayers::new([Layer::Building], [Layer::Building, Layer::Player]),
                     ))
                     .id();

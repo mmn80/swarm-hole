@@ -5,7 +5,7 @@ use crate::{
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
     materials::BasicMaterials,
-    npc::Health,
+    npc::{Health, XpDrop},
     physics::{Layer, ALL_LAYERS},
     weapons::Laser,
 };
@@ -16,6 +16,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Player>()
             .add_systems(Startup, setup_player)
+            .add_systems(Update, gather_xp)
             .add_systems(
                 PhysicsSchedule,
                 move_player.before(PhysicsStepSet::BroadPhase),
@@ -26,6 +27,8 @@ impl Plugin for PlayerPlugin {
 #[derive(Component, Reflect)]
 pub struct Player {
     pub speed: f32,
+    pub xp: u32,
+    pub gather_range: f32,
 }
 
 fn setup_player(
@@ -39,7 +42,11 @@ fn setup_player(
 
     let id = cmd
         .spawn((
-            Player { speed: 4. },
+            Player {
+                speed: 4.,
+                xp: 0,
+                gather_range: 3.,
+            },
             Health(100.),
             Laser::new(15., 20., 0.5, 0.5, true),
             PbrBundle {
@@ -122,5 +129,40 @@ fn move_player(
         ev_refocus.send(MainCameraFocusEvent {
             focus: player_tr.translation,
         });
+    }
+}
+
+fn gather_xp(
+    time: Res<Time>,
+    q_space: SpatialQuery,
+    mut q_player: Query<(&Transform, &mut Player)>,
+    mut q_xp_drop: Query<(Entity, &Transform, &mut LinearVelocity, &XpDrop)>,
+    mut cmd: Commands,
+) {
+    for (tr_player, mut player) in &mut q_player {
+        for ent in q_space
+            .shape_intersections(
+                &Collider::ball(player.gather_range),
+                tr_player.translation,
+                Quat::default(),
+                SpatialQueryFilter::new().with_masks([Layer::Building]),
+            )
+            .iter()
+        {
+            if let Ok((ent, tr_xp, mut lin_vel, xp_drop)) = q_xp_drop.get_mut(*ent) {
+                let mut delta = tr_player.translation - tr_xp.translation;
+                if delta.length() < XpDrop::get_height(xp_drop.0) + 1. {
+                    player.xp += xp_drop.0;
+                    cmd.entity(ent).despawn_recursive();
+                } else {
+                    lin_vel.y = 0.;
+                    let old_speed = lin_vel.length();
+                    delta.y = 0.;
+                    delta = delta.normalize() * (old_speed + time.delta_seconds() * 20.);
+                    lin_vel.x = delta.x;
+                    lin_vel.z = delta.z;
+                }
+            }
+        }
     }
 }
