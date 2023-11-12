@@ -233,7 +233,7 @@ fn laser_ray_update(
         if ray.dead {
             continue;
         };
-        let (s, dps, duration) = {
+        let (s, dps, duration, color) = {
             let Ok((tr_laser, Some(laser), _, is_player)) = q_targets.get(ray.source) else {
                 ray.dead = true;
                 continue;
@@ -242,6 +242,11 @@ fn laser_ray_update(
                 tr_laser.translation + if is_player { Vec3::Y * 0.8 } else { Vec3::ZERO },
                 laser.dps,
                 laser.duration,
+                if is_player {
+                    Color::YELLOW
+                } else {
+                    Color::ORANGE_RED
+                },
             )
         };
         let Ok((tr_target, _, Some(mut health), _)) = q_targets.get_mut(ray.target) else {
@@ -271,8 +276,9 @@ fn laser_ray_update(
         if !ray.vfx_started {
             ray.vfx_started = true;
             ev_damage_particles.send(DamageParticlesEvent {
-                position: t - dir * 1.,
+                position: t - dir * 0.5,
                 normal: -dir,
+                color,
             });
         }
 

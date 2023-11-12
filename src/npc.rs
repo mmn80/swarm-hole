@@ -117,7 +117,7 @@ fn spawn_npcs(npcs: Res<Npcs>, mut ev_debug_ui: EventReader<DebugUiEvent>, mut c
                             },
                             Health(npc_type.hp as f32),
                             PbrBundle {
-                                transform: Transform::from_xyz(x, npc_type.radius + 0.1, z),
+                                transform: Transform::from_xyz(x, npc_type.radius + 0.02, z),
                                 mesh: npc_type.mesh.clone(),
                                 material: npc_type.material.clone(),
                                 ..default()

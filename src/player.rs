@@ -43,7 +43,7 @@ fn setup_player(
             Health(100.),
             Laser::new(15., 20., 0.5, 0.5, true),
             PbrBundle {
-                transform: Transform::from_xyz(0.0, player_height / 2., 0.0),
+                transform: Transform::from_xyz(0.0, player_height / 2. + 0.2, 0.0),
                 mesh: meshes.add(Mesh::from(shape::Capsule {
                     radius: player_width,
                     rings: 0,

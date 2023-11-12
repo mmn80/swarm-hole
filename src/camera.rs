@@ -60,7 +60,7 @@ fn spawn_camera(mut cmd: Commands) {
             },
             ..default()
         },
-        BloomSettings::default(),
+        BloomSettings::NATURAL,
         MainCamera {
             radius,
             ..default()
