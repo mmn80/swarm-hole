@@ -89,17 +89,25 @@ fn move_player(
         let acc = player.speed / PLAYER_ACC_STEPS;
         let mut vel = Vec2::new(linear_velocity.x, linear_velocity.z);
         if !debug_ui.has_focus() {
+            let mut changed = false;
             if keyboard.pressed(KeyCode::W) || keyboard.pressed(KeyCode::Up) {
                 vel.y -= acc;
+                changed = true;
             }
             if keyboard.pressed(KeyCode::A) || keyboard.pressed(KeyCode::Left) {
                 vel.x -= acc;
+                changed = true;
             }
             if keyboard.pressed(KeyCode::S) || keyboard.pressed(KeyCode::Down) {
                 vel.y += acc;
+                changed = true;
             }
             if keyboard.pressed(KeyCode::D) || keyboard.pressed(KeyCode::Right) {
                 vel.x += acc;
+                changed = true;
+            }
+            if !changed {
+                vel *= 0.8;
             }
             if keyboard.just_pressed(KeyCode::Space) && !ground_hits.is_empty() {
                 linear_velocity.y += 20.0;
