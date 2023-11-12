@@ -90,7 +90,7 @@ fn setup_npcs(
     ];
 }
 
-const NPC_DIST: f32 = 5.0;
+const NPC_DIST: f32 = 10.0;
 
 fn spawn_npcs(npcs: Res<Npcs>, mut ev_debug_ui: EventReader<DebugUiEvent>, mut cmd: Commands) {
     for ev in ev_debug_ui.read() {

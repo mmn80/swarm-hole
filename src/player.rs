@@ -39,9 +39,9 @@ fn setup_player(
 
     let id = cmd
         .spawn((
-            Player { speed: 2. },
+            Player { speed: 4. },
             Health(100.),
-            Laser::new(15., 10., 1., 0.5, true),
+            Laser::new(15., 20., 0.5, 0.5, true),
             PbrBundle {
                 transform: Transform::from_xyz(0.0, player_height / 2., 0.0),
                 mesh: meshes.add(Mesh::from(shape::Capsule {
@@ -71,6 +71,8 @@ fn setup_player(
     cmd.entity(id).insert(Name::new(format!("Player ({id:?})")));
 }
 
+const PLAYER_ACC_STEPS: f32 = 10.;
+
 fn move_player(
     keyboard: Res<Input<KeyCode>>,
     debug_ui: Res<DebugUi>,
@@ -84,27 +86,30 @@ fn move_player(
             linear_velocity.y -= 0.4;
         }
 
+        let acc = player.speed / PLAYER_ACC_STEPS;
+        let mut vel = Vec2::new(linear_velocity.x, linear_velocity.z);
         if !debug_ui.has_focus() {
             if keyboard.pressed(KeyCode::W) || keyboard.pressed(KeyCode::Up) {
-                linear_velocity.z -= player.speed;
+                vel.y -= acc;
             }
             if keyboard.pressed(KeyCode::A) || keyboard.pressed(KeyCode::Left) {
-                linear_velocity.x -= player.speed;
+                vel.x -= acc;
             }
             if keyboard.pressed(KeyCode::S) || keyboard.pressed(KeyCode::Down) {
-                linear_velocity.z += player.speed;
+                vel.y += acc;
             }
             if keyboard.pressed(KeyCode::D) || keyboard.pressed(KeyCode::Right) {
-                linear_velocity.x += player.speed;
+                vel.x += acc;
             }
             if keyboard.just_pressed(KeyCode::Space) && !ground_hits.is_empty() {
                 linear_velocity.y += 20.0;
             }
         }
+        vel = vel.clamp_length_max(player.speed);
 
-        linear_velocity.x *= 0.8;
+        linear_velocity.x = vel.x;
+        linear_velocity.z = vel.y;
         linear_velocity.y *= 0.98;
-        linear_velocity.z *= 0.8;
 
         ev_refocus.send(MainCameraFocusEvent {
             focus: player_tr.translation,
