@@ -46,7 +46,7 @@ fn setup_weapons(
 ) {
     weapons.laser_mesh = meshes.add(
         Mesh::try_from(shape::Cylinder {
-            radius: 0.1,
+            radius: 0.05,
             height: 1.,
             resolution: 8,
             segments: 1,

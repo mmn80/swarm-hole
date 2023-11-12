@@ -32,7 +32,7 @@ fn setup_vfx(mut vfx: ResMut<Vfx>, mut effects: ResMut<Assets<EffectAsset>>, mut
     let normal = writer.prop("normal");
     let pos = writer.lit(Vec3::ZERO);
     let init_pos = SetAttributeModifier::new(Attribute::POSITION, pos.expr());
-    let tangent = writer.lit(Vec3::Z).cross(normal.clone());
+    let tangent = writer.lit(Vec3::Y).cross(normal.clone());
     let spread = writer.rand(ScalarType::Float) * writer.lit(2.) - writer.lit(1.);
     let speed = writer.rand(ScalarType::Float) * writer.lit(40.);
     let velocity = (normal + tangent * spread * writer.lit(5.0)).normalized() * speed;
