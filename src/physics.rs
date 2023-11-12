@@ -10,10 +10,12 @@ pub struct MainPhysicsPlugin;
 
 impl Plugin for MainPhysicsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, physics_debug_ui).add_systems(
-            SubstepSchedule,
-            kinematic_collision.in_set(SubstepSet::SolveUserConstraints),
-        );
+        app.add_systems(Startup, setup_physics_debug)
+            .add_systems(Update, physics_debug_ui)
+            .add_systems(
+                SubstepSchedule,
+                kinematic_collision.in_set(SubstepSet::SolveUserConstraints),
+            );
     }
 }
 
@@ -66,6 +68,10 @@ fn kinematic_collision(
             }
         }
     }
+}
+
+fn setup_physics_debug(mut debug_config: ResMut<PhysicsDebugConfig>) {
+    debug_config.enabled = false;
 }
 
 fn physics_debug_ui(
