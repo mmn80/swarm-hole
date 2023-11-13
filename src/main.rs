@@ -19,7 +19,7 @@ use swarm_hole::{
     terrain::TerrainPlugin,
     ui::MainUiPlugin,
     vfx::VfxPlugin,
-    weapons::WeaponsPlugin,
+    weapons::WeaponPlugins,
 };
 
 fn main() {
@@ -61,7 +61,7 @@ fn main() {
             TerrainPlugin,
             PlayerPlugin,
             NpcPlugin,
-            WeaponsPlugin,
+            WeaponPlugins,
             VfxPlugin,
         ))
         .run();

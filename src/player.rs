@@ -7,7 +7,7 @@ use crate::{
     materials::BasicMaterials,
     npc::{Health, XpDrop},
     physics::{Layer, ALL_LAYERS},
-    weapons::Laser,
+    weapons::laser::Laser,
 };
 
 pub struct PlayerPlugin;

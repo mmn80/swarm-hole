@@ -12,12 +12,12 @@ use crate::{
     vfx::DamageParticlesEvent,
 };
 
-pub struct WeaponsPlugin;
+pub struct LaserPlugin;
 
-impl Plugin for WeaponsPlugin {
+impl Plugin for LaserPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Laser>()
-            .init_resource::<Weapons>()
+            .init_resource::<LaserHandles>()
             .add_systems(Startup, setup_weapons)
             .add_systems(
                 Update,
@@ -33,7 +33,7 @@ impl Plugin for WeaponsPlugin {
 }
 
 #[derive(Resource, Default)]
-pub struct Weapons {
+pub struct LaserHandles {
     pub laser_mesh: Handle<Mesh>,
     pub player_laser_material: Handle<StandardMaterial>,
     pub npc_laser_material: Handle<StandardMaterial>,
@@ -43,7 +43,7 @@ const PLAYER_LASER_COLOR: Color = Color::rgb(5.0, 5.0, 0.0);
 const NPC_LASER_COLOR: Color = Color::rgb(5.0, 2.0, 0.0);
 
 fn setup_weapons(
-    mut weapons: ResMut<Weapons>,
+    mut weapons: ResMut<LaserHandles>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
@@ -175,7 +175,7 @@ pub struct LaserRayMesh;
 
 fn laser_shoot_ray(
     time: Res<Time>,
-    weapons: Res<Weapons>,
+    weapons: Res<LaserHandles>,
     mut q_laser: Query<(Entity, &mut Laser)>,
     mut cmd: Commands,
 ) {

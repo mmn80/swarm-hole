@@ -8,7 +8,7 @@ use crate::{
     materials::BasicMaterials,
     physics::{Layer, ALL_LAYERS},
     player::Player,
-    weapons::Laser,
+    weapons::{laser::Laser, melee::Melee},
 };
 
 pub struct NpcPlugin;
@@ -32,6 +32,7 @@ pub struct NpcType {
     pub speed: f32,
     pub radius: f32,
     pub has_laser: bool,
+    pub melee_dps: u32,
     pub xp_drop: u32,
     pub mesh: Handle<Mesh>,
     pub material: Handle<StandardMaterial>,
@@ -55,6 +56,7 @@ fn setup_npcs(
             speed: 2.,
             radius: 0.5,
             has_laser: false,
+            melee_dps: 3,
             xp_drop: 1,
             mesh: meshes.add(
                 Mesh::try_from(shape::Icosphere {
@@ -76,6 +78,7 @@ fn setup_npcs(
             speed: 1.5,
             radius: 1.,
             has_laser: true,
+            melee_dps: 3,
             xp_drop: 10,
             mesh: meshes.add(
                 Mesh::try_from(shape::Icosphere {
@@ -131,6 +134,10 @@ fn spawn_npcs(npcs: Res<Npcs>, mut ev_debug_ui: EventReader<DebugUiEvent>, mut c
                             RigidBody::Kinematic,
                             Collider::ball(npc_type.radius),
                             CollisionLayers::new([Layer::NPC], ALL_LAYERS),
+                            Melee {
+                                range: npc_type.radius + 0.5,
+                                dps: npc_type.melee_dps,
+                            },
                         ))
                         .id();
                     if npc_type.has_laser {

@@ -53,22 +53,22 @@ fn setup_terrain(
         id
     });
 
-    let bld_size = Vec3::new(10.0, 4.0, 5.0);
-    let building_id = cmd
-        .spawn((
-            PbrBundle {
-                transform: Transform::from_xyz(0.0, bld_size.y / 2., 10.0),
-                mesh: meshes.add(Mesh::from(shape::Box::new(
-                    bld_size.x, bld_size.y, bld_size.z,
-                ))),
-                material: materials.building.clone(),
-                ..default()
-            },
-            RigidBody::Static,
-            Collider::cuboid(bld_size.x, bld_size.y, bld_size.z),
-            CollisionLayers::new([Layer::Building], ALL_LAYERS),
-        ))
-        .id();
-    cmd.entity(building_id)
-        .insert(Name::new(format!("Building ({building_id:?})")));
+    // let bld_size = Vec3::new(10.0, 4.0, 5.0);
+    // let building_id = cmd
+    //     .spawn((
+    //         PbrBundle {
+    //             transform: Transform::from_xyz(0.0, bld_size.y / 2., 10.0),
+    //             mesh: meshes.add(Mesh::from(shape::Box::new(
+    //                 bld_size.x, bld_size.y, bld_size.z,
+    //             ))),
+    //             material: materials.building.clone(),
+    //             ..default()
+    //         },
+    //         RigidBody::Static,
+    //         Collider::cuboid(bld_size.x, bld_size.y, bld_size.z),
+    //         CollisionLayers::new([Layer::Building], ALL_LAYERS),
+    //     ))
+    //     .id();
+    // cmd.entity(building_id)
+    //     .insert(Name::new(format!("Building ({building_id:?})")));
 }
