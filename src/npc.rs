@@ -8,6 +8,7 @@ use crate::{
     materials::BasicMaterials,
     physics::{Layer, ALL_LAYERS},
     player::Player,
+    ui::GameState,
     weapons::{laser::Laser, melee::Melee},
 };
 
@@ -100,7 +101,13 @@ fn setup_npcs(
 
 const NPC_DIST: f32 = 10.0;
 
-fn spawn_npcs(npcs: Res<Npcs>, mut ev_debug_ui: EventReader<DebugUiEvent>, mut cmd: Commands) {
+fn spawn_npcs(
+    time: Res<Time>,
+    npcs: Res<Npcs>,
+    mut game_state: ResMut<GameState>,
+    mut ev_debug_ui: EventReader<DebugUiEvent>,
+    mut cmd: Commands,
+) {
     for ev in ev_debug_ui.read() {
         if ev.command == DebugUiCommand::SpawnNpcs {
             let count = ev.param;
@@ -150,6 +157,10 @@ fn spawn_npcs(npcs: Res<Npcs>, mut ev_debug_ui: EventReader<DebugUiEvent>, mut c
                         break;
                     }
                 }
+            }
+
+            if game_state.started_time.is_zero() {
+                game_state.started_time = time.elapsed();
             }
             break;
         }
@@ -218,12 +229,14 @@ fn slow_xp_drops(time: Res<Time>, mut q_npc: Query<&mut LinearVelocity, With<XpD
 }
 
 fn die(
+    time: Res<Time>,
+    mut game_state: ResMut<GameState>,
     mut meshes: ResMut<Assets<Mesh>>,
-    q_npc: Query<(Entity, &Health, &Transform, Option<&Npc>)>,
+    q_npc: Query<(Entity, &Health, &Transform, Option<&Npc>, Option<&Player>)>,
     materials: Res<BasicMaterials>,
     mut cmd: Commands,
 ) {
-    for (npc_ent, health, tr_npc, npc) in &q_npc {
+    for (npc_ent, health, tr_npc, npc, player) in &q_npc {
         if health.0 <= f32::EPSILON {
             if let Some(npc) = npc {
                 let h = XpDrop::get_height(npc.xp_drop);
@@ -254,6 +267,8 @@ fn die(
                     .id();
                 cmd.entity(id)
                     .insert(Name::new(format!("Xp Drop of {} ({id:?})", npc.xp_drop)));
+            } else if player.is_some() {
+                game_state.ended_time = time.elapsed();
             }
             cmd.entity(npc_ent).despawn_recursive();
         }
