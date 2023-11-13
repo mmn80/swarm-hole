@@ -18,7 +18,7 @@ impl Plugin for NpcPlugin {
         app.register_type::<Npc>()
             .init_resource::<Npcs>()
             .add_systems(Startup, setup_npcs)
-            .add_systems(Update, (spawn_npcs, move_npcs, die));
+            .add_systems(Update, (spawn_npcs, move_npcs, slow_xp_drops, die));
     }
 }
 
@@ -64,7 +64,7 @@ fn setup_npcs(
                 .unwrap(),
             ),
             material: materials.add(StandardMaterial {
-                base_color: Color::PURPLE,
+                base_color: Color::LIME_GREEN,
                 metallic: 0.8,
                 perceptual_roughness: 0.3,
                 ..default()
@@ -85,7 +85,7 @@ fn setup_npcs(
                 .unwrap(),
             ),
             material: materials.add(StandardMaterial {
-                base_color: Color::TURQUOISE,
+                base_color: Color::TOMATO,
                 metallic: 0.8,
                 perceptual_roughness: 0.3,
                 ..default()
@@ -200,6 +200,16 @@ impl XpDrop {
     }
 }
 
+fn slow_xp_drops(time: Res<Time>, mut q_npc: Query<&mut LinearVelocity, With<XpDrop>>) {
+    for mut lin_vel in &mut q_npc {
+        let speed = lin_vel.length();
+        if speed > f32::EPSILON {
+            let dir = lin_vel.normalize_or_zero();
+            lin_vel.0 = (speed - time.delta_seconds() * 5.).max(0.) * dir;
+        }
+    }
+}
+
 fn die(
     mut meshes: ResMut<Assets<Mesh>>,
     q_npc: Query<(Entity, &Health, &Transform, Option<&Npc>)>,
@@ -219,7 +229,7 @@ fn die(
                             mesh: meshes.add(
                                 Mesh::try_from(shape::Icosphere {
                                     radius: h,
-                                    subdivisions: 1,
+                                    subdivisions: 4,
                                 })
                                 .unwrap(),
                             ),
