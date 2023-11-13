@@ -157,6 +157,9 @@ fn spawn_npcs(
                         break;
                     }
                 }
+                if n == count {
+                    break;
+                }
             }
 
             if game_state.started_time.is_zero() {
