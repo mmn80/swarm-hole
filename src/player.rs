@@ -132,7 +132,7 @@ fn move_player(
     }
 }
 
-const XP_ATTRACT_FORCE: f32 = 50.;
+const XP_ATTRACT_ACC: f32 = 50.;
 
 fn gather_xp(
     time: Res<Time>,
@@ -160,8 +160,7 @@ fn gather_xp(
                     lin_vel.y = 0.;
                     let old_speed = lin_vel.length();
                     delta.y = 0.;
-                    delta =
-                        delta.normalize() * (old_speed + time.delta_seconds() * XP_ATTRACT_FORCE);
+                    delta = delta.normalize() * (old_speed + time.delta_seconds() * XP_ATTRACT_ACC);
                     lin_vel.x = delta.x;
                     lin_vel.z = delta.z;
                 }

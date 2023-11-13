@@ -17,6 +17,7 @@ use swarm_hole::{
     physics::MainPhysicsPlugin,
     player::PlayerPlugin,
     terrain::TerrainPlugin,
+    ui::MainUiPlugin,
     vfx::VfxPlugin,
     weapons::WeaponsPlugin,
 };
@@ -56,6 +57,7 @@ fn main() {
             MainPhysicsPlugin,
             MainCameraPlugin,
             MainLightsPlugin,
+            MainUiPlugin,
             TerrainPlugin,
             PlayerPlugin,
             NpcPlugin,
