@@ -1,10 +1,7 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::*;
 
-use crate::{
-    materials::BasicMaterials,
-    physics::{Layer, ALL_LAYERS},
-};
+use crate::physics::{Layer, ALL_LAYERS};
 
 pub struct TerrainPlugin;
 
@@ -25,10 +22,17 @@ pub struct Terrain {
 fn setup_terrain(
     mut terrain: ResMut<Terrain>,
     mut meshes: ResMut<Assets<Mesh>>,
-    materials: Res<BasicMaterials>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     mut cmd: Commands,
 ) {
     let ground_size = Vec3::new(1000.0, 1.0, 1000.0);
+    let material = materials.add(StandardMaterial {
+        base_color: Color::SILVER,
+        metallic: 0.0,
+        perceptual_roughness: 0.8,
+        reflectance: 0.2,
+        ..default()
+    });
 
     terrain.ground = Some({
         let id = cmd
@@ -40,7 +44,7 @@ fn setup_terrain(
                         ground_size.y,
                         ground_size.z,
                     ))),
-                    material: materials.terrain.clone(),
+                    material,
                     ..default()
                 },
                 RigidBody::Static,

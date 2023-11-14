@@ -13,7 +13,6 @@ use swarm_hole::{
     camera::MainCameraPlugin,
     debug_ui::DebugUiPlugin,
     light::{MainLightsPlugin, INFINITE_TEMP_COLOR},
-    materials::BasicMaterialsPlugin,
     npc::NpcPlugin,
     physics::MainPhysicsPlugin,
     player::PlayerPlugin,
@@ -55,7 +54,6 @@ fn main() {
         ))
         .add_plugins((
             DebugUiPlugin,
-            BasicMaterialsPlugin,
             MainPhysicsPlugin,
             MainCameraPlugin,
             MainLightsPlugin,

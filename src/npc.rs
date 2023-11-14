@@ -7,7 +7,6 @@ use rand::prelude::*;
 
 use crate::{
     debug_ui::{DebugUiCommand, DebugUiEvent},
-    materials::BasicMaterials,
     physics::{Layer, ALL_LAYERS},
     player::Player,
     skills::{laser::LaserConfig, melee::MeleeConfig, AddSkillEvent, Skill},
@@ -32,6 +31,8 @@ impl Plugin for NpcPlugin {
 #[derive(Resource, Default)]
 pub struct NonPlayerCharacters {
     pub npcs: Vec<Arc<NonPlayerCharacter>>,
+    pub xp_drop_small: Handle<StandardMaterial>,
+    pub xp_drop_big: Handle<StandardMaterial>,
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Reflect)]
@@ -117,6 +118,21 @@ fn setup_npcs(
             frequency: 0.1,
         }),
     ];
+
+    npcs.xp_drop_small = materials.add(StandardMaterial {
+        base_color: Color::rgb(1.0, 4.0, 1.0),
+        metallic: 0.8,
+        perceptual_roughness: 0.4,
+        reflectance: 0.9,
+        ..default()
+    });
+    npcs.xp_drop_big = materials.add(StandardMaterial {
+        base_color: Color::rgb(4.0, 1.0, 1.0),
+        metallic: 0.8,
+        perceptual_roughness: 0.4,
+        reflectance: 0.9,
+        ..default()
+    });
 }
 
 #[derive(Event)]
@@ -272,8 +288,8 @@ fn die(
     time: Res<Time>,
     mut game_state: ResMut<GameState>,
     mut meshes: ResMut<Assets<Mesh>>,
+    npcs: Res<NonPlayerCharacters>,
     q_npc: Query<(Entity, &Health, &Transform, Option<&Npc>, Option<&Player>)>,
-    materials: Res<BasicMaterials>,
     mut cmd: Commands,
 ) {
     for (npc_ent, health, tr_npc, npc, player) in &q_npc {
@@ -294,9 +310,9 @@ fn die(
                                 .unwrap(),
                             ),
                             material: (if XpDrop::is_big(npc.id.xp_drop) {
-                                materials.xp_drop_big.clone()
+                                npcs.xp_drop_big.clone()
                             } else {
-                                materials.xp_drop_small.clone()
+                                npcs.xp_drop_small.clone()
                             }),
                             ..default()
                         },
