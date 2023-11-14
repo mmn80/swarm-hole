@@ -21,6 +21,7 @@ impl Plugin for PlayerPlugin {
             .init_resource::<PlayerCharacters>()
             .add_systems(Startup, setup_player_characters)
             .add_systems(OnEnter(AppState::Run), spawn_main_player)
+            .add_systems(OnExit(AppState::Run), cleanup_players)
             .add_systems(
                 Update,
                 (spawn_player, gather_xp, regen_health).run_if(in_state(AppState::Run)),
@@ -113,6 +114,12 @@ fn spawn_main_player(
         character: pcs.characters[0].clone(),
         location: Vec2::ZERO,
     });
+}
+
+fn cleanup_players(q_player: Query<Entity, With<Player>>, mut cmd: Commands) {
+    for entity in &q_player {
+        cmd.entity(entity).despawn_recursive();
+    }
 }
 
 #[derive(Event)]

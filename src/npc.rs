@@ -21,6 +21,8 @@ impl Plugin for NpcPlugin {
             .add_event::<SpawnNpcEvent>()
             .init_resource::<NonPlayerCharacters>()
             .add_systems(Startup, setup_npcs)
+            .add_systems(OnEnter(AppState::Run), spawn_start_npcs)
+            .add_systems(OnExit(AppState::Run), cleanup_npcs)
             .add_systems(
                 Update,
                 (spawn_npc, spawn_random_npcs, move_npcs, slow_xp_drops, die)
@@ -172,6 +174,19 @@ fn spawn_npc(
         }
         cmd.entity(id)
             .insert(Name::new(format!("NPC {:?} ({id:?})", npc.id)));
+    }
+}
+
+fn spawn_start_npcs(mut ev_debug_ui: EventWriter<DebugUiEvent>) {
+    ev_debug_ui.send(DebugUiEvent {
+        command: DebugUiCommand::SpawnNpcs,
+        param: 100,
+    });
+}
+
+fn cleanup_npcs(q_npc: Query<Entity, With<Npc>>, mut cmd: Commands) {
+    for entity in &q_npc {
+        cmd.entity(entity).despawn_recursive();
     }
 }
 
