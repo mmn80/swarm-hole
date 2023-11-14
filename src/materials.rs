@@ -11,7 +11,6 @@ impl Plugin for BasicMaterialsPlugin {
 #[derive(Resource, Reflect)]
 pub struct BasicMaterials {
     pub terrain: Handle<StandardMaterial>,
-    pub player: Handle<StandardMaterial>,
     pub building: Handle<StandardMaterial>,
     pub xp_drop_small: Handle<StandardMaterial>,
     pub xp_drop_big: Handle<StandardMaterial>,
@@ -29,12 +28,6 @@ impl FromWorld for BasicMaterials {
                 metallic: 0.0,
                 perceptual_roughness: 0.8,
                 reflectance: 0.2,
-                ..default()
-            }),
-            player: materials.add(StandardMaterial {
-                base_color: Color::BLACK,
-                metallic: 0.0,
-                perceptual_roughness: 0.5,
                 ..default()
             }),
             building: materials.add(StandardMaterial {

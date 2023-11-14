@@ -1,10 +1,11 @@
+use std::sync::Arc;
+
 use bevy::prelude::*;
 use bevy_xpbd_3d::{math::*, prelude::*, PhysicsSchedule, PhysicsStepSet};
 
 use crate::{
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
-    materials::BasicMaterials,
     npc::{Health, XpDrop},
     physics::{Layer, ALL_LAYERS},
     weapons::laser::Laser,
@@ -27,7 +28,7 @@ impl Plugin for PlayerPlugin {
 
 #[derive(Resource, Default)]
 pub struct PlayerCharacters {
-    pub characters: Vec<PlayerCharacter>,
+    pub characters: Vec<Arc<PlayerCharacter>>,
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,7 +36,7 @@ pub enum PlayerCharacterId {
     JoseCapsulado,
 }
 
-#[derive(Copy, Clone, Reflect)]
+#[derive(Reflect)]
 pub struct PlayerCharacter {
     pub id: PlayerCharacterId,
     pub hp: u32,
@@ -45,49 +46,66 @@ pub struct PlayerCharacter {
     pub gather_range: f32,
     pub gather_acceleration: f32,
     pub hp_regen_per_sec: f32,
+    pub mesh: Handle<Mesh>,
+    pub material: Handle<StandardMaterial>,
 }
 
 #[derive(Component, Reflect)]
 pub struct Player {
-    pub id: PlayerCharacter,
+    pub id: Arc<PlayerCharacter>,
     pub xp: u32,
 }
 
 fn setup_player(
     mut pcs: ResMut<PlayerCharacters>,
     mut meshes: ResMut<Assets<Mesh>>,
-    materials: Res<BasicMaterials>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     mut cmd: Commands,
 ) {
-    let pc = PlayerCharacter {
-        id: PlayerCharacterId::JoseCapsulado,
-        hp: 100,
-        speed: 4.,
-        width: 0.3,
-        height: 2.,
-        gather_range: 3.,
-        gather_acceleration: 50.,
-        hp_regen_per_sec: 1.,
+    let pc = {
+        let (height, width) = (2., 0.3);
+        let cap_h = height - 2. * width;
+        let pc = Arc::new(PlayerCharacter {
+            id: PlayerCharacterId::JoseCapsulado,
+            hp: 100,
+            speed: 4.,
+            width,
+            height,
+            gather_range: 3.,
+            gather_acceleration: 50.,
+            hp_regen_per_sec: 1.,
+            mesh: meshes.add(Mesh::from(shape::Capsule {
+                radius: width,
+                rings: 0,
+                depth: cap_h,
+                latitudes: 16,
+                longitudes: 32,
+                uv_profile: shape::CapsuleUvProfile::Aspect,
+            })),
+            material: materials.add(StandardMaterial {
+                base_color: Color::BLACK,
+                metallic: 0.0,
+                perceptual_roughness: 0.5,
+                ..default()
+            }),
+        });
+        pcs.characters = vec![pc.clone()];
+        pc
     };
-    pcs.characters = vec![pc];
 
     let cap_h = pc.height - 2. * pc.width;
     let id = cmd
         .spawn((
-            Player { id: pc, xp: 0 },
+            Player {
+                id: pc.clone(),
+                xp: 0,
+            },
             Health(pc.hp as f32),
             Laser::new(15., 20., 0.5, 0.5, true),
             PbrBundle {
                 transform: Transform::from_xyz(0.0, pc.height / 2. + 0.2, 0.0),
-                mesh: meshes.add(Mesh::from(shape::Capsule {
-                    radius: pc.width,
-                    rings: 0,
-                    depth: cap_h,
-                    latitudes: 16,
-                    longitudes: 32,
-                    uv_profile: shape::CapsuleUvProfile::Aspect,
-                })),
-                material: materials.player.clone(),
+                mesh: pc.mesh.clone(),
+                material: pc.material.clone(),
                 ..default()
             },
             RigidBody::Kinematic,

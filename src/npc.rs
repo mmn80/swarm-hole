@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::*;
 use rand::distributions::WeightedIndex;
@@ -17,18 +19,26 @@ pub struct NpcPlugin;
 impl Plugin for NpcPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Npc>()
-            .init_resource::<Npcs>()
+            .init_resource::<NonPlayerCharacters>()
             .add_systems(Startup, setup_npcs)
             .add_systems(Update, (spawn_npcs, move_npcs, slow_xp_drops, die));
     }
 }
 
 #[derive(Resource, Default)]
-pub struct Npcs {
-    pub npc_types: Vec<NpcType>,
+pub struct NonPlayerCharacters {
+    pub npcs: Vec<Arc<NonPlayerCharacter>>,
 }
 
-pub struct NpcType {
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NonPlayerCharacterId {
+    CortezLimonero,
+    LuzTomatera,
+}
+
+#[derive(Reflect)]
+pub struct NonPlayerCharacter {
+    pub id: NonPlayerCharacterId,
     pub hp: u32,
     pub speed: f32,
     pub radius: f32,
@@ -42,17 +52,17 @@ pub struct NpcType {
 
 #[derive(Component, Reflect)]
 pub struct Npc {
-    pub speed: f32,
-    pub xp_drop: u32,
+    pub id: Arc<NonPlayerCharacter>,
 }
 
 fn setup_npcs(
-    mut npcs: ResMut<Npcs>,
+    mut npcs: ResMut<NonPlayerCharacters>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    npcs.npc_types = vec![
-        NpcType {
+    npcs.npcs = vec![
+        Arc::new(NonPlayerCharacter {
+            id: NonPlayerCharacterId::CortezLimonero,
             hp: 1,
             speed: 2.,
             radius: 0.5,
@@ -73,8 +83,9 @@ fn setup_npcs(
                 ..default()
             }),
             frequency: 1.,
-        },
-        NpcType {
+        }),
+        Arc::new(NonPlayerCharacter {
+            id: NonPlayerCharacterId::LuzTomatera,
             hp: 10,
             speed: 1.5,
             radius: 1.,
@@ -95,7 +106,7 @@ fn setup_npcs(
                 ..default()
             }),
             frequency: 0.1,
-        },
+        }),
     ];
 }
 
@@ -103,7 +114,7 @@ const NPC_DIST: f32 = 10.0;
 
 fn spawn_npcs(
     time: Res<Time>,
-    npcs: Res<Npcs>,
+    npcs: Res<NonPlayerCharacters>,
     mut game_state: ResMut<GameState>,
     mut ev_debug_ui: EventReader<DebugUiEvent>,
     mut cmd: Commands,
@@ -114,22 +125,20 @@ fn spawn_npcs(
             info!("spawning {count} NPCs...");
 
             let mut rng = thread_rng();
-            let npc_idx =
-                WeightedIndex::new(npcs.npc_types.iter().map(|item| item.frequency)).unwrap();
+            let npc_idx = WeightedIndex::new(npcs.npcs.iter().map(|item| item.frequency)).unwrap();
 
             let w = ((count as f32).sqrt() / 2.).ceil() as i32;
             let dist = (NPC_DIST - 4.) / 2.;
             let mut n = 0;
             for xi in -w..=w {
                 for zi in -w..=w {
-                    let npc_type = &npcs.npc_types[npc_idx.sample(&mut rng)];
+                    let npc_type = &npcs.npcs[npc_idx.sample(&mut rng)];
                     let x = xi as f32 * NPC_DIST + rng.gen_range(-dist..dist);
                     let z = zi as f32 * NPC_DIST + rng.gen_range(-dist..dist);
                     let id = cmd
                         .spawn((
                             Npc {
-                                speed: npc_type.speed,
-                                xp_drop: npc_type.xp_drop,
+                                id: npc_type.clone(),
                             },
                             Health(npc_type.hp as f32),
                             PbrBundle {
@@ -150,7 +159,8 @@ fn spawn_npcs(
                     if npc_type.has_laser {
                         cmd.entity(id).insert(Laser::new(10., 5., 0.2, 1., false));
                     }
-                    cmd.entity(id).insert(Name::new(format!("NPC ({id:?})")));
+                    cmd.entity(id)
+                        .insert(Name::new(format!("NPC {:?} ({id:?})", npc_type.id)));
 
                     n += 1;
                     if n == count {
@@ -184,8 +194,8 @@ fn move_npcs(
     };
     for (npc, npc_pos, mut lin_vel) in &mut q_npc {
         lin_vel.y = 0.;
-        let dir =
-            Vec2::new(player_pos.x - npc_pos.x, player_pos.z - npc_pos.z).normalize() * npc.speed;
+        let dir = Vec2::new(player_pos.x - npc_pos.x, player_pos.z - npc_pos.z).normalize()
+            * npc.id.speed;
         lin_vel.x = dir.x;
         lin_vel.z = dir.y;
     }
@@ -242,11 +252,11 @@ fn die(
     for (npc_ent, health, tr_npc, npc, player) in &q_npc {
         if health.0 <= f32::EPSILON {
             if let Some(npc) = npc {
-                let h = XpDrop::get_height(npc.xp_drop);
+                let h = XpDrop::get_height(npc.id.xp_drop);
                 let p = tr_npc.translation;
                 let id = cmd
                     .spawn((
-                        XpDrop(npc.xp_drop),
+                        XpDrop(npc.id.xp_drop),
                         PbrBundle {
                             transform: Transform::from_translation(Vec3::new(p.x, h + 0.02, p.z)),
                             mesh: meshes.add(
@@ -256,7 +266,7 @@ fn die(
                                 })
                                 .unwrap(),
                             ),
-                            material: (if XpDrop::is_big(npc.xp_drop) {
+                            material: (if XpDrop::is_big(npc.id.xp_drop) {
                                 materials.xp_drop_big.clone()
                             } else {
                                 materials.xp_drop_small.clone()
@@ -269,7 +279,7 @@ fn die(
                     ))
                     .id();
                 cmd.entity(id)
-                    .insert(Name::new(format!("Xp Drop of {} ({id:?})", npc.xp_drop)));
+                    .insert(Name::new(format!("Xp Drop of {} ({id:?})", npc.id.xp_drop)));
             } else if player.is_some() {
                 game_state.ended_time = time.elapsed();
             }
