@@ -6,7 +6,7 @@ use bevy::{
 use bevy_xpbd_3d::prelude::*;
 
 use crate::{
-    app::AppState,
+    app::{is_running, AppState},
     npc::{Health, Npc},
     physics::Layer,
     player::Player,
@@ -34,8 +34,10 @@ impl Plugin for LaserPlugin {
                     )
                         .chain(),
                 )
-                    .run_if(in_state(AppState::Run)),
-            );
+                    .run_if(in_state(AppState::Run))
+                    .run_if(is_running),
+            )
+            .add_systems(OnExit(AppState::Run), cleanup_laser_rays);
     }
 }
 
@@ -324,5 +326,11 @@ fn laser_ray_despawn(
                 laser.time_ended = time.elapsed_seconds();
             }
         }
+    }
+}
+
+fn cleanup_laser_rays(q_rays: Query<Entity, With<LaserRay>>, mut cmd: Commands) {
+    for entity in &q_rays {
+        cmd.entity(entity).despawn_recursive();
     }
 }

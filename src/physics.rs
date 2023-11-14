@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_xpbd_3d::{math::*, prelude::*, SubstepSchedule, SubstepSet};
 
 use crate::{
-    app::AppState,
+    app::{is_running, AppState, RunState},
     debug_ui::{DebugUiCommand, DebugUiEvent},
     player::Player,
 };
@@ -12,18 +12,29 @@ pub struct MainPhysicsPlugin;
 impl Plugin for MainPhysicsPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_physics)
-            .add_systems(Update, physics_debug_ui)
+            .add_systems(Update, (update_physics_paused, physics_debug_ui))
             .add_systems(
                 SubstepSchedule,
                 kinematic_collision
                     .in_set(SubstepSet::SolveUserConstraints)
-                    .run_if(in_state(AppState::Run)),
+                    .run_if(in_state(AppState::Run))
+                    .run_if(is_running),
             );
     }
 }
 
 fn setup_physics(mut debug_config: ResMut<PhysicsDebugConfig>) {
     debug_config.enabled = false;
+}
+
+fn update_physics_paused(mut time: ResMut<Time<Physics>>, run_state: Res<RunState>) {
+    if run_state.ended || run_state.paused {
+        if !time.is_paused() {
+            time.pause();
+        }
+    } else if time.is_paused() {
+        time.unpause();
+    }
 }
 
 fn physics_debug_ui(

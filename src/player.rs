@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use bevy_xpbd_3d::{math::*, prelude::*, PhysicsSchedule, PhysicsStepSet};
 
 use crate::{
-    app::AppState,
+    app::{is_running, AppState},
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
     npc::{Health, XpDrop},
@@ -24,13 +24,16 @@ impl Plugin for PlayerPlugin {
             .add_systems(OnExit(AppState::Run), cleanup_players)
             .add_systems(
                 Update,
-                (spawn_player, gather_xp, regen_health).run_if(in_state(AppState::Run)),
+                (spawn_player, gather_xp, regen_health)
+                    .run_if(in_state(AppState::Run))
+                    .run_if(is_running),
             )
             .add_systems(
                 PhysicsSchedule,
                 move_player
                     .before(PhysicsStepSet::BroadPhase)
-                    .run_if(in_state(AppState::Run)),
+                    .run_if(in_state(AppState::Run))
+                    .run_if(is_running),
             );
     }
 }

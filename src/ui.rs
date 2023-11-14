@@ -4,8 +4,8 @@ use bevy::{
 };
 
 use crate::{
-    app::{AppState, GameState},
-    npc::{Health, Npc},
+    app::{AppState, RunState},
+    npc::Health,
     player::Player,
 };
 
@@ -17,7 +17,13 @@ impl Plugin for MainUiPlugin {
             .add_systems(OnExit(AppState::Run), cleanup_ui)
             .add_systems(
                 Update,
-                (update_fps, update_player_ui, update_time_ui, update_npcs_ui)
+                (
+                    update_fps,
+                    update_player_ui,
+                    update_run_time_ui,
+                    update_run_state_ui,
+                    update_npcs_ui,
+                )
                     .run_if(in_state(AppState::Run)),
             );
     }
@@ -192,6 +198,52 @@ fn setup_ui(mut cmd: Commands) {
             ..default()
         });
     });
+
+    cmd.spawn((
+        NodeBundle {
+            style: Style {
+                display: Display::None,
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                flex_direction: FlexDirection::Column,
+                ..default()
+            },
+            ..default()
+        },
+        RunStateRoot,
+        MainUi,
+    ))
+    .with_children(|parent| {
+        parent.spawn((
+            TextBundle::from_section(
+                "PAUSED",
+                TextStyle {
+                    font_size: 40.0,
+                    ..default()
+                },
+            )
+            .with_text_alignment(TextAlignment::Center)
+            .with_style(Style {
+                margin: UiRect::all(Val::Px(20.)),
+                ..default()
+            }),
+            RunStateText,
+        ));
+        parent.spawn((TextBundle::from_section(
+            "press ENTER to continue",
+            TextStyle {
+                font_size: 20.0,
+                ..default()
+            },
+        )
+        .with_text_alignment(TextAlignment::Center)
+        .with_style(Style {
+            margin: UiRect::all(Val::Px(20.)),
+            ..default()
+        }),));
+    });
 }
 
 #[derive(Component)]
@@ -251,41 +303,62 @@ fn update_player_ui(
 #[derive(Component)]
 struct TimeText;
 
-fn update_time_ui(
-    time: Res<Time>,
-    game_state: Res<GameState>,
-    mut q_txt: Query<&mut Text, With<TimeText>>,
-) {
-    let Ok(mut txt_time) = q_txt.get_single_mut() else {
+fn update_run_time_ui(run_state: Res<RunState>, mut q_txt_time: Query<&mut Text, With<TimeText>>) {
+    let Ok(mut txt_time) = q_txt_time.get_single_mut() else {
         return;
     };
-    if game_state.started_time.is_zero() {
-        txt_time.sections[0].value = "00:00".to_string();
-    } else {
-        let ended = if game_state.ended_time.is_zero() {
-            time.elapsed()
-        } else {
-            game_state.ended_time
-        };
-        let all_sec = (ended - game_state.started_time).as_secs_f32();
+    if !run_state.run_time.is_zero() {
+        let all_sec = run_state.run_time.as_secs_f32();
         let min = (all_sec / 60.) as u32;
         let sec = all_sec as u32 - min * 60;
         txt_time.sections[0].value = format!("{min:02}:{sec:02}");
+    } else {
+        txt_time.sections[0].value = "00:00".to_string();
+    }
+}
+#[derive(Component)]
+struct RunStateRoot;
+
+#[derive(Component)]
+struct RunStateText;
+
+fn update_run_state_ui(
+    run_state: Res<RunState>,
+    mut q_run_state_root: Query<&mut Style, With<RunStateRoot>>,
+    mut q_txt_run_state: Query<&mut Text, With<RunStateText>>,
+) {
+    let Ok(mut style) = q_run_state_root.get_single_mut() else {
+        return;
+    };
+    let Ok(mut txt_run_state) = q_txt_run_state.get_single_mut() else {
+        return;
+    };
+    if run_state.ended {
+        style.display = Display::Flex;
+        if run_state.won {
+            txt_run_state.sections[0].value = "DONE".to_string();
+        } else {
+            txt_run_state.sections[0].value = "DONE FOR".to_string();
+        }
+    } else if run_state.paused {
+        style.display = Display::Flex;
+        txt_run_state.sections[0].value = "PAUSED".to_string();
+    } else {
+        style.display = Display::None;
     }
 }
 
 #[derive(Component)]
 struct NpcsText;
 
-fn update_npcs_ui(q_npc: Query<With<Npc>>, mut q_txt: Query<&mut Text, With<NpcsText>>) {
+fn update_npcs_ui(run_state: Res<RunState>, mut q_txt: Query<&mut Text, With<NpcsText>>) {
     let Ok(mut txt_npcs) = q_txt.get_single_mut() else {
         return;
     };
-    let npcs = q_npc.iter().count();
-    if npcs == 0 {
+    if run_state.live_npcs == 0 {
         txt_npcs.sections[1].value = "-".to_string();
     } else {
-        txt_npcs.sections[1].value = format!("{npcs:02}");
+        txt_npcs.sections[1].value = format!("{:02}", run_state.live_npcs);
     }
 }
 

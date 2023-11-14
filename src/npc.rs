@@ -6,7 +6,7 @@ use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 
 use crate::{
-    app::{AppState, GameState},
+    app::{is_running, AppState, RunState},
     debug_ui::{DebugUiCommand, DebugUiEvent},
     physics::{Layer, ALL_LAYERS},
     player::Player,
@@ -26,7 +26,8 @@ impl Plugin for NpcPlugin {
             .add_systems(
                 Update,
                 (spawn_npc, spawn_random_npcs, move_npcs, slow_xp_drops, die)
-                    .run_if(in_state(AppState::Run)),
+                    .run_if(in_state(AppState::Run))
+                    .run_if(is_running),
             );
     }
 }
@@ -145,6 +146,7 @@ pub struct SpawnNpcEvent {
 }
 
 fn spawn_npc(
+    mut run_state: ResMut<RunState>,
     mut ev_spawn_npc: EventReader<SpawnNpcEvent>,
     mut ev_add_skill: EventWriter<AddSkillEvent>,
     mut cmd: Commands,
@@ -174,6 +176,8 @@ fn spawn_npc(
         }
         cmd.entity(id)
             .insert(Name::new(format!("NPC {:?} ({id:?})", npc.id)));
+
+        run_state.live_npcs += 1;
     }
 }
 
@@ -184,7 +188,7 @@ fn spawn_start_npcs(mut ev_debug_ui: EventWriter<DebugUiEvent>) {
     });
 }
 
-fn cleanup_npcs(q_npc: Query<Entity, With<Npc>>, mut cmd: Commands) {
+fn cleanup_npcs(q_npc: Query<Entity, Or<(With<Npc>, With<XpDrop>)>>, mut cmd: Commands) {
     for entity in &q_npc {
         cmd.entity(entity).despawn_recursive();
     }
@@ -193,9 +197,7 @@ fn cleanup_npcs(q_npc: Query<Entity, With<Npc>>, mut cmd: Commands) {
 const NPC_DIST: f32 = 10.0;
 
 fn spawn_random_npcs(
-    time: Res<Time>,
     npcs: Res<NonPlayerCharacters>,
-    mut game_state: ResMut<GameState>,
     mut ev_debug_ui: EventReader<DebugUiEvent>,
     mut ev_spawn_npc: EventWriter<SpawnNpcEvent>,
 ) {
@@ -229,10 +231,6 @@ fn spawn_random_npcs(
                 if n == count {
                     break;
                 }
-            }
-
-            if game_state.started_time.is_zero() {
-                game_state.started_time = time.elapsed();
             }
             break;
         }
@@ -301,8 +299,7 @@ fn slow_xp_drops(time: Res<Time>, mut q_npc: Query<&mut LinearVelocity, With<XpD
 }
 
 fn die(
-    time: Res<Time>,
-    mut game_state: ResMut<GameState>,
+    mut run_state: ResMut<RunState>,
     mut meshes: ResMut<Assets<Mesh>>,
     npcs: Res<NonPlayerCharacters>,
     q_npc: Query<(Entity, &Health, &Transform, Option<&Npc>, Option<&Player>)>,
@@ -311,6 +308,8 @@ fn die(
     for (npc_ent, health, tr_npc, npc, player) in &q_npc {
         if health.0 <= f32::EPSILON {
             if let Some(npc) = npc {
+                run_state.live_npcs -= 1;
+
                 let h = XpDrop::get_height(npc.id.xp_drop);
                 let p = tr_npc.translation;
                 let id = cmd
@@ -340,7 +339,8 @@ fn die(
                 cmd.entity(id)
                     .insert(Name::new(format!("Xp Drop of {} ({id:?})", npc.id.xp_drop)));
             } else if player.is_some() {
-                game_state.ended_time = time.elapsed();
+                run_state.ended = true;
+                run_state.won = false;
             }
             cmd.entity(npc_ent).despawn_recursive();
         }
