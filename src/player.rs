@@ -16,9 +16,10 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Player>()
+            .add_event::<SpawnPlayerEvent>()
             .init_resource::<PlayerCharacters>()
             .add_systems(Startup, setup_player)
-            .add_systems(Update, (gather_xp, regen_health))
+            .add_systems(Update, (spawn_player, gather_xp, regen_health))
             .add_systems(
                 PhysicsSchedule,
                 move_player.before(PhysicsStepSet::BroadPhase),
@@ -61,8 +62,7 @@ fn setup_player(
     mut pcs: ResMut<PlayerCharacters>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut ev_add_skill: EventWriter<AddSkillEvent>,
-    mut cmd: Commands,
+    mut ev_spawn_player: EventWriter<SpawnPlayerEvent>,
 ) {
     let pc = {
         let (height, width) = (2., 0.3);
@@ -101,41 +101,65 @@ fn setup_player(
         pc
     };
 
-    let cap_h = pc.height - 2. * pc.width;
-    let id = cmd
-        .spawn((
-            Player {
-                id: pc.clone(),
-                xp: 0,
-            },
-            Health(pc.hp as f32),
-            PbrBundle {
-                transform: Transform::from_xyz(0.0, pc.height / 2. + 0.2, 0.0),
-                mesh: pc.mesh.clone(),
-                material: pc.material.clone(),
-                ..default()
-            },
-            RigidBody::Kinematic,
-            Collider::capsule(cap_h, pc.width),
-            CollisionLayers::new([Layer::Player], ALL_LAYERS),
-            ShapeCaster::new(
-                Collider::capsule(cap_h - 0.1, pc.width - 0.05),
-                Vector::ZERO,
-                Quaternion::default(),
-                Vector::NEG_Y,
-            )
-            .with_max_time_of_impact(0.11)
-            .with_max_hits(1),
-        ))
-        .id();
-    for skill in &pc.skills {
-        ev_add_skill.send(AddSkillEvent {
-            skill: *skill,
-            parent: id,
-        });
+    ev_spawn_player.send(SpawnPlayerEvent {
+        character: pc,
+        location: Vec2::ZERO,
+    });
+}
+
+#[derive(Event)]
+pub struct SpawnPlayerEvent {
+    pub character: Arc<PlayerCharacter>,
+    pub location: Vec2,
+}
+
+fn spawn_player(
+    mut ev_spawn_player: EventReader<SpawnPlayerEvent>,
+    mut ev_add_skill: EventWriter<AddSkillEvent>,
+    mut cmd: Commands,
+) {
+    for ev in ev_spawn_player.read() {
+        let pc = &ev.character;
+        let cap_h = pc.height - 2. * pc.width;
+        let id = cmd
+            .spawn((
+                Player {
+                    id: pc.clone(),
+                    xp: 0,
+                },
+                Health(pc.hp as f32),
+                PbrBundle {
+                    transform: Transform::from_xyz(
+                        ev.location.x,
+                        pc.height / 2. + 0.2,
+                        ev.location.y,
+                    ),
+                    mesh: pc.mesh.clone(),
+                    material: pc.material.clone(),
+                    ..default()
+                },
+                RigidBody::Kinematic,
+                Collider::capsule(cap_h, pc.width),
+                CollisionLayers::new([Layer::Player], ALL_LAYERS),
+                ShapeCaster::new(
+                    Collider::capsule(cap_h - 0.1, pc.width - 0.05),
+                    Vector::ZERO,
+                    Quaternion::default(),
+                    Vector::NEG_Y,
+                )
+                .with_max_time_of_impact(0.11)
+                .with_max_hits(1),
+            ))
+            .id();
+        for skill in &pc.skills {
+            ev_add_skill.send(AddSkillEvent {
+                skill: *skill,
+                parent: id,
+            });
+        }
+        cmd.entity(id)
+            .insert(Name::new(format!("Player {:?} ({id:?})", pc.id)));
     }
-    cmd.entity(id)
-        .insert(Name::new(format!("Player {:?} ({id:?})", pc.id)));
 }
 
 const PLAYER_ACC_STEPS: f32 = 10.;

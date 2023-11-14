@@ -19,9 +19,13 @@ pub struct NpcPlugin;
 impl Plugin for NpcPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Npc>()
+            .add_event::<SpawnNpcEvent>()
             .init_resource::<NonPlayerCharacters>()
             .add_systems(Startup, setup_npcs)
-            .add_systems(Update, (spawn_npcs, move_npcs, slow_xp_drops, die));
+            .add_systems(
+                Update,
+                (spawn_npc, spawn_random_npcs, move_npcs, slow_xp_drops, die),
+            );
     }
 }
 
@@ -115,15 +119,53 @@ fn setup_npcs(
     ];
 }
 
+#[derive(Event)]
+pub struct SpawnNpcEvent {
+    pub character: Arc<NonPlayerCharacter>,
+    pub location: Vec2,
+}
+
+fn spawn_npc(
+    mut ev_spawn_npc: EventReader<SpawnNpcEvent>,
+    mut ev_add_skill: EventWriter<AddSkillEvent>,
+    mut cmd: Commands,
+) {
+    for ev in ev_spawn_npc.read() {
+        let npc = &ev.character;
+        let id = cmd
+            .spawn((
+                Npc { id: npc.clone() },
+                Health(npc.hp as f32),
+                PbrBundle {
+                    transform: Transform::from_xyz(ev.location.x, npc.radius + 0.02, ev.location.y),
+                    mesh: npc.mesh.clone(),
+                    material: npc.material.clone(),
+                    ..default()
+                },
+                RigidBody::Kinematic,
+                Collider::ball(npc.radius),
+                CollisionLayers::new([Layer::NPC], ALL_LAYERS),
+            ))
+            .id();
+        for skill in &npc.skills {
+            ev_add_skill.send(AddSkillEvent {
+                skill: *skill,
+                parent: id,
+            });
+        }
+        cmd.entity(id)
+            .insert(Name::new(format!("NPC {:?} ({id:?})", npc.id)));
+    }
+}
+
 const NPC_DIST: f32 = 10.0;
 
-fn spawn_npcs(
+fn spawn_random_npcs(
     time: Res<Time>,
     npcs: Res<NonPlayerCharacters>,
     mut game_state: ResMut<GameState>,
     mut ev_debug_ui: EventReader<DebugUiEvent>,
-    mut ev_add_skill: EventWriter<AddSkillEvent>,
-    mut cmd: Commands,
+    mut ev_spawn_npc: EventWriter<SpawnNpcEvent>,
 ) {
     for ev in ev_debug_ui.read() {
         if ev.command == DebugUiCommand::SpawnNpcs {
@@ -141,31 +183,11 @@ fn spawn_npcs(
                     let npc_type = &npcs.npcs[npc_idx.sample(&mut rng)];
                     let x = xi as f32 * NPC_DIST + rng.gen_range(-dist..dist);
                     let z = zi as f32 * NPC_DIST + rng.gen_range(-dist..dist);
-                    let id = cmd
-                        .spawn((
-                            Npc {
-                                id: npc_type.clone(),
-                            },
-                            Health(npc_type.hp as f32),
-                            PbrBundle {
-                                transform: Transform::from_xyz(x, npc_type.radius + 0.02, z),
-                                mesh: npc_type.mesh.clone(),
-                                material: npc_type.material.clone(),
-                                ..default()
-                            },
-                            RigidBody::Kinematic,
-                            Collider::ball(npc_type.radius),
-                            CollisionLayers::new([Layer::NPC], ALL_LAYERS),
-                        ))
-                        .id();
-                    for skill in &npc_type.skills {
-                        ev_add_skill.send(AddSkillEvent {
-                            skill: *skill,
-                            parent: id,
-                        });
-                    }
-                    cmd.entity(id)
-                        .insert(Name::new(format!("NPC {:?} ({id:?})", npc_type.id)));
+
+                    ev_spawn_npc.send(SpawnNpcEvent {
+                        character: npc_type.clone(),
+                        location: Vec2::new(x, z),
+                    });
 
                     n += 1;
                     if n == count {
