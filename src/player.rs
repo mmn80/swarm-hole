@@ -15,6 +15,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Player>()
+            .init_resource::<PlayerCharacters>()
             .add_systems(Startup, setup_player)
             .add_systems(Update, (gather_xp, regen_health))
             .add_systems(
@@ -24,39 +25,62 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-#[derive(Component, Reflect)]
-pub struct Player {
-    pub max_health: u32,
-    pub speed: f32,
-    pub xp: u32,
-    pub gather_range: f32,
+#[derive(Resource, Default)]
+pub struct PlayerCharacters {
+    pub characters: Vec<PlayerCharacter>,
 }
 
-const MAX_PLAYER_HP: u32 = 100;
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlayerCharacterId {
+    JoseCapsulado,
+}
+
+#[derive(Copy, Clone, Reflect)]
+pub struct PlayerCharacter {
+    pub id: PlayerCharacterId,
+    pub hp: u32,
+    pub speed: f32,
+    pub width: f32,
+    pub height: f32,
+    pub gather_range: f32,
+    pub gather_acceleration: f32,
+    pub hp_regen_per_sec: f32,
+}
+
+#[derive(Component, Reflect)]
+pub struct Player {
+    pub id: PlayerCharacter,
+    pub xp: u32,
+}
 
 fn setup_player(
+    mut pcs: ResMut<PlayerCharacters>,
     mut meshes: ResMut<Assets<Mesh>>,
     materials: Res<BasicMaterials>,
     mut cmd: Commands,
 ) {
-    let player_height = 2.;
-    let player_width = 0.3;
-    let cap_h = player_height - 2. * player_width;
+    let pc = PlayerCharacter {
+        id: PlayerCharacterId::JoseCapsulado,
+        hp: 100,
+        speed: 4.,
+        width: 0.3,
+        height: 2.,
+        gather_range: 3.,
+        gather_acceleration: 50.,
+        hp_regen_per_sec: 1.,
+    };
+    pcs.characters = vec![pc];
 
+    let cap_h = pc.height - 2. * pc.width;
     let id = cmd
         .spawn((
-            Player {
-                max_health: MAX_PLAYER_HP,
-                speed: 4.,
-                xp: 0,
-                gather_range: 3.,
-            },
-            Health(MAX_PLAYER_HP as f32),
+            Player { id: pc, xp: 0 },
+            Health(pc.hp as f32),
             Laser::new(15., 20., 0.5, 0.5, true),
             PbrBundle {
-                transform: Transform::from_xyz(0.0, player_height / 2. + 0.2, 0.0),
+                transform: Transform::from_xyz(0.0, pc.height / 2. + 0.2, 0.0),
                 mesh: meshes.add(Mesh::from(shape::Capsule {
-                    radius: player_width,
+                    radius: pc.width,
                     rings: 0,
                     depth: cap_h,
                     latitudes: 16,
@@ -67,10 +91,10 @@ fn setup_player(
                 ..default()
             },
             RigidBody::Kinematic,
-            Collider::capsule(cap_h, player_width),
+            Collider::capsule(cap_h, pc.width),
             CollisionLayers::new([Layer::Player], ALL_LAYERS),
             ShapeCaster::new(
-                Collider::capsule(cap_h - 0.1, player_width - 0.05),
+                Collider::capsule(cap_h - 0.1, pc.width - 0.05),
                 Vector::ZERO,
                 Quaternion::default(),
                 Vector::NEG_Y,
@@ -79,7 +103,8 @@ fn setup_player(
             .with_max_hits(1),
         ))
         .id();
-    cmd.entity(id).insert(Name::new(format!("Player ({id:?})")));
+    cmd.entity(id)
+        .insert(Name::new(format!("Player {:?} ({id:?})", pc.id)));
 }
 
 const PLAYER_ACC_STEPS: f32 = 10.;
@@ -97,7 +122,7 @@ fn move_player(
             linear_velocity.y -= 0.4;
         }
 
-        let acc = player.speed / PLAYER_ACC_STEPS;
+        let acc = player.id.speed / PLAYER_ACC_STEPS;
         let mut vel = Vec2::new(linear_velocity.x, linear_velocity.z);
         if !debug_ui.has_focus() {
             let mut changed = false;
@@ -124,7 +149,7 @@ fn move_player(
                 linear_velocity.y += 20.0;
             }
         }
-        vel = vel.clamp_length_max(player.speed);
+        vel = vel.clamp_length_max(player.id.speed);
 
         linear_velocity.x = vel.x;
         linear_velocity.z = vel.y;
@@ -136,8 +161,6 @@ fn move_player(
     }
 }
 
-const XP_ATTRACT_ACC: f32 = 50.;
-
 fn gather_xp(
     time: Res<Time>,
     q_space: SpatialQuery,
@@ -148,7 +171,7 @@ fn gather_xp(
     for (tr_player, mut player) in &mut q_player {
         for ent in q_space
             .shape_intersections(
-                &Collider::ball(player.gather_range),
+                &Collider::ball(player.id.gather_range),
                 tr_player.translation,
                 Quat::default(),
                 SpatialQueryFilter::new().with_masks([Layer::Building]),
@@ -164,7 +187,8 @@ fn gather_xp(
                     lin_vel.y = 0.;
                     let old_speed = lin_vel.length();
                     delta.y = 0.;
-                    delta = delta.normalize() * (old_speed + time.delta_seconds() * XP_ATTRACT_ACC);
+                    delta = delta.normalize()
+                        * (old_speed + time.delta_seconds() * player.id.gather_acceleration);
                     lin_vel.x = delta.x;
                     lin_vel.z = delta.z;
                 }
@@ -173,11 +197,9 @@ fn gather_xp(
     }
 }
 
-const HP_REGEN_PER_SEC: f32 = 1.;
-
 fn regen_health(time: Res<Time>, mut q_player: Query<(&mut Health, &Player)>) {
     for (mut health, player) in &mut q_player {
         health.0 =
-            (health.0 + HP_REGEN_PER_SEC * time.delta_seconds()).min(player.max_health as f32);
+            (health.0 + player.id.hp_regen_per_sec * time.delta_seconds()).min(player.id.hp as f32);
     }
 }
