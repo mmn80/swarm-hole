@@ -17,10 +17,10 @@ use swarm_hole::{
     npc::NpcPlugin,
     physics::MainPhysicsPlugin,
     player::PlayerPlugin,
+    skills::SkillPluginGroup,
     terrain::TerrainPlugin,
     ui::MainUiPlugin,
     vfx::VfxPlugin,
-    weapons::WeaponPlugins,
 };
 
 fn main() {
@@ -63,7 +63,7 @@ fn main() {
             TerrainPlugin,
             PlayerPlugin,
             NpcPlugin,
-            WeaponPlugins,
+            SkillPluginGroup,
             VfxPlugin,
         ))
         .run();

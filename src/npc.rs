@@ -10,8 +10,8 @@ use crate::{
     materials::BasicMaterials,
     physics::{Layer, ALL_LAYERS},
     player::Player,
+    skills::{laser::LaserConfig, melee::MeleeConfig, AddSkillEvent, Skill},
     ui::GameState,
-    weapons::{laser::Laser, melee::Melee},
 };
 
 pub struct NpcPlugin;
@@ -30,7 +30,7 @@ pub struct NonPlayerCharacters {
     pub npcs: Vec<Arc<NonPlayerCharacter>>,
 }
 
-#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, Reflect)]
 pub enum NonPlayerCharacterId {
     CortezLimonero,
     LuzTomatera,
@@ -42,9 +42,8 @@ pub struct NonPlayerCharacter {
     pub hp: u32,
     pub speed: f32,
     pub radius: f32,
-    pub has_laser: bool,
-    pub melee_dps: u32,
     pub xp_drop: u32,
+    pub skills: Vec<Skill>,
     pub mesh: Handle<Mesh>,
     pub material: Handle<StandardMaterial>,
     pub frequency: f32,
@@ -66,9 +65,8 @@ fn setup_npcs(
             hp: 1,
             speed: 2.,
             radius: 0.5,
-            has_laser: false,
-            melee_dps: 3,
             xp_drop: 1,
+            skills: vec![Skill::Melee(MeleeConfig { range: 1., dps: 3 })],
             mesh: meshes.add(
                 Mesh::try_from(shape::Icosphere {
                     radius: 0.5,
@@ -89,9 +87,16 @@ fn setup_npcs(
             hp: 10,
             speed: 1.5,
             radius: 1.,
-            has_laser: true,
-            melee_dps: 3,
             xp_drop: 10,
+            skills: vec![
+                Skill::Melee(MeleeConfig { range: 1.5, dps: 3 }),
+                Skill::Laser(LaserConfig {
+                    range: 10.,
+                    dps: 5.,
+                    duration: 0.2,
+                    cooldown: 1.,
+                }),
+            ],
             mesh: meshes.add(
                 Mesh::try_from(shape::Icosphere {
                     radius: 1.,
@@ -117,6 +122,7 @@ fn spawn_npcs(
     npcs: Res<NonPlayerCharacters>,
     mut game_state: ResMut<GameState>,
     mut ev_debug_ui: EventReader<DebugUiEvent>,
+    mut ev_add_skill: EventWriter<AddSkillEvent>,
     mut cmd: Commands,
 ) {
     for ev in ev_debug_ui.read() {
@@ -150,14 +156,13 @@ fn spawn_npcs(
                             RigidBody::Kinematic,
                             Collider::ball(npc_type.radius),
                             CollisionLayers::new([Layer::NPC], ALL_LAYERS),
-                            Melee {
-                                range: npc_type.radius + 0.5,
-                                dps: npc_type.melee_dps,
-                            },
                         ))
                         .id();
-                    if npc_type.has_laser {
-                        cmd.entity(id).insert(Laser::new(10., 5., 0.2, 1., false));
+                    for skill in &npc_type.skills {
+                        ev_add_skill.send(AddSkillEvent {
+                            skill: *skill,
+                            parent: id,
+                        });
                     }
                     cmd.entity(id)
                         .insert(Name::new(format!("NPC {:?} ({id:?})", npc_type.id)));

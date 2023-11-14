@@ -5,7 +5,7 @@ pub mod materials;
 pub mod npc;
 pub mod physics;
 pub mod player;
+pub mod skills;
 pub mod terrain;
 pub mod ui;
 pub mod vfx;
-pub mod weapons;

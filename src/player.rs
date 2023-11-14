@@ -8,7 +8,7 @@ use crate::{
     debug_ui::DebugUi,
     npc::{Health, XpDrop},
     physics::{Layer, ALL_LAYERS},
-    weapons::laser::Laser,
+    skills::{laser::LaserConfig, AddSkillEvent, Skill},
 };
 
 pub struct PlayerPlugin;
@@ -31,7 +31,7 @@ pub struct PlayerCharacters {
     pub characters: Vec<Arc<PlayerCharacter>>,
 }
 
-#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, Reflect)]
 pub enum PlayerCharacterId {
     JoseCapsulado,
 }
@@ -46,6 +46,7 @@ pub struct PlayerCharacter {
     pub gather_range: f32,
     pub gather_acceleration: f32,
     pub hp_regen_per_sec: f32,
+    pub skills: Vec<Skill>,
     pub mesh: Handle<Mesh>,
     pub material: Handle<StandardMaterial>,
 }
@@ -60,6 +61,7 @@ fn setup_player(
     mut pcs: ResMut<PlayerCharacters>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut ev_add_skill: EventWriter<AddSkillEvent>,
     mut cmd: Commands,
 ) {
     let pc = {
@@ -74,6 +76,12 @@ fn setup_player(
             gather_range: 3.,
             gather_acceleration: 50.,
             hp_regen_per_sec: 1.,
+            skills: vec![Skill::Laser(LaserConfig {
+                range: 15.,
+                dps: 20.,
+                duration: 0.5,
+                cooldown: 0.5,
+            })],
             mesh: meshes.add(Mesh::from(shape::Capsule {
                 radius: width,
                 rings: 0,
@@ -101,7 +109,6 @@ fn setup_player(
                 xp: 0,
             },
             Health(pc.hp as f32),
-            Laser::new(15., 20., 0.5, 0.5, true),
             PbrBundle {
                 transform: Transform::from_xyz(0.0, pc.height / 2. + 0.2, 0.0),
                 mesh: pc.mesh.clone(),
@@ -121,6 +128,12 @@ fn setup_player(
             .with_max_hits(1),
         ))
         .id();
+    for skill in &pc.skills {
+        ev_add_skill.send(AddSkillEvent {
+            skill: *skill,
+            parent: id,
+        });
+    }
     cmd.entity(id)
         .insert(Name::new(format!("Player {:?} ({id:?})", pc.id)));
 }

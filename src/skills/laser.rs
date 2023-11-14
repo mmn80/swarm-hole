@@ -12,22 +12,27 @@ use crate::{
     vfx::DamageParticlesEvent,
 };
 
+use super::{AddSkillEvent, Skill};
+
 pub struct LaserPlugin;
 
 impl Plugin for LaserPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Laser>()
             .init_resource::<LaserHandles>()
-            .add_systems(Startup, setup_weapons)
+            .add_systems(Startup, setup_assets)
             .add_systems(
                 Update,
                 (
-                    (laser_target_npc, laser_target_player),
-                    laser_shoot_ray,
-                    laser_ray_update,
-                    laser_ray_despawn,
-                )
-                    .chain(),
+                    add_laser,
+                    (
+                        (laser_target_npc, laser_target_player),
+                        laser_shoot_ray,
+                        laser_ray_update,
+                        laser_ray_despawn,
+                    )
+                        .chain(),
+                ),
             );
     }
 }
@@ -42,12 +47,12 @@ pub struct LaserHandles {
 const PLAYER_LASER_COLOR: Color = Color::rgb(5.0, 5.0, 0.0);
 const NPC_LASER_COLOR: Color = Color::rgb(5.0, 2.0, 0.0);
 
-fn setup_weapons(
-    mut weapons: ResMut<LaserHandles>,
+fn setup_assets(
+    mut handles: ResMut<LaserHandles>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    weapons.laser_mesh = meshes.add(
+    handles.laser_mesh = meshes.add(
         Mesh::try_from(shape::Cylinder {
             radius: 0.05,
             height: 1.,
@@ -56,7 +61,7 @@ fn setup_weapons(
         })
         .unwrap(),
     );
-    weapons.player_laser_material = materials.add(StandardMaterial {
+    handles.player_laser_material = materials.add(StandardMaterial {
         base_color: PLAYER_LASER_COLOR,
         emissive: PLAYER_LASER_COLOR,
         perceptual_roughness: 1.0,
@@ -64,7 +69,7 @@ fn setup_weapons(
         reflectance: 0.,
         ..default()
     });
-    weapons.npc_laser_material = materials.add(StandardMaterial {
+    handles.npc_laser_material = materials.add(StandardMaterial {
         base_color: NPC_LASER_COLOR,
         emissive: NPC_LASER_COLOR,
         perceptual_roughness: 1.0,
@@ -74,31 +79,37 @@ fn setup_weapons(
     });
 }
 
-#[derive(Component, Default, Reflect)]
-pub struct Laser {
+#[derive(Copy, Clone, Reflect)]
+pub struct LaserConfig {
     pub range: f32,
     pub dps: f32,
     pub duration: f32,
     pub cooldown: f32,
+}
+
+fn add_laser(mut ev_add_skill: EventReader<AddSkillEvent>, mut cmd: Commands) {
+    for ev in ev_add_skill.read() {
+        if let AddSkillEvent {
+            skill: Skill::Laser(config),
+            parent,
+        } = ev
+        {
+            cmd.entity(*parent).insert(Laser {
+                config: *config,
+                target: None,
+                ray: None,
+                time_ended: 0.,
+            });
+        }
+    }
+}
+
+#[derive(Component, Reflect)]
+pub struct Laser {
+    pub config: LaserConfig,
     pub target: Option<Entity>,
     pub ray: Option<Entity>,
     pub time_ended: f32,
-    pub is_player: bool,
-}
-
-impl Laser {
-    pub fn new(range: f32, dps: f32, duration: f32, cooldown: f32, is_player: bool) -> Self {
-        Self {
-            range,
-            dps,
-            duration,
-            cooldown,
-            target: None,
-            ray: None,
-            time_ended: 0.,
-            is_player,
-        }
-    }
 }
 
 fn laser_target_npc(
@@ -108,13 +119,15 @@ fn laser_target_npc(
     q_npc: Query<&Transform, With<Npc>>,
 ) {
     for (mut laser, tr_player) in &mut q_laser {
-        if laser.target.is_some() || time.elapsed_seconds() - laser.time_ended < laser.cooldown {
+        if laser.target.is_some()
+            || time.elapsed_seconds() - laser.time_ended < laser.config.cooldown
+        {
             continue;
         }
         let pos = tr_player.translation;
         if let Some((hit_ent, _)) = q_space
             .shape_intersections(
-                &Collider::ball(laser.range),
+                &Collider::ball(laser.config.range),
                 pos,
                 Quat::default(),
                 SpatialQueryFilter::new().with_masks([Layer::NPC]),
@@ -139,7 +152,9 @@ fn laser_target_player(
     q_player: Query<(Entity, &Transform), With<Player>>,
 ) {
     for (mut laser, tr_src) in &mut q_laser {
-        if laser.target.is_some() || time.elapsed_seconds() - laser.time_ended < laser.cooldown {
+        if laser.target.is_some()
+            || time.elapsed_seconds() - laser.time_ended < laser.config.cooldown
+        {
             continue;
         }
         let src_pos = tr_src.translation;
@@ -155,7 +170,7 @@ fn laser_target_player(
         else {
             continue;
         };
-        if laser.range > (player_pos - src_pos).length() {
+        if laser.config.range > (player_pos - src_pos).length() {
             laser.target = Some(player_ent);
         }
     }
@@ -176,10 +191,10 @@ pub struct LaserRayMesh;
 fn laser_shoot_ray(
     time: Res<Time>,
     weapons: Res<LaserHandles>,
-    mut q_laser: Query<(Entity, &mut Laser)>,
+    mut q_laser: Query<(Entity, &mut Laser, Has<Player>)>,
     mut cmd: Commands,
 ) {
-    for (source, mut laser) in &mut q_laser {
+    for (source, mut laser, is_player) in &mut q_laser {
         if laser.ray.is_none() {
             let Some(target) = laser.target else {
                 continue;
@@ -201,7 +216,7 @@ fn laser_shoot_ray(
                         PbrBundle {
                             transform: Transform::IDENTITY,
                             mesh: weapons.laser_mesh.clone(),
-                            material: if laser.is_player {
+                            material: if is_player {
                                 weapons.player_laser_material.clone()
                             } else {
                                 weapons.npc_laser_material.clone()
@@ -244,8 +259,8 @@ fn laser_ray_update(
             };
             (
                 tr_laser.translation + if is_player { Vec3::Y * 0.8 } else { Vec3::ZERO },
-                laser.dps,
-                laser.duration,
+                laser.config.dps,
+                laser.config.duration,
                 if is_player {
                     PLAYER_LASER_COLOR
                 } else {
