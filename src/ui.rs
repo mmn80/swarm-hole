@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use bevy::prelude::*;
+use bevy::{
+    diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
+    prelude::*,
+};
 
 use crate::{
     npc::{Health, Npc},
@@ -13,7 +16,10 @@ impl Plugin for MainUiPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<GameState>()
             .add_systems(Startup, setup_ui)
-            .add_systems(Update, (update_player_ui, update_time_ui, update_npcs_ui));
+            .add_systems(
+                Update,
+                (update_fps, update_player_ui, update_time_ui, update_npcs_ui),
+            );
     }
 }
 
@@ -24,6 +30,25 @@ pub struct GameState {
 }
 
 fn setup_ui(mut cmd: Commands) {
+    cmd.spawn((
+        TextBundle::from_section(
+            "",
+            TextStyle {
+                font_size: 20.0,
+                color: Color::YELLOW,
+                ..default()
+            },
+        )
+        .with_style(Style {
+            align_self: AlignSelf::FlexEnd,
+            position_type: PositionType::Absolute,
+            top: Val::Px(10.0),
+            right: Val::Px(10.0),
+            ..default()
+        }),
+        FpsText,
+    ));
+
     cmd.spawn(NodeBundle {
         style: Style {
             width: Val::Percent(100.0),
@@ -47,7 +72,6 @@ fn setup_ui(mut cmd: Commands) {
                 style: Style {
                     justify_content: JustifyContent::FlexStart,
                     flex_direction: FlexDirection::Column,
-                    padding: UiRect::right(Val::Px(20.)),
                     ..default()
                 },
                 ..default()
@@ -105,12 +129,28 @@ fn setup_ui(mut cmd: Commands) {
                 ));
             });
 
+        parent.spawn((
+            TextBundle::from_section(
+                "00:00",
+                TextStyle {
+                    font_size: 40.0,
+                    ..default()
+                },
+            )
+            .with_style(Style {
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                margin: UiRect::horizontal(Val::Px(40.)),
+                ..default()
+            }),
+            TimeText,
+        ));
+
         parent
             .spawn(NodeBundle {
                 style: Style {
                     justify_content: JustifyContent::FlexStart,
                     flex_direction: FlexDirection::Column,
-                    padding: UiRect::left(Val::Px(20.)),
                     ..default()
                 },
                 ..default()
@@ -119,32 +159,7 @@ fn setup_ui(mut cmd: Commands) {
                 parent.spawn((
                     TextBundle::from_sections([
                         TextSection::new(
-                            "Time: ",
-                            TextStyle {
-                                font_size: 20.0,
-                                ..default()
-                            },
-                        ),
-                        TextSection::new(
-                            "-",
-                            TextStyle {
-                                font_size: 20.0,
-                                ..default()
-                            },
-                        ),
-                    ])
-                    .with_text_alignment(TextAlignment::Left)
-                    .with_style(Style {
-                        justify_content: JustifyContent::FlexStart,
-                        align_items: AlignItems::FlexStart,
-                        ..default()
-                    }),
-                    TimeText,
-                ));
-                parent.spawn((
-                    TextBundle::from_sections([
-                        TextSection::new(
-                            "Npcs: ",
+                            "NPC: ",
                             TextStyle {
                                 font_size: 20.0,
                                 ..default()
@@ -179,12 +194,29 @@ fn setup_ui(mut cmd: Commands) {
 }
 
 #[derive(Component)]
+struct FpsText;
+
+fn update_fps(diagnostics: Res<DiagnosticsStore>, mut q_fps_txt: Query<&mut Text, With<FpsText>>) {
+    let Ok(mut txt_fps) = q_fps_txt.get_single_mut() else {
+        return;
+    };
+    let mut fps = 0.0;
+    if let Some(fps_diagnostic) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
+        if let Some(fps_smoothed) = fps_diagnostic.smoothed() {
+            fps = fps_smoothed;
+        }
+    }
+    txt_fps.sections[0].value = format!("{fps:.0}");
+}
+
+#[derive(Component)]
 struct HpText;
 
 #[derive(Component)]
 struct XpText;
 
 fn update_player_ui(
+    time: Res<Time>,
     q_player: Query<(&Player, &Health)>,
     mut q_hp_txt: Query<&mut Text, (With<HpText>, Without<XpText>)>,
     mut q_xp_txt: Query<&mut Text, (With<XpText>, Without<HpText>)>,
@@ -199,6 +231,17 @@ fn update_player_ui(
         txt_hp.sections[1].value = "-".to_string();
         txt_xp.sections[1].value = "-".to_string();
         return;
+    };
+    txt_hp.sections[1].style.color = if health.0 < 50. {
+        let sec = time.elapsed_seconds();
+        Color::Rgba {
+            red: (4. * sec).sin() / 4.0 + 1.0,
+            green: 0.25,
+            blue: 0.,
+            alpha: 1.0,
+        }
+    } else {
+        Color::default()
     };
     txt_hp.sections[1].value = format!("{}", health.0 as u32);
     txt_xp.sections[1].value = format!("{}", player.xp);
@@ -216,7 +259,7 @@ fn update_time_ui(
         return;
     };
     if game_state.started_time.is_zero() {
-        txt_time.sections[1].value = "-".to_string();
+        txt_time.sections[0].value = "00:00".to_string();
     } else {
         let ended = if game_state.ended_time.is_zero() {
             time.elapsed()
@@ -226,7 +269,7 @@ fn update_time_ui(
         let all_sec = (ended - game_state.started_time).as_secs_f32();
         let min = (all_sec / 60.) as u32;
         let sec = all_sec as u32 - min * 60;
-        txt_time.sections[1].value = format!("{min:02}:{sec:02}");
+        txt_time.sections[0].value = format!("{min:02}:{sec:02}");
     }
 }
 

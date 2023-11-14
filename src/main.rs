@@ -1,4 +1,5 @@
 use bevy::{
+    diagnostic::FrameTimeDiagnosticsPlugin,
     prelude::*,
     render::{
         settings::{Backends, WgpuFeatures, WgpuSettings},
@@ -33,7 +34,7 @@ fn main() {
     App::new()
         .insert_resource(Msaa::Sample4)
         .insert_resource(ClearColor(INFINITE_TEMP_COLOR))
-        .add_plugins(
+        .add_plugins((
             DefaultPlugins
                 .set(WindowPlugin {
                     primary_window: Some(Window {
@@ -45,7 +46,8 @@ fn main() {
                 .set(RenderPlugin {
                     render_creation: wgpu_settings.into(),
                 }),
-        )
+            FrameTimeDiagnosticsPlugin,
+        ))
         .add_plugins((
             PhysicsPlugins::default(),
             PhysicsDebugPlugin::default(),
