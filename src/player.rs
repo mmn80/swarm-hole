@@ -16,7 +16,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Player>()
             .add_systems(Startup, setup_player)
-            .add_systems(Update, gather_xp)
+            .add_systems(Update, (gather_xp, regen_health))
             .add_systems(
                 PhysicsSchedule,
                 move_player.before(PhysicsStepSet::BroadPhase),
@@ -26,10 +26,13 @@ impl Plugin for PlayerPlugin {
 
 #[derive(Component, Reflect)]
 pub struct Player {
+    pub max_health: u32,
     pub speed: f32,
     pub xp: u32,
     pub gather_range: f32,
 }
+
+const MAX_PLAYER_HP: u32 = 100;
 
 fn setup_player(
     mut meshes: ResMut<Assets<Mesh>>,
@@ -43,11 +46,12 @@ fn setup_player(
     let id = cmd
         .spawn((
             Player {
+                max_health: MAX_PLAYER_HP,
                 speed: 4.,
                 xp: 0,
                 gather_range: 3.,
             },
-            Health(100.),
+            Health(MAX_PLAYER_HP as f32),
             Laser::new(15., 20., 0.5, 0.5, true),
             PbrBundle {
                 transform: Transform::from_xyz(0.0, player_height / 2. + 0.2, 0.0),
@@ -166,5 +170,14 @@ fn gather_xp(
                 }
             }
         }
+    }
+}
+
+const HP_REGEN_PER_SEC: f32 = 1.;
+
+fn regen_health(time: Res<Time>, mut q_player: Query<(&mut Health, &Player)>) {
+    for (mut health, player) in &mut q_player {
+        health.0 =
+            (health.0 + HP_REGEN_PER_SEC * time.delta_seconds()).min(player.max_health as f32);
     }
 }
