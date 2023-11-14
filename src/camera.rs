@@ -5,6 +5,8 @@ use bevy::{
     window::PrimaryWindow,
 };
 
+use crate::app::AppState;
+
 pub struct MainCameraPlugin;
 
 impl Plugin for MainCameraPlugin {
@@ -12,7 +14,7 @@ impl Plugin for MainCameraPlugin {
         app.register_type::<MainCamera>()
             .add_event::<MainCameraFocusEvent>()
             .add_systems(Startup, spawn_camera)
-            .add_systems(Update, main_camera);
+            .add_systems(Update, main_camera.run_if(in_state(AppState::Run)));
     }
 }
 

@@ -10,9 +10,10 @@ use bevy_hanabi::prelude::*;
 use bevy_xpbd_3d::prelude::*;
 
 use swarm_hole::{
+    app::{AppState, MainMenuPlugin, INFINITE_TEMP_COLOR},
     camera::MainCameraPlugin,
     debug_ui::DebugUiPlugin,
-    light::{MainLightsPlugin, INFINITE_TEMP_COLOR},
+    light::MainLightsPlugin,
     npc::NpcPlugin,
     physics::MainPhysicsPlugin,
     player::PlayerPlugin,
@@ -52,8 +53,9 @@ fn main() {
             PhysicsDebugPlugin::default(),
             HanabiPlugin,
         ))
+        .add_state::<AppState>()
         .add_plugins((
-            DebugUiPlugin,
+            MainMenuPlugin,
             MainPhysicsPlugin,
             MainCameraPlugin,
             MainLightsPlugin,
@@ -63,6 +65,7 @@ fn main() {
             NpcPlugin,
             SkillPluginGroup,
             VfxPlugin,
+            DebugUiPlugin,
         ))
         .run();
 }

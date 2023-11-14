@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy_xpbd_3d::{math::*, prelude::*, PhysicsSchedule, PhysicsStepSet};
 
 use crate::{
+    app::AppState,
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
     npc::{Health, XpDrop},
@@ -18,11 +19,17 @@ impl Plugin for PlayerPlugin {
         app.register_type::<Player>()
             .add_event::<SpawnPlayerEvent>()
             .init_resource::<PlayerCharacters>()
-            .add_systems(Startup, setup_player)
-            .add_systems(Update, (spawn_player, gather_xp, regen_health))
+            .add_systems(Startup, setup_player_characters)
+            .add_systems(OnEnter(AppState::Run), spawn_main_player)
+            .add_systems(
+                Update,
+                (spawn_player, gather_xp, regen_health).run_if(in_state(AppState::Run)),
+            )
             .add_systems(
                 PhysicsSchedule,
-                move_player.before(PhysicsStepSet::BroadPhase),
+                move_player
+                    .before(PhysicsStepSet::BroadPhase)
+                    .run_if(in_state(AppState::Run)),
             );
     }
 }
@@ -58,51 +65,52 @@ pub struct Player {
     pub xp: u32,
 }
 
-fn setup_player(
+fn setup_player_characters(
     mut pcs: ResMut<PlayerCharacters>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let (height, width) = (2., 0.3);
+    let cap_h = height - 2. * width;
+    let pc = Arc::new(PlayerCharacter {
+        id: PlayerCharacterId::JoseCapsulado,
+        hp: 100,
+        speed: 4.,
+        width,
+        height,
+        gather_range: 3.,
+        gather_acceleration: 50.,
+        hp_regen_per_sec: 1.,
+        skills: vec![Skill::Laser(LaserConfig {
+            range: 15.,
+            dps: 20.,
+            duration: 0.5,
+            cooldown: 0.5,
+        })],
+        mesh: meshes.add(Mesh::from(shape::Capsule {
+            radius: width,
+            rings: 0,
+            depth: cap_h,
+            latitudes: 16,
+            longitudes: 32,
+            uv_profile: shape::CapsuleUvProfile::Aspect,
+        })),
+        material: materials.add(StandardMaterial {
+            base_color: Color::BLACK,
+            metallic: 0.0,
+            perceptual_roughness: 0.5,
+            ..default()
+        }),
+    });
+    pcs.characters = vec![pc];
+}
+
+fn spawn_main_player(
+    pcs: Res<PlayerCharacters>,
     mut ev_spawn_player: EventWriter<SpawnPlayerEvent>,
 ) {
-    let pc = {
-        let (height, width) = (2., 0.3);
-        let cap_h = height - 2. * width;
-        let pc = Arc::new(PlayerCharacter {
-            id: PlayerCharacterId::JoseCapsulado,
-            hp: 100,
-            speed: 4.,
-            width,
-            height,
-            gather_range: 3.,
-            gather_acceleration: 50.,
-            hp_regen_per_sec: 1.,
-            skills: vec![Skill::Laser(LaserConfig {
-                range: 15.,
-                dps: 20.,
-                duration: 0.5,
-                cooldown: 0.5,
-            })],
-            mesh: meshes.add(Mesh::from(shape::Capsule {
-                radius: width,
-                rings: 0,
-                depth: cap_h,
-                latitudes: 16,
-                longitudes: 32,
-                uv_profile: shape::CapsuleUvProfile::Aspect,
-            })),
-            material: materials.add(StandardMaterial {
-                base_color: Color::BLACK,
-                metallic: 0.0,
-                perceptual_roughness: 0.5,
-                ..default()
-            }),
-        });
-        pcs.characters = vec![pc.clone()];
-        pc
-    };
-
     ev_spawn_player.send(SpawnPlayerEvent {
-        character: pc,
+        character: pcs.characters[0].clone(),
         location: Vec2::ZERO,
     });
 }

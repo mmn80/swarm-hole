@@ -1,11 +1,10 @@
-use std::time::Duration;
-
 use bevy::{
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     prelude::*,
 };
 
 use crate::{
+    app::{AppState, GameState},
     npc::{Health, Npc},
     player::Player,
 };
@@ -14,20 +13,18 @@ pub struct MainUiPlugin;
 
 impl Plugin for MainUiPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<GameState>()
-            .add_systems(Startup, setup_ui)
+        app.add_systems(OnEnter(AppState::Run), setup_ui)
+            .add_systems(OnExit(AppState::Run), cleanup_ui)
             .add_systems(
                 Update,
-                (update_fps, update_player_ui, update_time_ui, update_npcs_ui),
+                (update_fps, update_player_ui, update_time_ui, update_npcs_ui)
+                    .run_if(in_state(AppState::Run)),
             );
     }
 }
 
-#[derive(Resource, Default)]
-pub struct GameState {
-    pub started_time: Duration,
-    pub ended_time: Duration,
-}
+#[derive(Component)]
+struct MainUi;
 
 fn setup_ui(mut cmd: Commands) {
     cmd.spawn((
@@ -47,17 +44,21 @@ fn setup_ui(mut cmd: Commands) {
             ..default()
         }),
         FpsText,
+        MainUi,
     ));
 
-    cmd.spawn(NodeBundle {
-        style: Style {
-            width: Val::Percent(100.0),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
+    cmd.spawn((
+        NodeBundle {
+            style: Style {
+                width: Val::Percent(100.0),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
             ..default()
         },
-        ..default()
-    })
+        MainUi,
+    ))
     .with_children(|parent| {
         parent.spawn(NodeBundle {
             style: Style {
@@ -285,5 +286,11 @@ fn update_npcs_ui(q_npc: Query<With<Npc>>, mut q_txt: Query<&mut Text, With<Npcs
         txt_npcs.sections[1].value = "-".to_string();
     } else {
         txt_npcs.sections[1].value = format!("{npcs:02}");
+    }
+}
+
+fn cleanup_ui(q_main_ui: Query<Entity, With<MainUi>>, mut cmd: Commands) {
+    for entity in &q_main_ui {
+        cmd.entity(entity).despawn_recursive();
     }
 }

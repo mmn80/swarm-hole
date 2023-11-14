@@ -6,11 +6,11 @@ use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 
 use crate::{
+    app::{AppState, GameState},
     debug_ui::{DebugUiCommand, DebugUiEvent},
     physics::{Layer, ALL_LAYERS},
     player::Player,
     skills::{laser::LaserConfig, melee::MeleeConfig, AddSkillEvent, Skill},
-    ui::GameState,
 };
 
 pub struct NpcPlugin;
@@ -23,7 +23,8 @@ impl Plugin for NpcPlugin {
             .add_systems(Startup, setup_npcs)
             .add_systems(
                 Update,
-                (spawn_npc, spawn_random_npcs, move_npcs, slow_xp_drops, die),
+                (spawn_npc, spawn_random_npcs, move_npcs, slow_xp_drops, die)
+                    .run_if(in_state(AppState::Run)),
             );
     }
 }

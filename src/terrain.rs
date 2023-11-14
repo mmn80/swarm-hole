@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::*;
 
-use crate::physics::{Layer, ALL_LAYERS};
+use crate::{
+    app::AppState,
+    physics::{Layer, ALL_LAYERS},
+};
 
 pub struct TerrainPlugin;
 
@@ -9,7 +12,8 @@ impl Plugin for TerrainPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Terrain>()
             .init_resource::<Terrain>()
-            .add_systems(Startup, setup_terrain);
+            .add_systems(OnEnter(AppState::Run), setup_terrain)
+            .add_systems(OnExit(AppState::Run), cleanup_terrain);
     }
 }
 
@@ -75,4 +79,11 @@ fn setup_terrain(
     //     .id();
     // cmd.entity(building_id)
     //     .insert(Name::new(format!("Building ({building_id:?})")));
+}
+
+fn cleanup_terrain(mut terrain: ResMut<Terrain>, mut cmd: Commands) {
+    if let Some(entity) = terrain.ground {
+        cmd.entity(entity).despawn_recursive();
+    }
+    terrain.ground = None;
 }

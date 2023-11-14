@@ -3,6 +3,8 @@ use bevy::{
     prelude::*,
 };
 
+use crate::app::AppState;
+
 pub struct MainLightsPlugin;
 
 impl Plugin for MainLightsPlugin {
@@ -13,12 +15,15 @@ impl Plugin for MainLightsPlugin {
         })
         .insert_resource(DirectionalLightShadowMap { size: 4096 })
         .add_systems(Startup, spawn_main_lights)
-        .add_systems(Update, animate_light_direction);
+        .add_systems(
+            Update,
+            animate_light_direction.run_if(in_state(AppState::Run)),
+        );
     }
 }
 
-fn spawn_main_lights(mut commands: Commands) {
-    commands.spawn(DirectionalLightBundle {
+fn spawn_main_lights(mut cmd: Commands) {
+    cmd.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
             illuminance: 20000.0,
             shadows_enabled: true,
@@ -43,15 +48,9 @@ fn spawn_main_lights(mut commands: Commands) {
 
 fn animate_light_direction(
     time: Res<Time>,
-    mut query: Query<&mut Transform, With<DirectionalLight>>,
+    mut q_light: Query<&mut Transform, With<DirectionalLight>>,
 ) {
-    for mut transform in &mut query {
-        transform.rotate(Quat::from_rotation_y(time.delta_seconds() * 0.1));
+    for mut tr in &mut q_light {
+        tr.rotate(Quat::from_rotation_y(time.delta_seconds() * 0.1));
     }
 }
-
-pub const INFINITE_TEMP_COLOR: Color = Color::rgb_linear(
-    148. / u8::MAX as f32,
-    177. / u8::MAX as f32,
-    255. / u8::MAX as f32,
-);

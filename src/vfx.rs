@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy_hanabi::prelude::*;
 
+use crate::app::AppState;
+
 pub struct VfxPlugin;
 
 impl Plugin for VfxPlugin {
@@ -8,7 +10,7 @@ impl Plugin for VfxPlugin {
         app.init_resource::<Vfx>()
             .add_event::<DamageParticlesEvent>()
             .add_systems(Startup, setup_vfx)
-            .add_systems(Update, update_vfx);
+            .add_systems(Update, update_vfx.run_if(in_state(AppState::Run)));
     }
 }
 

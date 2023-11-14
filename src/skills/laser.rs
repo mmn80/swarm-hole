@@ -6,6 +6,7 @@ use bevy::{
 use bevy_xpbd_3d::prelude::*;
 
 use crate::{
+    app::AppState,
     npc::{Health, Npc},
     physics::Layer,
     player::Player,
@@ -32,7 +33,8 @@ impl Plugin for LaserPlugin {
                         laser_ray_despawn,
                     )
                         .chain(),
-                ),
+                )
+                    .run_if(in_state(AppState::Run)),
             );
     }
 }
