@@ -171,7 +171,7 @@ fn setup_debug_ui(mut cmd: Commands) {
                 ..default()
             }),
             Outline {
-                width: Val::Px(2.),
+                width: Val::Px(0.),
                 offset: Val::Px(6.),
                 color: Color::WHITE,
             },
@@ -186,10 +186,10 @@ fn process_debug_commands(
     mut debug_ui: ResMut<DebugUi>,
     ev_char: EventReader<ReceivedCharacter>,
     mut ev_debug_ui: EventWriter<DebugUiEvent>,
-    mut q_text: Query<(&mut Text, &mut Style), With<DebugUiText>>,
+    mut q_text: Query<(&mut Text, &mut Style, &mut Outline), With<DebugUiText>>,
     mut time_since_hidden: Local<Option<f32>>,
 ) {
-    let Ok((mut text, mut style)) = q_text.get_single_mut() else {
+    let Ok((mut text, mut style, mut outline)) = q_text.get_single_mut() else {
         return;
     };
 
@@ -202,6 +202,7 @@ fn process_debug_commands(
                     let time_sec = time_since_hidden.unwrap();
                     if (time.elapsed_seconds() - time_sec).abs() > 1. {
                         style.display = Display::None;
+                        outline.width = Val::Px(0.);
                         *time_since_hidden = None;
                     }
                 }
@@ -214,6 +215,7 @@ fn process_debug_commands(
 
         DebugUiCommandParseState::ReadingCommand(buffer) => {
             style.display = Display::Flex;
+            outline.width = Val::Px(2.);
             if keyboard.just_pressed(KeyCode::Escape) {
                 debug_ui.state = DebugUiCommandParseState::Inactive;
             } else if !ev_char.is_empty() {
