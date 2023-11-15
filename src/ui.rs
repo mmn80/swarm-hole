@@ -2,6 +2,7 @@ use bevy::{
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     prelude::*,
 };
+use rand::prelude::*;
 
 use crate::{
     app::{is_running, AppState, RunState, INFINITE_TEMP_COLOR},
@@ -343,6 +344,19 @@ struct AppStateRoot;
 #[derive(Component)]
 struct AppStateText;
 
+const LOSE_STRS: [&str; 10] = [
+    "DEAD",
+    "DECEASED",
+    "GONE",
+    "DEPARTED",
+    "TERMINATED",
+    "FINISHED",
+    "FALLEN",
+    "EXTINCT",
+    "BLUNTED",
+    "KAPUT",
+];
+
 fn update_app_state_ui(
     app_state: Res<State<AppState>>,
     mut q_run_state_root: Query<&mut Style, With<AppStateRoot>>,
@@ -357,7 +371,7 @@ fn update_app_state_ui(
     let state = *app_state.get();
     if state == AppState::Run {
         style.display = Display::None;
-    } else {
+    } else if style.display == Display::None {
         style.display = Display::Flex;
         if state == AppState::Paused {
             txt_run_state.sections[0].value = "PAUSED".to_string();
@@ -366,7 +380,7 @@ fn update_app_state_ui(
             txt_run_state.sections[0].value = "DONE".to_string();
             txt_run_state.sections[0].style.color = Color::GOLD;
         } else if state == AppState::Lost {
-            txt_run_state.sections[0].value = "GONE".to_string();
+            txt_run_state.sections[0].value = LOSE_STRS[thread_rng().gen_range(0..10)].to_string();
             txt_run_state.sections[0].style.color = Color::ORANGE_RED;
         }
     }
