@@ -27,13 +27,7 @@ impl Plugin for PlayerPlugin {
                 },
                 spawn_main_player,
             )
-            .add_systems(
-                OnTransition {
-                    from: AppState::Paused,
-                    to: AppState::Menu,
-                },
-                cleanup_players,
-            )
+            .add_systems(OnEnter(AppState::Cleanup), cleanup_players)
             .add_systems(
                 Update,
                 (spawn_player, gather_xp, regen_health).run_if(in_state(AppState::Run)),

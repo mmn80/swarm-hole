@@ -27,7 +27,8 @@ fn setup_physics(mut debug_config: ResMut<PhysicsDebugConfig>) {
 }
 
 fn update_physics_paused(mut time: ResMut<Time<Physics>>, app_state: Res<State<AppState>>) {
-    if *app_state.get() == AppState::Paused {
+    let state = *app_state.get();
+    if state != AppState::Run {
         if !time.is_paused() {
             time.pause();
         }

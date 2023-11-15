@@ -4,7 +4,7 @@ use bevy::{
 };
 
 use crate::{
-    app::{AppState, RunState, WinState, INFINITE_TEMP_COLOR},
+    app::{is_running, AppState, RunState, INFINITE_TEMP_COLOR},
     npc::Health,
     player::Player,
 };
@@ -20,23 +20,17 @@ impl Plugin for MainUiPlugin {
             },
             setup_ui,
         )
-        .add_systems(
-            OnTransition {
-                from: AppState::Paused,
-                to: AppState::Menu,
-            },
-            cleanup_ui,
-        )
+        .add_systems(OnEnter(AppState::Cleanup), cleanup_ui)
         .add_systems(
             Update,
             (
                 update_fps,
                 update_player_ui,
                 update_run_time_ui,
-                update_run_state_ui,
+                update_app_state_ui,
                 update_npcs_ui,
             )
-                .run_if(in_state(AppState::Run).or_else(in_state(AppState::Paused))),
+                .run_if(is_running),
         );
     }
 }
@@ -224,7 +218,7 @@ fn setup_ui(mut cmd: Commands) {
             },
             ..default()
         },
-        RunStateRoot,
+        AppStateRoot,
         MainUi,
     ))
     .with_children(|parent| {
@@ -242,7 +236,7 @@ fn setup_ui(mut cmd: Commands) {
                 margin: UiRect::all(Val::Px(40.)),
                 ..default()
             }),
-            RunStateText,
+            AppStateText,
         ));
         parent.spawn((TextBundle::from_section(
             "press ENTER to continue",
@@ -326,16 +320,15 @@ fn update_run_time_ui(run_state: Res<RunState>, mut q_txt_time: Query<&mut Text,
     }
 }
 #[derive(Component)]
-struct RunStateRoot;
+struct AppStateRoot;
 
 #[derive(Component)]
-struct RunStateText;
+struct AppStateText;
 
-fn update_run_state_ui(
+fn update_app_state_ui(
     app_state: Res<State<AppState>>,
-    run_state: Res<RunState>,
-    mut q_run_state_root: Query<&mut Style, With<RunStateRoot>>,
-    mut q_txt_run_state: Query<&mut Text, With<RunStateText>>,
+    mut q_run_state_root: Query<&mut Style, With<AppStateRoot>>,
+    mut q_txt_run_state: Query<&mut Text, With<AppStateText>>,
 ) {
     let Ok(mut style) = q_run_state_root.get_single_mut() else {
         return;
@@ -343,21 +336,21 @@ fn update_run_state_ui(
     let Ok(mut txt_run_state) = q_txt_run_state.get_single_mut() else {
         return;
     };
-    if run_state.win_state != WinState::Playing {
+    let state = *app_state.get();
+    if state == AppState::Run {
+        style.display = Display::None;
+    } else {
         style.display = Display::Flex;
-        if run_state.win_state == WinState::Won {
+        if state == AppState::Paused {
+            txt_run_state.sections[0].value = "PAUSED".to_string();
+            txt_run_state.sections[0].style.color = INFINITE_TEMP_COLOR;
+        } else if state == AppState::Won {
             txt_run_state.sections[0].value = "DONE".to_string();
             txt_run_state.sections[0].style.color = Color::GOLD;
-        } else {
+        } else if state == AppState::Lost {
             txt_run_state.sections[0].value = "DONE FOR".to_string();
             txt_run_state.sections[0].style.color = Color::ORANGE_RED;
         }
-    } else if *app_state.get() == AppState::Paused {
-        style.display = Display::Flex;
-        txt_run_state.sections[0].value = "PAUSED".to_string();
-        txt_run_state.sections[0].style.color = INFINITE_TEMP_COLOR;
-    } else {
-        style.display = Display::None;
     }
 }
 

@@ -10,6 +10,9 @@ pub enum AppState {
     Menu,
     Run,
     Paused,
+    Lost,
+    Won,
+    Cleanup,
 }
 
 pub struct MainMenuPlugin;
@@ -18,81 +21,85 @@ impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<RunState>()
             .add_systems(OnEnter(AppState::Menu), setup_menu)
+            .add_systems(OnExit(AppState::Menu), cleanup_menu)
             .add_systems(
                 Update,
-                (update_menu, menu_key_shortcuts).run_if(in_state(AppState::Menu)),
+                (
+                    update_app_state,
+                    update_menu.run_if(in_state(AppState::Menu)),
+                ),
             )
-            .add_systems(OnExit(AppState::Menu), (cleanup_menu, start_run))
             .add_systems(
                 OnTransition {
                     from: AppState::Menu,
                     to: AppState::Run,
                 },
                 start_run,
-            )
-            .add_systems(
-                Update,
-                update_run_state
-                    .run_if(in_state(AppState::Run).or_else(in_state(AppState::Paused))),
             );
     }
-}
-
-#[derive(PartialEq, Eq, Copy, Clone, Default)]
-pub enum WinState {
-    #[default]
-    Playing,
-    Won,
-    Lost,
 }
 
 #[derive(Resource, Default)]
 pub struct RunState {
     pub run_time: Duration,
-    pub win_state: WinState,
     pub live_npcs: u32,
 }
 
 fn start_run(mut run_state: ResMut<RunState>) {
     run_state.run_time = Duration::ZERO;
-    run_state.win_state = WinState::Playing;
     run_state.live_npcs = 0;
 }
 
-fn update_run_state(
+fn update_app_state(
     keyboard: Res<Input<KeyCode>>,
     time: Res<Time>,
-    mut run_state: ResMut<RunState>,
-    state: Res<State<AppState>>,
+    app_state: Res<State<AppState>>,
     mut next_state: ResMut<NextState<AppState>>,
+    mut run_state: ResMut<RunState>,
     debug_ui: Res<DebugUi>,
+    mut exit: EventWriter<AppExit>,
 ) {
     let enter = keyboard.just_pressed(KeyCode::Return) && !debug_ui.has_focus();
     let esc = keyboard.just_pressed(KeyCode::Escape) && !debug_ui.has_focus();
-    let playing = run_state.win_state == WinState::Playing;
-    if *state.get() == AppState::Paused {
-        if playing && enter {
-            next_state.set(AppState::Run);
-        } else if (!playing && enter) || esc {
+    match *app_state.get() {
+        AppState::Cleanup => {
             next_state.set(AppState::Menu);
         }
-    } else if !playing || esc || enter {
-        next_state.set(AppState::Paused);
-    } else {
-        run_state.run_time += time.delta();
+        AppState::Lost | AppState::Won => {
+            if enter || esc {
+                next_state.set(AppState::Cleanup);
+            }
+        }
+        AppState::Paused => {
+            if enter {
+                next_state.set(AppState::Run);
+            } else if esc {
+                next_state.set(AppState::Cleanup);
+            }
+        }
+        AppState::Menu => {
+            if esc {
+                exit.send(AppExit);
+            } else if enter {
+                next_state.set(AppState::Run);
+            }
+        }
+        AppState::Run => {
+            if esc || enter {
+                next_state.set(AppState::Paused);
+            } else {
+                run_state.run_time += time.delta();
+            }
+        }
     }
 }
 
-fn menu_key_shortcuts(
-    keyboard: Res<Input<KeyCode>>,
-    mut exit: EventWriter<AppExit>,
-    mut next_state: ResMut<NextState<AppState>>,
-) {
-    if keyboard.just_pressed(KeyCode::Escape) {
-        exit.send(AppExit);
-    } else if keyboard.just_pressed(KeyCode::Return) {
-        next_state.set(AppState::Run);
-    }
+pub fn is_running(app_state: Res<State<AppState>>) -> bool {
+    let state = *app_state.get();
+    return state == AppState::Run
+        || state == AppState::Paused
+        || state == AppState::Lost
+        || state == AppState::Won;
 }
 
 #[derive(Component)]

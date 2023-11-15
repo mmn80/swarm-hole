@@ -19,13 +19,7 @@ impl Plugin for TerrainPlugin {
                 },
                 setup_terrain,
             )
-            .add_systems(
-                OnTransition {
-                    from: AppState::Paused,
-                    to: AppState::Menu,
-                },
-                cleanup_terrain,
-            );
+            .add_systems(OnEnter(AppState::Cleanup), cleanup_terrain);
     }
 }
 

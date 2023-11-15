@@ -36,13 +36,7 @@ impl Plugin for LaserPlugin {
                 )
                     .run_if(in_state(AppState::Run)),
             )
-            .add_systems(
-                OnTransition {
-                    from: AppState::Paused,
-                    to: AppState::Menu,
-                },
-                cleanup_laser_rays,
-            );
+            .add_systems(OnEnter(AppState::Cleanup), cleanup_laser_rays);
     }
 }
 
