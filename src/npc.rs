@@ -6,7 +6,7 @@ use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 
 use crate::{
-    app::{is_running, AppState, RunState},
+    app::{AppState, RunState, WinState},
     debug_ui::{DebugUiCommand, DebugUiEvent},
     physics::{Layer, ALL_LAYERS},
     player::Player,
@@ -21,13 +21,24 @@ impl Plugin for NpcPlugin {
             .add_event::<SpawnNpcEvent>()
             .init_resource::<NonPlayerCharacters>()
             .add_systems(Startup, setup_npcs)
-            .add_systems(OnEnter(AppState::Run), spawn_start_npcs)
-            .add_systems(OnExit(AppState::Run), cleanup_npcs)
+            .add_systems(
+                OnTransition {
+                    from: AppState::Menu,
+                    to: AppState::Run,
+                },
+                spawn_start_npcs,
+            )
+            .add_systems(
+                OnTransition {
+                    from: AppState::Paused,
+                    to: AppState::Menu,
+                },
+                cleanup_npcs,
+            )
             .add_systems(
                 Update,
                 (spawn_npc, spawn_random_npcs, move_npcs, slow_xp_drops, die)
-                    .run_if(in_state(AppState::Run))
-                    .run_if(is_running),
+                    .run_if(in_state(AppState::Run)),
             );
     }
 }
@@ -338,9 +349,12 @@ fn die(
                     .id();
                 cmd.entity(id)
                     .insert(Name::new(format!("Xp Drop of {} ({id:?})", npc.id.xp_drop)));
+
+                if run_state.live_npcs == 0 {
+                    run_state.win_state = WinState::Won;
+                }
             } else if player.is_some() {
-                run_state.ended = true;
-                run_state.won = false;
+                run_state.win_state = WinState::Lost;
             }
             cmd.entity(npc_ent).despawn_recursive();
         }

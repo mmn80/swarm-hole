@@ -247,9 +247,9 @@ fn process_debug_commands(
         }
 
         DebugUiCommandParseState::ReadingParam(command, key_string, buffer) => {
-            if keyboard.just_pressed(KeyCode::Escape) {
+            if keyboard.just_released(KeyCode::Escape) {
                 debug_ui.state = DebugUiCommandParseState::Inactive;
-            } else if keyboard.just_pressed(KeyCode::Return) {
+            } else if keyboard.just_released(KeyCode::Return) {
                 if let Ok(param) = buffer.parse::<i32>() {
                     ev_debug_ui.send(DebugUiEvent {
                         command: *command,

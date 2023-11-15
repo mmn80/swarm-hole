@@ -12,8 +12,20 @@ impl Plugin for TerrainPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Terrain>()
             .init_resource::<Terrain>()
-            .add_systems(OnEnter(AppState::Run), setup_terrain)
-            .add_systems(OnExit(AppState::Run), cleanup_terrain);
+            .add_systems(
+                OnTransition {
+                    from: AppState::Menu,
+                    to: AppState::Run,
+                },
+                setup_terrain,
+            )
+            .add_systems(
+                OnTransition {
+                    from: AppState::Paused,
+                    to: AppState::Menu,
+                },
+                cleanup_terrain,
+            );
     }
 }
 

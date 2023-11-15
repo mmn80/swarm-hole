@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::*;
 
 use crate::{
-    app::{is_running, AppState},
+    app::AppState,
     npc::{Health, Npc},
     physics::Layer,
     player::Player,
@@ -16,9 +16,7 @@ impl Plugin for MeleePlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Melee>().add_systems(
             Update,
-            (add_melee, update_melee)
-                .run_if(in_state(AppState::Run))
-                .run_if(is_running),
+            (add_melee, update_melee).run_if(in_state(AppState::Run)),
         );
     }
 }

@@ -2,11 +2,14 @@ use std::time::Duration;
 
 use bevy::{app::AppExit, prelude::*};
 
+use crate::debug_ui::DebugUi;
+
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum AppState {
     #[default]
     Menu,
     Run,
+    Paused,
 }
 
 pub struct MainMenuPlugin;
@@ -19,65 +22,64 @@ impl Plugin for MainMenuPlugin {
                 Update,
                 (update_menu, menu_key_shortcuts).run_if(in_state(AppState::Menu)),
             )
-            .add_systems(Update, update_run_state.run_if(in_state(AppState::Run)))
-            .add_systems(OnExit(AppState::Menu), cleanup_menu)
-            .add_systems(OnEnter(AppState::Run), start_run);
+            .add_systems(OnExit(AppState::Menu), (cleanup_menu, start_run))
+            .add_systems(
+                OnTransition {
+                    from: AppState::Menu,
+                    to: AppState::Run,
+                },
+                start_run,
+            )
+            .add_systems(
+                Update,
+                update_run_state
+                    .run_if(in_state(AppState::Run).or_else(in_state(AppState::Paused))),
+            );
     }
+}
+
+#[derive(PartialEq, Eq, Copy, Clone, Default)]
+pub enum WinState {
+    #[default]
+    Playing,
+    Won,
+    Lost,
 }
 
 #[derive(Resource, Default)]
 pub struct RunState {
     pub run_time: Duration,
-    pub paused: bool,
-    pub ended: bool,
-    pub won: bool,
+    pub win_state: WinState,
     pub live_npcs: u32,
-}
-
-pub fn is_running(run_state: Res<RunState>) -> bool {
-    !run_state.paused && !run_state.ended
 }
 
 fn start_run(mut run_state: ResMut<RunState>) {
     run_state.run_time = Duration::ZERO;
-    run_state.ended = false;
-    run_state.won = false;
+    run_state.win_state = WinState::Playing;
     run_state.live_npcs = 0;
-    run_state.paused = false;
 }
 
 fn update_run_state(
     keyboard: Res<Input<KeyCode>>,
     time: Res<Time>,
     mut run_state: ResMut<RunState>,
+    state: Res<State<AppState>>,
     mut next_state: ResMut<NextState<AppState>>,
+    debug_ui: Res<DebugUi>,
 ) {
-    let enter = keyboard.just_released(KeyCode::Return);
-    let esc = keyboard.just_released(KeyCode::Escape);
-    if run_state.paused {
-        if esc {
-            run_state.ended = true;
-            run_state.won = false;
-            run_state.paused = false;
-            next_state.set(AppState::Menu);
-        } else if enter {
-            run_state.paused = false;
-        }
-    } else if run_state.ended {
-        if enter || esc {
+    let enter = keyboard.just_pressed(KeyCode::Return) && !debug_ui.has_focus();
+    let esc = keyboard.just_pressed(KeyCode::Escape) && !debug_ui.has_focus();
+    let playing = run_state.win_state == WinState::Playing;
+    if *state.get() == AppState::Paused {
+        if playing && enter {
+            next_state.set(AppState::Run);
+        } else if (!playing && enter) || esc {
             next_state.set(AppState::Menu);
         }
+    } else if !playing || esc || enter {
+        next_state.set(AppState::Paused);
     } else {
-        if run_state.live_npcs == 0 && run_state.run_time.as_secs_f32() > 1. {
-            run_state.ended = true;
-            run_state.won = true;
-            run_state.paused = false;
-        } else {
-            run_state.run_time += time.delta();
-            if esc || enter {
-                run_state.paused = true;
-            }
-        }
+        run_state.run_time += time.delta();
     }
 }
 
@@ -86,9 +88,9 @@ fn menu_key_shortcuts(
     mut exit: EventWriter<AppExit>,
     mut next_state: ResMut<NextState<AppState>>,
 ) {
-    if keyboard.just_released(KeyCode::Escape) {
+    if keyboard.just_pressed(KeyCode::Escape) {
         exit.send(AppExit);
-    } else if keyboard.just_released(KeyCode::Return) {
+    } else if keyboard.just_pressed(KeyCode::Return) {
         next_state.set(AppState::Run);
     }
 }

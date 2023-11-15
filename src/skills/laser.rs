@@ -6,7 +6,7 @@ use bevy::{
 use bevy_xpbd_3d::prelude::*;
 
 use crate::{
-    app::{is_running, AppState},
+    app::AppState,
     npc::{Health, Npc},
     physics::Layer,
     player::Player,
@@ -34,10 +34,15 @@ impl Plugin for LaserPlugin {
                     )
                         .chain(),
                 )
-                    .run_if(in_state(AppState::Run))
-                    .run_if(is_running),
+                    .run_if(in_state(AppState::Run)),
             )
-            .add_systems(OnExit(AppState::Run), cleanup_laser_rays);
+            .add_systems(
+                OnTransition {
+                    from: AppState::Paused,
+                    to: AppState::Menu,
+                },
+                cleanup_laser_rays,
+            );
     }
 }
 

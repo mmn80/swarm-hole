@@ -4,7 +4,7 @@ use bevy::{
 };
 
 use crate::{
-    app::{AppState, RunState, INFINITE_TEMP_COLOR},
+    app::{AppState, RunState, WinState, INFINITE_TEMP_COLOR},
     npc::Health,
     player::Player,
 };
@@ -13,19 +13,31 @@ pub struct MainUiPlugin;
 
 impl Plugin for MainUiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::Run), setup_ui)
-            .add_systems(OnExit(AppState::Run), cleanup_ui)
-            .add_systems(
-                Update,
-                (
-                    update_fps,
-                    update_player_ui,
-                    update_run_time_ui,
-                    update_run_state_ui,
-                    update_npcs_ui,
-                )
-                    .run_if(in_state(AppState::Run)),
-            );
+        app.add_systems(
+            OnTransition {
+                from: AppState::Menu,
+                to: AppState::Run,
+            },
+            setup_ui,
+        )
+        .add_systems(
+            OnTransition {
+                from: AppState::Paused,
+                to: AppState::Menu,
+            },
+            cleanup_ui,
+        )
+        .add_systems(
+            Update,
+            (
+                update_fps,
+                update_player_ui,
+                update_run_time_ui,
+                update_run_state_ui,
+                update_npcs_ui,
+            )
+                .run_if(in_state(AppState::Run).or_else(in_state(AppState::Paused))),
+        );
     }
 }
 
@@ -320,6 +332,7 @@ struct RunStateRoot;
 struct RunStateText;
 
 fn update_run_state_ui(
+    app_state: Res<State<AppState>>,
     run_state: Res<RunState>,
     mut q_run_state_root: Query<&mut Style, With<RunStateRoot>>,
     mut q_txt_run_state: Query<&mut Text, With<RunStateText>>,
@@ -330,16 +343,16 @@ fn update_run_state_ui(
     let Ok(mut txt_run_state) = q_txt_run_state.get_single_mut() else {
         return;
     };
-    if run_state.ended {
+    if run_state.win_state != WinState::Playing {
         style.display = Display::Flex;
-        if run_state.won {
+        if run_state.win_state == WinState::Won {
             txt_run_state.sections[0].value = "DONE".to_string();
             txt_run_state.sections[0].style.color = Color::GOLD;
         } else {
             txt_run_state.sections[0].value = "DONE FOR".to_string();
             txt_run_state.sections[0].style.color = Color::ORANGE_RED;
         }
-    } else if run_state.paused {
+    } else if *app_state.get() == AppState::Paused {
         style.display = Display::Flex;
         txt_run_state.sections[0].value = "PAUSED".to_string();
         txt_run_state.sections[0].style.color = INFINITE_TEMP_COLOR;

@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use bevy_xpbd_3d::{math::*, prelude::*, PhysicsSchedule, PhysicsStepSet};
 
 use crate::{
-    app::{is_running, AppState},
+    app::AppState,
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
     npc::{Health, XpDrop},
@@ -20,20 +20,29 @@ impl Plugin for PlayerPlugin {
             .add_event::<SpawnPlayerEvent>()
             .init_resource::<PlayerCharacters>()
             .add_systems(Startup, setup_player_characters)
-            .add_systems(OnEnter(AppState::Run), spawn_main_player)
-            .add_systems(OnExit(AppState::Run), cleanup_players)
+            .add_systems(
+                OnTransition {
+                    from: AppState::Menu,
+                    to: AppState::Run,
+                },
+                spawn_main_player,
+            )
+            .add_systems(
+                OnTransition {
+                    from: AppState::Paused,
+                    to: AppState::Menu,
+                },
+                cleanup_players,
+            )
             .add_systems(
                 Update,
-                (spawn_player, gather_xp, regen_health)
-                    .run_if(in_state(AppState::Run))
-                    .run_if(is_running),
+                (spawn_player, gather_xp, regen_health).run_if(in_state(AppState::Run)),
             )
             .add_systems(
                 PhysicsSchedule,
                 move_player
                     .before(PhysicsStepSet::BroadPhase)
-                    .run_if(in_state(AppState::Run))
-                    .run_if(is_running),
+                    .run_if(in_state(AppState::Run)),
             );
     }
 }
