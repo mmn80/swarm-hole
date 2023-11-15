@@ -184,7 +184,7 @@ fn spawn_npc(
 fn spawn_start_npcs(mut ev_debug_ui: EventWriter<DebugUiEvent>) {
     ev_debug_ui.send(DebugUiEvent {
         command: DebugUiCommand::SpawnNpcs,
-        param: 100,
+        param: 500,
     });
 }
 
@@ -194,7 +194,7 @@ fn cleanup_npcs(q_npc: Query<Entity, Or<(With<Npc>, With<XpDrop>)>>, mut cmd: Co
     }
 }
 
-const NPC_DIST: f32 = 10.0;
+const NPC_DIST: f32 = 30.0;
 
 fn spawn_random_npcs(
     npcs: Res<NonPlayerCharacters>,

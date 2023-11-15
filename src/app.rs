@@ -124,8 +124,8 @@ fn setup_menu(mut cmd: Commands) {
         parent
             .spawn(ButtonBundle {
                 style: Style {
-                    width: Val::Px(150.),
-                    height: Val::Px(65.),
+                    width: Val::Px(200.),
+                    height: Val::Px(90.),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
                     ..default()
@@ -137,8 +137,8 @@ fn setup_menu(mut cmd: Commands) {
                 parent.spawn(TextBundle::from_section(
                     "RUN",
                     TextStyle {
-                        font_size: 40.0,
-                        color: Color::PINK,
+                        font_size: 60.0,
+                        color: INFINITE_TEMP_COLOR,
                         ..default()
                     },
                 ));

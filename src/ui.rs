@@ -4,7 +4,7 @@ use bevy::{
 };
 
 use crate::{
-    app::{AppState, RunState},
+    app::{AppState, RunState, INFINITE_TEMP_COLOR},
     npc::Health,
     player::Player,
 };
@@ -220,13 +220,14 @@ fn setup_ui(mut cmd: Commands) {
             TextBundle::from_section(
                 "PAUSED",
                 TextStyle {
-                    font_size: 40.0,
+                    font_size: 80.0,
+                    color: INFINITE_TEMP_COLOR,
                     ..default()
                 },
             )
             .with_text_alignment(TextAlignment::Center)
             .with_style(Style {
-                margin: UiRect::all(Val::Px(20.)),
+                margin: UiRect::all(Val::Px(40.)),
                 ..default()
             }),
             RunStateText,
@@ -234,15 +235,11 @@ fn setup_ui(mut cmd: Commands) {
         parent.spawn((TextBundle::from_section(
             "press ENTER to continue",
             TextStyle {
-                font_size: 20.0,
+                font_size: 25.0,
                 ..default()
             },
         )
-        .with_text_alignment(TextAlignment::Center)
-        .with_style(Style {
-            margin: UiRect::all(Val::Px(20.)),
-            ..default()
-        }),));
+        .with_text_alignment(TextAlignment::Center),));
     });
 }
 
@@ -337,12 +334,15 @@ fn update_run_state_ui(
         style.display = Display::Flex;
         if run_state.won {
             txt_run_state.sections[0].value = "DONE".to_string();
+            txt_run_state.sections[0].style.color = Color::GOLD;
         } else {
             txt_run_state.sections[0].value = "DONE FOR".to_string();
+            txt_run_state.sections[0].style.color = Color::ORANGE_RED;
         }
     } else if run_state.paused {
         style.display = Display::Flex;
         txt_run_state.sections[0].value = "PAUSED".to_string();
+        txt_run_state.sections[0].style.color = INFINITE_TEMP_COLOR;
     } else {
         style.display = Display::None;
     }
