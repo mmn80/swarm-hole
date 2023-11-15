@@ -43,7 +43,7 @@ fn setup_ui(mut cmd: Commands) {
         TextBundle::from_section(
             "",
             TextStyle {
-                font_size: 20.0,
+                font_size: 40.0,
                 color: Color::YELLOW,
                 ..default()
             },
@@ -95,14 +95,14 @@ fn setup_ui(mut cmd: Commands) {
                         TextSection::new(
                             "HP: ",
                             TextStyle {
-                                font_size: 20.0,
+                                font_size: 30.0,
                                 ..default()
                             },
                         ),
                         TextSection::new(
                             "-",
                             TextStyle {
-                                font_size: 20.0,
+                                font_size: 30.0,
                                 ..default()
                             },
                         ),
@@ -115,19 +115,20 @@ fn setup_ui(mut cmd: Commands) {
                     }),
                     HpText,
                 ));
+
                 parent.spawn((
                     TextBundle::from_sections([
                         TextSection::new(
                             "XP: ",
                             TextStyle {
-                                font_size: 20.0,
+                                font_size: 30.0,
                                 ..default()
                             },
                         ),
                         TextSection::new(
                             "-",
                             TextStyle {
-                                font_size: 20.0,
+                                font_size: 30.0,
                                 ..default()
                             },
                         ),
@@ -146,14 +147,14 @@ fn setup_ui(mut cmd: Commands) {
             TextBundle::from_section(
                 "00:00",
                 TextStyle {
-                    font_size: 40.0,
+                    font_size: 60.0,
                     ..default()
                 },
             )
             .with_style(Style {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                margin: UiRect::horizontal(Val::Px(40.)),
+                margin: UiRect::horizontal(Val::Px(60.)),
                 ..default()
             }),
             TimeText,
@@ -174,14 +175,14 @@ fn setup_ui(mut cmd: Commands) {
                         TextSection::new(
                             "NPC: ",
                             TextStyle {
-                                font_size: 20.0,
+                                font_size: 30.0,
                                 ..default()
                             },
                         ),
                         TextSection::new(
                             "-",
                             TextStyle {
-                                font_size: 20.0,
+                                font_size: 30.0,
                                 ..default()
                             },
                         ),
@@ -222,30 +223,47 @@ fn setup_ui(mut cmd: Commands) {
         MainUi,
     ))
     .with_children(|parent| {
-        parent.spawn((
-            TextBundle::from_section(
-                "PAUSED",
-                TextStyle {
-                    font_size: 80.0,
-                    color: INFINITE_TEMP_COLOR,
+        parent
+            .spawn((NodeBundle {
+                style: Style {
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    flex_direction: FlexDirection::Column,
                     ..default()
                 },
-            )
-            .with_text_alignment(TextAlignment::Center)
-            .with_style(Style {
-                margin: UiRect::all(Val::Px(40.)),
+                background_color: BackgroundColor::from(Color::rgba(0.15, 0.15, 0.15, 0.8)),
                 ..default()
-            }),
-            AppStateText,
-        ));
-        parent.spawn((TextBundle::from_section(
-            "press ENTER to continue",
-            TextStyle {
-                font_size: 25.0,
-                ..default()
-            },
-        )
-        .with_text_alignment(TextAlignment::Center),));
+            },))
+            .with_children(|parent| {
+                parent.spawn((
+                    TextBundle::from_section(
+                        "PAUSED",
+                        TextStyle {
+                            font_size: 100.0,
+                            color: INFINITE_TEMP_COLOR,
+                            ..default()
+                        },
+                    )
+                    .with_text_alignment(TextAlignment::Center)
+                    .with_style(Style {
+                        margin: UiRect::all(Val::Px(50.)),
+                        ..default()
+                    }),
+                    AppStateText,
+                ));
+                parent.spawn((TextBundle::from_section(
+                    "press ENTER to continue",
+                    TextStyle {
+                        font_size: 30.0,
+                        ..default()
+                    },
+                )
+                .with_text_alignment(TextAlignment::Center)
+                .with_style(Style {
+                    margin: UiRect::all(Val::Px(50.)),
+                    ..default()
+                }),));
+            });
     });
 }
 
@@ -348,7 +366,7 @@ fn update_app_state_ui(
             txt_run_state.sections[0].value = "DONE".to_string();
             txt_run_state.sections[0].style.color = Color::GOLD;
         } else if state == AppState::Lost {
-            txt_run_state.sections[0].value = "DONE FOR".to_string();
+            txt_run_state.sections[0].value = "GONE".to_string();
             txt_run_state.sections[0].style.color = Color::ORANGE_RED;
         }
     }

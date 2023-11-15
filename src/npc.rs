@@ -189,7 +189,7 @@ fn spawn_npc(
 fn spawn_start_npcs(mut ev_debug_ui: EventWriter<DebugUiEvent>) {
     ev_debug_ui.send(DebugUiEvent {
         command: DebugUiCommand::SpawnNpcs,
-        param: 500,
+        param: 250,
     });
 }
 
