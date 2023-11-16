@@ -5,9 +5,12 @@ use bevy::{
 };
 use bevy_xpbd_3d::prelude::*;
 
-use crate::{app::AppState, npc::Npc, physics::Layer, player::Player, vfx::DamageParticlesEvent};
+use crate::{
+    app::AppState, npc::NonPlayerCharacter, physics::Layer, player::Player,
+    vfx::DamageParticlesEvent,
+};
 
-use super::{health::TakeDamageEvent, AddSkillEvent, Skill};
+use super::health::TakeDamageEvent;
 
 pub struct LaserPlugin;
 
@@ -19,7 +22,7 @@ impl Plugin for LaserPlugin {
             .add_systems(
                 Update,
                 (
-                    add_laser,
+                    init_laser,
                     (
                         (laser_target_npc, laser_target_player),
                         laser_shoot_ray,
@@ -76,7 +79,7 @@ fn setup_assets(
     });
 }
 
-#[derive(Copy, Clone, Reflect)]
+#[derive(Copy, Clone, Reflect, Component)]
 pub struct LaserConfig {
     pub range: f32,
     pub dps: f32,
@@ -84,26 +87,18 @@ pub struct LaserConfig {
     pub cooldown: f32,
 }
 
-fn add_laser(mut ev_add_skill: EventReader<AddSkillEvent>, mut cmd: Commands) {
-    for ev in ev_add_skill.read() {
-        if let AddSkillEvent {
-            skill: Skill::Laser(config),
-            agent,
-        } = ev
-        {
-            cmd.entity(*agent).insert(Laser {
-                config: *config,
-                target: None,
-                ray: None,
-                time_ended: 0.,
-            });
-        }
+fn init_laser(q_laser: Query<Entity, (With<LaserConfig>, Without<Laser>)>, mut cmd: Commands) {
+    for ent in &q_laser {
+        cmd.entity(ent).insert(Laser {
+            target: None,
+            ray: None,
+            time_ended: 0.,
+        });
     }
 }
 
 #[derive(Component, Reflect)]
 pub struct Laser {
-    pub config: LaserConfig,
     pub target: Option<Entity>,
     pub ray: Option<Entity>,
     pub time_ended: f32,
@@ -112,19 +107,19 @@ pub struct Laser {
 fn laser_target_npc(
     time: Res<Time>,
     q_space: SpatialQuery,
-    mut q_laser: Query<(&mut Laser, &Transform), With<Player>>,
-    q_npc: Query<&Transform, With<Npc>>,
+    mut q_laser: Query<(&mut Laser, &LaserConfig, &Transform), With<Player>>,
+    q_npc: Query<&Transform, With<NonPlayerCharacter>>,
 ) {
-    for (mut laser, tr_player) in &mut q_laser {
+    for (mut laser, laser_config, tr_player) in &mut q_laser {
         if laser.target.is_some()
-            || time.elapsed_seconds() - laser.time_ended < laser.config.cooldown
+            || time.elapsed_seconds() - laser.time_ended < laser_config.cooldown
         {
             continue;
         }
         let pos = tr_player.translation;
         if let Some((hit_ent, _)) = q_space
             .shape_intersections(
-                &Collider::ball(laser.config.range),
+                &Collider::ball(laser_config.range),
                 pos,
                 Quat::default(),
                 SpatialQueryFilter::new().with_masks([Layer::NPC]),
@@ -145,12 +140,12 @@ fn laser_target_npc(
 
 fn laser_target_player(
     time: Res<Time>,
-    mut q_laser: Query<(&mut Laser, &Transform), Without<Player>>,
+    mut q_laser: Query<(&mut Laser, &LaserConfig, &Transform), Without<Player>>,
     q_player: Query<(Entity, &Transform), With<Player>>,
 ) {
-    for (mut laser, tr_src) in &mut q_laser {
+    for (mut laser, laser_config, tr_src) in &mut q_laser {
         if laser.target.is_some()
-            || time.elapsed_seconds() - laser.time_ended < laser.config.cooldown
+            || time.elapsed_seconds() - laser.time_ended < laser_config.cooldown
         {
             continue;
         }
@@ -167,7 +162,7 @@ fn laser_target_player(
         else {
             continue;
         };
-        if laser.config.range > (player_pos - src_pos).length() {
+        if laser_config.range > (player_pos - src_pos).length() {
             laser.target = Some(player_ent);
         }
     }
@@ -241,7 +236,7 @@ fn laser_ray_update(
     mut q_ray: Query<(&mut LaserRay, &mut Transform, &Children), Without<LaserRayMesh>>,
     mut q_ray_mesh: Query<(&mut Transform, &mut Visibility), (With<LaserRayMesh>, Without<Laser>)>,
     mut q_targets: Query<
-        (&Transform, Option<&Laser>, Has<Player>),
+        (&Transform, Option<&LaserConfig>, Has<Player>),
         (Without<LaserRay>, Without<LaserRayMesh>),
     >,
     mut ev_take_damage: EventWriter<TakeDamageEvent>,
@@ -251,14 +246,14 @@ fn laser_ray_update(
             continue;
         };
         let (s, dps, duration, color) = {
-            let Ok((tr_laser, Some(laser), is_player)) = q_targets.get(ray.source) else {
+            let Ok((tr_laser, Some(laser_config), is_player)) = q_targets.get(ray.source) else {
                 ray.dead = true;
                 continue;
             };
             (
                 tr_laser.translation + if is_player { Vec3::Y * 0.8 } else { Vec3::ZERO },
-                laser.config.dps,
-                laser.config.duration,
+                laser_config.dps,
+                laser_config.duration,
                 if is_player {
                     PLAYER_LASER_COLOR
                 } else {

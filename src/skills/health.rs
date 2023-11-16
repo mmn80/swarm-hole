@@ -3,9 +3,9 @@ use bevy_xpbd_3d::prelude::*;
 
 use crate::{
     app::{AppState, RunState},
-    npc::{NonPlayerCharacters, Npc},
+    npc::{NonPlayerCharacter, NpcResources},
     physics::Layer,
-    player::Player,
+    player::{Player, PlayerCharacter},
 };
 
 use super::xp_drops::XpDrop;
@@ -42,10 +42,10 @@ fn take_damage(mut ev_take_damage: EventReader<TakeDamageEvent>, mut q_health: Q
     }
 }
 
-fn regen_health(time: Res<Time>, mut q_player: Query<(&mut Health, &Player)>) {
+fn regen_health(time: Res<Time>, mut q_player: Query<(&mut Health, &PlayerCharacter)>) {
     for (mut health, player) in &mut q_player {
         health.0 =
-            (health.0 + player.id.hp_regen_per_sec * time.delta_seconds()).min(player.id.hp as f32);
+            (health.0 + player.hp_regen_per_sec * time.delta_seconds()).min(player.hp as f32);
     }
 }
 
@@ -53,8 +53,14 @@ fn die(
     mut next_state: ResMut<NextState<AppState>>,
     mut run_state: ResMut<RunState>,
     mut meshes: ResMut<Assets<Mesh>>,
-    npcs: Res<NonPlayerCharacters>,
-    q_npc: Query<(Entity, &Health, &Transform, Option<&Npc>, Option<&Player>)>,
+    npcs: Res<NpcResources>,
+    q_npc: Query<(
+        Entity,
+        &Health,
+        &Transform,
+        Option<&NonPlayerCharacter>,
+        Option<&Player>,
+    )>,
     mut cmd: Commands,
 ) {
     for (npc_ent, health, tr_npc, npc, player) in &q_npc {
@@ -62,11 +68,11 @@ fn die(
             if let Some(npc) = npc {
                 run_state.live_npcs -= 1;
 
-                let h = XpDrop::get_height(npc.id.xp_drop);
+                let h = XpDrop::get_height(npc.xp_drop);
                 let p = tr_npc.translation;
                 let id = cmd
                     .spawn((
-                        XpDrop(npc.id.xp_drop),
+                        XpDrop(npc.xp_drop),
                         PbrBundle {
                             transform: Transform::from_translation(Vec3::new(p.x, h + 0.02, p.z)),
                             mesh: meshes.add(
@@ -76,7 +82,7 @@ fn die(
                                 })
                                 .unwrap(),
                             ),
-                            material: (if XpDrop::is_big(npc.id.xp_drop) {
+                            material: (if XpDrop::is_big(npc.xp_drop) {
                                 npcs.xp_drop_big.clone()
                             } else {
                                 npcs.xp_drop_small.clone()
@@ -89,7 +95,7 @@ fn die(
                     ))
                     .id();
                 cmd.entity(id)
-                    .insert(Name::new(format!("Xp Drop of {} ({id:?})", npc.id.xp_drop)));
+                    .insert(Name::new(format!("Xp Drop of {} ({id:?})", npc.xp_drop)));
 
                 if run_state.live_npcs == 0 {
                     next_state.set(AppState::Won);

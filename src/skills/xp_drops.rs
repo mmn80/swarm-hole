@@ -1,7 +1,11 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::*;
 
-use crate::{app::AppState, physics::Layer, player::Player};
+use crate::{
+    app::AppState,
+    physics::Layer,
+    player::{Player, PlayerCharacter},
+};
 
 pub struct XpDropsPlugin;
 
@@ -35,14 +39,14 @@ impl XpDrop {
 fn gather_xp(
     time: Res<Time>,
     q_space: SpatialQuery,
-    mut q_player: Query<(&Transform, &mut Player)>,
+    mut q_player: Query<(&Transform, &PlayerCharacter, &mut Player)>,
     mut q_xp_drop: Query<(Entity, &Transform, &mut LinearVelocity, &XpDrop)>,
     mut cmd: Commands,
 ) {
-    for (tr_player, mut player) in &mut q_player {
+    for (tr_player, player_character, mut player) in &mut q_player {
         for ent in q_space
             .shape_intersections(
-                &Collider::ball(player.id.gather_range),
+                &Collider::ball(player_character.gather_range),
                 tr_player.translation,
                 Quat::default(),
                 SpatialQueryFilter::new().with_masks([Layer::Building]),
@@ -59,7 +63,7 @@ fn gather_xp(
                     let old_speed = lin_vel.length();
                     delta.y = 0.;
                     delta = delta.normalize()
-                        * (old_speed + time.delta_seconds() * player.id.gather_acceleration);
+                        * (old_speed + time.delta_seconds() * player_character.gather_acceleration);
                     lin_vel.x = delta.x;
                     lin_vel.z = delta.z;
                 }
