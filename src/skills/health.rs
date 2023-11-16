@@ -3,12 +3,12 @@ use bevy_xpbd_3d::prelude::*;
 
 use crate::{
     app::{AppState, RunState},
-    npc::{NonPlayerCharacter, NpcResources},
+    npc::NonPlayerCharacter,
     physics::Layer,
     player::{Player, PlayerCharacter},
 };
 
-use super::xp_drops::XpDrop;
+use super::xp_drops::{XpDrop, XpDrops};
 
 pub struct HealthPlugin;
 
@@ -53,7 +53,7 @@ fn die(
     mut next_state: ResMut<NextState<AppState>>,
     mut run_state: ResMut<RunState>,
     mut meshes: ResMut<Assets<Mesh>>,
-    npcs: Res<NpcResources>,
+    xp_drops: Res<XpDrops>,
     q_npc: Query<(
         Entity,
         &Health,
@@ -83,9 +83,9 @@ fn die(
                                 .unwrap(),
                             ),
                             material: (if XpDrop::is_big(npc.xp_drop) {
-                                npcs.xp_drop_big.clone()
+                                xp_drops.xp_drop_big.clone()
                             } else {
-                                npcs.xp_drop_small.clone()
+                                xp_drops.xp_drop_small.clone()
                             }),
                             ..default()
                         },

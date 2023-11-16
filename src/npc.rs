@@ -16,7 +16,7 @@ pub struct NpcPlugin;
 impl Plugin for NpcPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<NonPlayerCharacter>()
-            .init_resource::<NpcResources>()
+            .init_resource::<Npcs>()
             .add_systems(Startup, setup_npc_resources)
             .add_systems(OnEnter(AppState::Cleanup), cleanup_npcs)
             .add_systems(
@@ -34,9 +34,7 @@ impl Plugin for NpcPlugin {
 }
 
 #[derive(Resource, Default)]
-pub struct NpcResources {
-    pub xp_drop_small: Handle<StandardMaterial>,
-    pub xp_drop_big: Handle<StandardMaterial>,
+pub struct Npcs {
     pub fst_mesh: Handle<Mesh>,
     pub fst_mat: Handle<StandardMaterial>,
     pub snd_mesh: Handle<Mesh>,
@@ -44,7 +42,7 @@ pub struct NpcResources {
 }
 
 fn setup_npc_resources(
-    mut npc_resources: ResMut<NpcResources>,
+    mut npc_resources: ResMut<Npcs>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
@@ -74,21 +72,6 @@ fn setup_npc_resources(
         perceptual_roughness: 0.3,
         ..default()
     });
-
-    npc_resources.xp_drop_small = materials.add(StandardMaterial {
-        base_color: Color::rgb(1.0, 4.0, 1.0),
-        metallic: 0.8,
-        perceptual_roughness: 0.4,
-        reflectance: 0.9,
-        ..default()
-    });
-    npc_resources.xp_drop_big = materials.add(StandardMaterial {
-        base_color: Color::rgb(4.0, 1.0, 1.0),
-        metallic: 0.8,
-        perceptual_roughness: 0.4,
-        reflectance: 0.9,
-        ..default()
-    });
 }
 
 #[derive(Component, Reflect, Clone)]
@@ -111,7 +94,7 @@ pub struct SpawnNpc {
 impl Command for SpawnNpc {
     fn apply(self, world: &mut World) {
         let Some((fst_mesh, fst_mat, snd_mesh, snd_mat)) = ({
-            if let Some(npc_resources) = world.get_resource::<NpcResources>() {
+            if let Some(npc_resources) = world.get_resource::<Npcs>() {
                 Some((
                     npc_resources.fst_mesh.clone(),
                     npc_resources.fst_mat.clone(),
