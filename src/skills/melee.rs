@@ -1,14 +1,9 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::*;
 
-use crate::{
-    app::AppState,
-    npc::{Health, Npc},
-    physics::Layer,
-    player::Player,
-};
+use crate::{app::AppState, npc::Npc, physics::Layer};
 
-use super::{AddSkillEvent, Skill};
+use super::{health::TakeDamageEvent, AddSkillEvent, Skill};
 
 pub struct MeleePlugin;
 
@@ -36,10 +31,10 @@ fn add_melee(mut ev_add_skill: EventReader<AddSkillEvent>, mut cmd: Commands) {
     for ev in ev_add_skill.read() {
         if let AddSkillEvent {
             skill: Skill::Melee(config),
-            parent,
+            agent,
         } = ev
         {
-            cmd.entity(*parent).insert(Melee { config: *config });
+            cmd.entity(*agent).insert(Melee { config: *config });
         }
     }
 }
@@ -48,7 +43,7 @@ fn update_melee(
     time: Res<Time>,
     q_space: SpatialQuery,
     q_melee: Query<(&Melee, &Transform), With<Npc>>,
-    mut q_player: Query<&mut Health, With<Player>>,
+    mut ev_take_damage: EventWriter<TakeDamageEvent>,
 ) {
     for (melee, tr_npc) in &q_melee {
         let pos = tr_npc.translation;
@@ -58,9 +53,10 @@ fn update_melee(
             Quat::default(),
             SpatialQueryFilter::new().with_masks([Layer::Player]),
         ) {
-            if let Ok(mut health) = q_player.get_mut(player_ent) {
-                health.take_damage(time.delta_seconds() * melee.config.dps as f32);
-            }
+            ev_take_damage.send(TakeDamageEvent {
+                target: player_ent,
+                damage: time.delta_seconds() * melee.config.dps as f32,
+            });
         }
     }
 }

@@ -6,8 +6,8 @@ use rand::prelude::*;
 
 use crate::{
     app::{is_running, AppState, RunState, INFINITE_TEMP_COLOR},
-    npc::Health,
     player::Player,
+    skills::health::Health,
 };
 
 pub struct MainUiPlugin;

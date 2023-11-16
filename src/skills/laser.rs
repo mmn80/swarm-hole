@@ -5,15 +5,9 @@ use bevy::{
 };
 use bevy_xpbd_3d::prelude::*;
 
-use crate::{
-    app::AppState,
-    npc::{Health, Npc},
-    physics::Layer,
-    player::Player,
-    vfx::DamageParticlesEvent,
-};
+use crate::{app::AppState, npc::Npc, physics::Layer, player::Player, vfx::DamageParticlesEvent};
 
-use super::{AddSkillEvent, Skill};
+use super::{health::TakeDamageEvent, AddSkillEvent, Skill};
 
 pub struct LaserPlugin;
 
@@ -94,10 +88,10 @@ fn add_laser(mut ev_add_skill: EventReader<AddSkillEvent>, mut cmd: Commands) {
     for ev in ev_add_skill.read() {
         if let AddSkillEvent {
             skill: Skill::Laser(config),
-            parent,
+            agent,
         } = ev
         {
-            cmd.entity(*parent).insert(Laser {
+            cmd.entity(*agent).insert(Laser {
                 config: *config,
                 target: None,
                 ray: None,
@@ -247,16 +241,17 @@ fn laser_ray_update(
     mut q_ray: Query<(&mut LaserRay, &mut Transform, &Children), Without<LaserRayMesh>>,
     mut q_ray_mesh: Query<(&mut Transform, &mut Visibility), (With<LaserRayMesh>, Without<Laser>)>,
     mut q_targets: Query<
-        (&Transform, Option<&Laser>, Option<&mut Health>, Has<Player>),
+        (&Transform, Option<&Laser>, Has<Player>),
         (Without<LaserRay>, Without<LaserRayMesh>),
     >,
+    mut ev_take_damage: EventWriter<TakeDamageEvent>,
 ) {
     for (mut ray, mut tr_ray, children) in &mut q_ray {
         if ray.dead {
             continue;
         };
         let (s, dps, duration, color) = {
-            let Ok((tr_laser, Some(laser), _, is_player)) = q_targets.get(ray.source) else {
+            let Ok((tr_laser, Some(laser), is_player)) = q_targets.get(ray.source) else {
                 ray.dead = true;
                 continue;
             };
@@ -271,7 +266,7 @@ fn laser_ray_update(
                 },
             )
         };
-        let Ok((tr_target, _, Some(mut health), _)) = q_targets.get_mut(ray.target) else {
+        let Ok((tr_target, _, _)) = q_targets.get_mut(ray.target) else {
             ray.dead = true;
             continue;
         };
@@ -306,7 +301,10 @@ fn laser_ray_update(
             });
         }
 
-        health.take_damage(time.delta_seconds() * dps);
+        ev_take_damage.send(TakeDamageEvent {
+            target: ray.target,
+            damage: time.delta_seconds() * dps,
+        });
     }
 }
 

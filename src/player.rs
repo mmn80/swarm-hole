@@ -7,9 +7,8 @@ use crate::{
     app::AppState,
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
-    npc::{Health, XpDrop},
     physics::{Layer, ALL_LAYERS},
-    skills::{laser::LaserConfig, AddSkillEvent, Skill},
+    skills::{health::Health, laser::LaserConfig, AddSkillEvent, Skill},
 };
 
 pub struct PlayerPlugin;
@@ -28,10 +27,7 @@ impl Plugin for PlayerPlugin {
                 spawn_main_player,
             )
             .add_systems(OnEnter(AppState::Cleanup), cleanup_players)
-            .add_systems(
-                Update,
-                (spawn_player, gather_xp, regen_health).run_if(in_state(AppState::Run)),
-            )
+            .add_systems(Update, spawn_player.run_if(in_state(AppState::Run)))
             .add_systems(
                 PhysicsSchedule,
                 move_player
@@ -85,7 +81,7 @@ fn setup_player_characters(
         speed: 4.,
         width,
         height,
-        gather_range: 3.,
+        gather_range: 5.,
         gather_acceleration: 50.,
         hp_regen_per_sec: 1.,
         skills: vec![Skill::Laser(LaserConfig {
@@ -175,7 +171,7 @@ fn spawn_player(
         for skill in &pc.skills {
             ev_add_skill.send(AddSkillEvent {
                 skill: *skill,
-                parent: id,
+                agent: id,
             });
         }
         cmd.entity(id)
@@ -234,48 +230,5 @@ fn move_player(
         ev_refocus.send(MainCameraFocusEvent {
             focus: player_tr.translation,
         });
-    }
-}
-
-fn gather_xp(
-    time: Res<Time>,
-    q_space: SpatialQuery,
-    mut q_player: Query<(&Transform, &mut Player)>,
-    mut q_xp_drop: Query<(Entity, &Transform, &mut LinearVelocity, &XpDrop)>,
-    mut cmd: Commands,
-) {
-    for (tr_player, mut player) in &mut q_player {
-        for ent in q_space
-            .shape_intersections(
-                &Collider::ball(player.id.gather_range),
-                tr_player.translation,
-                Quat::default(),
-                SpatialQueryFilter::new().with_masks([Layer::Building]),
-            )
-            .iter()
-        {
-            if let Ok((ent, tr_xp, mut lin_vel, xp_drop)) = q_xp_drop.get_mut(*ent) {
-                let mut delta = tr_player.translation - tr_xp.translation;
-                if delta.length() < XpDrop::get_height(xp_drop.0) + 1. {
-                    player.xp += xp_drop.0;
-                    cmd.entity(ent).despawn_recursive();
-                } else {
-                    lin_vel.y = 0.;
-                    let old_speed = lin_vel.length();
-                    delta.y = 0.;
-                    delta = delta.normalize()
-                        * (old_speed + time.delta_seconds() * player.id.gather_acceleration);
-                    lin_vel.x = delta.x;
-                    lin_vel.z = delta.z;
-                }
-            }
-        }
-    }
-}
-
-fn regen_health(time: Res<Time>, mut q_player: Query<(&mut Health, &Player)>) {
-    for (mut health, player) in &mut q_player {
-        health.0 =
-            (health.0 + player.id.hp_regen_per_sec * time.delta_seconds()).min(player.id.hp as f32);
     }
 }

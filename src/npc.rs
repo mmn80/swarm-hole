@@ -10,7 +10,7 @@ use crate::{
     debug_ui::{DebugUiCommand, DebugUiEvent},
     physics::{Layer, ALL_LAYERS},
     player::Player,
-    skills::{laser::LaserConfig, melee::MeleeConfig, AddSkillEvent, Skill},
+    skills::{health::Health, laser::LaserConfig, melee::MeleeConfig, AddSkillEvent, Skill},
 };
 
 pub struct NpcPlugin;
@@ -21,6 +21,7 @@ impl Plugin for NpcPlugin {
             .add_event::<SpawnNpcEvent>()
             .init_resource::<NonPlayerCharacters>()
             .add_systems(Startup, setup_npcs)
+            .add_systems(OnEnter(AppState::Cleanup), cleanup_npcs)
             .add_systems(
                 OnTransition {
                     from: AppState::Menu,
@@ -28,11 +29,9 @@ impl Plugin for NpcPlugin {
                 },
                 spawn_start_npcs,
             )
-            .add_systems(OnEnter(AppState::Cleanup), cleanup_npcs)
             .add_systems(
                 Update,
-                (spawn_npc, spawn_random_npcs, move_npcs, slow_xp_drops, die)
-                    .run_if(in_state(AppState::Run)),
+                (spawn_npc, spawn_random_npcs, move_npcs).run_if(in_state(AppState::Run)),
             );
     }
 }
@@ -176,7 +175,7 @@ fn spawn_npc(
         for skill in &npc.skills {
             ev_add_skill.send(AddSkillEvent {
                 skill: *skill,
-                parent: id,
+                agent: id,
             });
         }
         cmd.entity(id)
@@ -191,12 +190,6 @@ fn spawn_start_npcs(mut ev_debug_ui: EventWriter<DebugUiEvent>) {
         command: DebugUiCommand::SpawnNpcs,
         param: 250,
     });
-}
-
-fn cleanup_npcs(q_npc: Query<Entity, Or<(With<Npc>, With<XpDrop>)>>, mut cmd: Commands) {
-    for entity in &q_npc {
-        cmd.entity(entity).despawn_recursive();
-    }
 }
 
 const NPC_DIST: f32 = 30.0;
@@ -263,95 +256,8 @@ fn move_npcs(
     }
 }
 
-#[derive(Component)]
-pub struct Health(pub f32);
-
-impl Health {
-    pub fn take_damage(&mut self, damage: f32) {
-        self.0 = if damage >= self.0 {
-            0.
-        } else {
-            self.0 - damage
-        };
-    }
-}
-
-#[derive(Component)]
-pub struct XpDrop(pub u32);
-
-impl XpDrop {
-    pub fn is_big(drop: u32) -> bool {
-        drop > 5
-    }
-
-    pub fn get_height(drop: u32) -> f32 {
-        if XpDrop::is_big(drop) {
-            0.4
-        } else {
-            0.2
-        }
-    }
-}
-
-fn slow_xp_drops(time: Res<Time>, mut q_npc: Query<&mut LinearVelocity, With<XpDrop>>) {
-    for mut lin_vel in &mut q_npc {
-        let speed = lin_vel.length();
-        if speed > f32::EPSILON {
-            let dir = lin_vel.normalize_or_zero();
-            lin_vel.0 = (speed - time.delta_seconds() * 5.).max(0.) * dir;
-        }
-    }
-}
-
-fn die(
-    mut next_state: ResMut<NextState<AppState>>,
-    mut run_state: ResMut<RunState>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    npcs: Res<NonPlayerCharacters>,
-    q_npc: Query<(Entity, &Health, &Transform, Option<&Npc>, Option<&Player>)>,
-    mut cmd: Commands,
-) {
-    for (npc_ent, health, tr_npc, npc, player) in &q_npc {
-        if health.0 <= f32::EPSILON {
-            if let Some(npc) = npc {
-                run_state.live_npcs -= 1;
-
-                let h = XpDrop::get_height(npc.id.xp_drop);
-                let p = tr_npc.translation;
-                let id = cmd
-                    .spawn((
-                        XpDrop(npc.id.xp_drop),
-                        PbrBundle {
-                            transform: Transform::from_translation(Vec3::new(p.x, h + 0.02, p.z)),
-                            mesh: meshes.add(
-                                Mesh::try_from(shape::Icosphere {
-                                    radius: h,
-                                    subdivisions: 4,
-                                })
-                                .unwrap(),
-                            ),
-                            material: (if XpDrop::is_big(npc.id.xp_drop) {
-                                npcs.xp_drop_big.clone()
-                            } else {
-                                npcs.xp_drop_small.clone()
-                            }),
-                            ..default()
-                        },
-                        RigidBody::Kinematic,
-                        Collider::ball(h),
-                        CollisionLayers::new([Layer::Building], [Layer::Building, Layer::Player]),
-                    ))
-                    .id();
-                cmd.entity(id)
-                    .insert(Name::new(format!("Xp Drop of {} ({id:?})", npc.id.xp_drop)));
-
-                if run_state.live_npcs == 0 {
-                    next_state.set(AppState::Won);
-                }
-            } else if player.is_some() {
-                next_state.set(AppState::Lost);
-            }
-            cmd.entity(npc_ent).despawn_recursive();
-        }
+fn cleanup_npcs(q_npc: Query<Entity, With<Npc>>, mut cmd: Commands) {
+    for entity in &q_npc {
+        cmd.entity(entity).despawn_recursive();
     }
 }
