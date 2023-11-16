@@ -1,11 +1,7 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::*;
 
-use crate::{
-    app::AppState,
-    physics::Layer,
-    player::{Player, PlayerCharacter},
-};
+use crate::{app::AppState, physics::Layer, player::PlayerCharacter};
 
 pub struct XpDropsPlugin;
 
@@ -36,14 +32,17 @@ impl XpDrop {
     }
 }
 
+#[derive(Component)]
+pub struct XpGather(pub u32);
+
 fn gather_xp(
     time: Res<Time>,
     q_space: SpatialQuery,
-    mut q_player: Query<(&Transform, &PlayerCharacter, &mut Player)>,
+    mut q_xp_gather: Query<(&Transform, &PlayerCharacter, &mut XpGather)>,
     mut q_xp_drop: Query<(Entity, &Transform, &mut LinearVelocity, &XpDrop)>,
     mut cmd: Commands,
 ) {
-    for (tr_player, player_character, mut player) in &mut q_player {
+    for (tr_player, player_character, mut xp_gather) in &mut q_xp_gather {
         for ent in q_space
             .shape_intersections(
                 &Collider::ball(player_character.gather_range),
@@ -56,7 +55,7 @@ fn gather_xp(
             if let Ok((ent, tr_xp, mut lin_vel, xp_drop)) = q_xp_drop.get_mut(*ent) {
                 let mut delta = tr_player.translation - tr_xp.translation;
                 if delta.length() < XpDrop::get_height(xp_drop.0) + 1. {
-                    player.xp += xp_drop.0;
+                    xp_gather.0 += xp_drop.0;
                     cmd.entity(ent).despawn_recursive();
                 } else {
                     lin_vel.y = 0.;

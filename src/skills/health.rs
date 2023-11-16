@@ -59,11 +59,11 @@ fn die(
         &Health,
         &Transform,
         Option<&NonPlayerCharacter>,
-        Option<&Player>,
+        Has<Player>,
     )>,
     mut cmd: Commands,
 ) {
-    for (npc_ent, health, tr_npc, npc, player) in &q_npc {
+    for (npc_ent, health, tr_npc, npc, is_player) in &q_npc {
         if health.0 <= f32::EPSILON {
             if let Some(npc) = npc {
                 run_state.live_npcs -= 1;
@@ -100,7 +100,7 @@ fn die(
                 if run_state.live_npcs == 0 {
                     next_state.set(AppState::Won);
                 }
-            } else if player.is_some() {
+            } else if is_player {
                 next_state.set(AppState::Lost);
             }
             cmd.entity(npc_ent).despawn_recursive();

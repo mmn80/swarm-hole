@@ -7,7 +7,7 @@ use rand::prelude::*;
 use crate::{
     app::{is_running, AppState, RunState, INFINITE_TEMP_COLOR},
     player::Player,
-    skills::health::Health,
+    skills::{health::Health, xp_drops::XpGather},
 };
 
 pub struct MainUiPlugin;
@@ -292,7 +292,7 @@ struct XpText;
 
 fn update_player_ui(
     time: Res<Time>,
-    q_player: Query<(&Player, &Health)>,
+    q_player: Query<(&XpGather, &Health), With<Player>>,
     mut q_hp_txt: Query<&mut Text, (With<HpText>, Without<XpText>)>,
     mut q_xp_txt: Query<&mut Text, (With<XpText>, Without<HpText>)>,
 ) {
@@ -302,7 +302,7 @@ fn update_player_ui(
     let Ok(mut txt_xp) = q_xp_txt.get_single_mut() else {
         return;
     };
-    let Ok((player, health)) = q_player.get_single() else {
+    let Ok((xp_gather, health)) = q_player.get_single() else {
         txt_hp.sections[1].value = "-".to_string();
         txt_xp.sections[1].value = "-".to_string();
         return;
@@ -319,7 +319,7 @@ fn update_player_ui(
         Color::default()
     };
     txt_hp.sections[1].value = format!("{}", health.0 as u32);
-    txt_xp.sections[1].value = format!("{}", player.xp);
+    txt_xp.sections[1].value = format!("{}", xp_gather.0);
 }
 
 #[derive(Component)]

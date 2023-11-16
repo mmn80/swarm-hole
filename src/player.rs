@@ -6,14 +6,15 @@ use crate::{
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
     physics::{Layer, ALL_LAYERS},
-    skills::{health::Health, laser::LaserConfig},
+    skills::{health::Health, laser::LaserConfig, xp_drops::XpGather},
 };
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<Player>()
+        app.register_type::<PlayerCharacter>()
+            .register_type::<Player>()
             .init_resource::<PlayerResources>()
             .add_systems(Startup, setup_player_resources)
             .add_systems(
@@ -74,9 +75,7 @@ pub struct PlayerCharacter {
 }
 
 #[derive(Component, Reflect)]
-pub struct Player {
-    pub xp: u32,
-}
+pub struct Player;
 
 const JOSE_CAPSULADO: &str = "jose_capsulado";
 
@@ -115,8 +114,9 @@ impl Command for SpawnPlayer {
             let cap_h = pc.height - 2. * pc.width;
             let id = world
                 .spawn((
+                    Player,
                     pc.clone(),
-                    Player { xp: 0 },
+                    XpGather(0),
                     Health(pc.hp as f32),
                     PbrBundle {
                         transform: Transform::from_xyz(
