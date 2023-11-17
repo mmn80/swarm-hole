@@ -6,7 +6,7 @@ use crate::{
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
     physics::{Layer, ALL_LAYERS},
-    skills::{health::Health, laser::LaserConfig, xp_drops::XpGather},
+    skills::{health::Health, init_skills, laser::Laser, xp_drops::XpGather, Skill},
 };
 
 pub struct PlayerPlugin;
@@ -15,8 +15,9 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<PlayerCharacter>()
             .register_type::<Player>()
-            .init_resource::<PlayerResources>()
-            .add_systems(Startup, setup_player_resources)
+            .init_resource::<PcHandles>()
+            .init_resource::<PlayerCharacters>()
+            .add_systems(Startup, (setup_player_handles, setup_pcs))
             .add_systems(
                 OnTransition {
                     from: AppState::Menu,
@@ -35,124 +36,139 @@ impl Plugin for PlayerPlugin {
 }
 
 #[derive(Resource, Default)]
-pub struct PlayerResources {
-    pub mesh: Handle<Mesh>,
-    pub material: Handle<StandardMaterial>,
+pub struct PcHandles {
+    pub meshes: Vec<Handle<Mesh>>,
+    pub materials: Vec<Handle<StandardMaterial>>,
 }
 
-fn setup_player_resources(
-    mut player_resources: ResMut<PlayerResources>,
+fn setup_player_handles(
+    mut player_handles: ResMut<PcHandles>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let (height, width) = (2., 0.3);
     let cap_h = height - 2. * width;
-    player_resources.mesh = meshes.add(Mesh::from(shape::Capsule {
+    player_handles.meshes = vec![meshes.add(Mesh::from(shape::Capsule {
         radius: width,
         rings: 0,
         depth: cap_h,
         latitudes: 16,
         longitudes: 32,
         uv_profile: shape::CapsuleUvProfile::Aspect,
-    }));
-    player_resources.material = materials.add(StandardMaterial {
+    }))];
+    player_handles.materials = vec![materials.add(StandardMaterial {
         base_color: Color::BLACK,
         metallic: 0.0,
         perceptual_roughness: 0.5,
         ..default()
-    });
+    })];
 }
 
-#[derive(Component, Reflect, Clone)]
+#[derive(Resource, Default)]
+pub struct PlayerCharacters(pub Vec<PlayerCharacter>);
+
+#[derive(Reflect, Clone)]
 pub struct PlayerCharacter {
-    pub hp: u32,
+    pub name: String,
+    pub max_hp: u32,
+    pub hp_regen_per_sec: f32,
+    pub gather_range: f32,
+    pub gather_acceleration: f32,
     pub speed: f32,
     pub width: f32,
     pub height: f32,
-    pub gather_range: f32,
-    pub gather_acceleration: f32,
-    pub hp_regen_per_sec: f32,
+    pub mesh_idx: usize,
+    pub material_idx: usize,
+    pub skills: Vec<Skill>,
 }
 
-#[derive(Component, Reflect)]
-pub struct Player;
+fn setup_pcs(mut pcs: ResMut<PlayerCharacters>) {
+    pcs.0 = vec![PlayerCharacter {
+        name: "Jose Capsulado".to_string(),
+        max_hp: 100,
+        hp_regen_per_sec: 1.,
+        gather_range: 5.,
+        gather_acceleration: 50.,
+        speed: 4.,
+        width: 0.3,
+        height: 2.,
+        mesh_idx: 0,
+        material_idx: 0,
+        skills: vec![Skill::Laser(vec![Laser {
+            range: 15.,
+            dps: 20.,
+            duration: 0.5,
+            cooldown: 0.5,
+        }])],
+    }];
+}
 
-const JOSE_CAPSULADO: &str = "jose_capsulado";
-
-fn spawn_main_player(mut cmd: Commands) {
+fn spawn_main_player(pcs: Res<PlayerCharacters>, mut cmd: Commands) {
     cmd.add(SpawnPlayer {
-        character: JOSE_CAPSULADO.to_string(),
+        character: pcs.0.get(0).unwrap().clone(),
         location: Vec2::ZERO,
     });
 }
 
+#[derive(Component, Reflect)]
+pub struct Player {
+    pub speed: f32,
+    pub max_hp: u32,
+    pub hp_regen_per_sec: f32,
+    pub gather_range: f32,
+    pub gather_acceleration: f32,
+}
+
 pub struct SpawnPlayer {
-    pub character: String,
+    pub character: PlayerCharacter,
     pub location: Vec2,
 }
 
 impl Command for SpawnPlayer {
     fn apply(self, world: &mut World) {
-        let Some(player_resources) = world.get_resource::<PlayerResources>() else {
+        let Some(pc_handles) = world.get_resource::<PcHandles>() else {
             return;
         };
-        if let Some(pc) = {
-            if self.character == JOSE_CAPSULADO {
-                Some(PlayerCharacter {
-                    hp: 100,
-                    speed: 4.,
-                    width: 0.3,
-                    height: 2.,
-                    gather_range: 5.,
-                    gather_acceleration: 50.,
-                    hp_regen_per_sec: 1.,
-                })
-            } else {
-                None
-            }
-        } {
-            let cap_h = pc.height - 2. * pc.width;
-            let id = world
-                .spawn((
-                    Player,
-                    pc.clone(),
-                    XpGather(0),
-                    Health(pc.hp as f32),
-                    PbrBundle {
-                        transform: Transform::from_xyz(
-                            self.location.x,
-                            pc.height / 2. + 0.2,
-                            self.location.y,
-                        ),
-                        mesh: player_resources.mesh.clone(),
-                        material: player_resources.material.clone(),
-                        ..default()
-                    },
-                    RigidBody::Kinematic,
-                    Collider::capsule(cap_h, pc.width),
-                    CollisionLayers::new([Layer::Player], ALL_LAYERS),
-                    ShapeCaster::new(
-                        Collider::capsule(cap_h - 0.1, pc.width - 0.05),
-                        Vector::ZERO,
-                        Quaternion::default(),
-                        Vector::NEG_Y,
-                    )
-                    .with_max_time_of_impact(0.11)
-                    .with_max_hits(1),
-                ))
-                .id();
-            if self.character == JOSE_CAPSULADO {
-                world.entity_mut(id).insert(LaserConfig {
-                    range: 15.,
-                    dps: 20.,
-                    duration: 0.5,
-                    cooldown: 0.5,
-                });
-            }
-            world
-                .entity_mut(id)
-                .insert(Name::new(format!("Player {} ({id:?})", self.character)));
-        }
+        let pc = &self.character;
+        let cap_h = pc.height - 2. * pc.width;
+        let id = world
+            .spawn((
+                Player {
+                    speed: pc.speed,
+                    max_hp: pc.max_hp,
+                    hp_regen_per_sec: pc.hp_regen_per_sec,
+                    gather_range: pc.gather_range,
+                    gather_acceleration: pc.gather_acceleration,
+                },
+                XpGather(0),
+                Health(pc.max_hp as f32),
+                PbrBundle {
+                    transform: Transform::from_xyz(
+                        self.location.x,
+                        pc.height / 2. + 0.2,
+                        self.location.y,
+                    ),
+                    mesh: pc_handles.meshes.get(pc.mesh_idx).unwrap().clone(),
+                    material: pc_handles.materials.get(pc.material_idx).unwrap().clone(),
+                    ..default()
+                },
+                RigidBody::Kinematic,
+                Collider::capsule(cap_h, pc.width),
+                CollisionLayers::new([Layer::Player], ALL_LAYERS),
+                ShapeCaster::new(
+                    Collider::capsule(cap_h - 0.1, pc.width - 0.05),
+                    Vector::ZERO,
+                    Quaternion::default(),
+                    Vector::NEG_Y,
+                )
+                .with_max_time_of_impact(0.11)
+                .with_max_hits(1),
+            ))
+            .id();
+        init_skills(id, &pc.skills, world);
+        world
+            .entity_mut(id)
+            .insert(Name::new(format!("Player {} ({id:?})", pc.name)));
     }
 }
 
@@ -161,12 +177,7 @@ const PLAYER_ACC_STEPS: f32 = 10.;
 fn move_player(
     keyboard: Res<Input<KeyCode>>,
     debug_ui: Res<DebugUi>,
-    mut q_player: Query<(
-        &Transform,
-        &PlayerCharacter,
-        &mut LinearVelocity,
-        &ShapeHits,
-    )>,
+    mut q_player: Query<(&Transform, &Player, &mut LinearVelocity, &ShapeHits)>,
     mut ev_refocus: EventWriter<MainCameraFocusEvent>,
 ) {
     for (player_tr, player, mut linear_velocity, ground_hits) in &mut q_player {

@@ -3,9 +3,9 @@ use bevy_xpbd_3d::prelude::*;
 
 use crate::{
     app::{AppState, RunState},
-    npc::NonPlayerCharacter,
+    npc::Npc,
     physics::Layer,
-    player::{Player, PlayerCharacter},
+    player::Player,
 };
 
 use super::xp_drops::{XpDrop, XpDrops};
@@ -42,10 +42,10 @@ fn take_damage(mut ev_take_damage: EventReader<TakeDamageEvent>, mut q_health: Q
     }
 }
 
-fn regen_health(time: Res<Time>, mut q_player: Query<(&mut Health, &PlayerCharacter)>) {
+fn regen_health(time: Res<Time>, mut q_player: Query<(&mut Health, &Player)>) {
     for (mut health, player) in &mut q_player {
         health.0 =
-            (health.0 + player.hp_regen_per_sec * time.delta_seconds()).min(player.hp as f32);
+            (health.0 + player.hp_regen_per_sec * time.delta_seconds()).min(player.max_hp as f32);
     }
 }
 
@@ -54,13 +54,7 @@ fn die(
     mut run_state: ResMut<RunState>,
     mut meshes: ResMut<Assets<Mesh>>,
     xp_drops: Res<XpDrops>,
-    q_npc: Query<(
-        Entity,
-        &Health,
-        &Transform,
-        Option<&NonPlayerCharacter>,
-        Has<Player>,
-    )>,
+    q_npc: Query<(Entity, &Health, &Transform, Option<&Npc>, Has<Player>)>,
     mut cmd: Commands,
 ) {
     for (npc_ent, health, tr_npc, npc, is_player) in &q_npc {

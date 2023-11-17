@@ -5,10 +5,7 @@ use bevy::{
 };
 use bevy_xpbd_3d::prelude::*;
 
-use crate::{
-    app::AppState, npc::NonPlayerCharacter, physics::Layer, player::Player,
-    vfx::DamageParticlesEvent,
-};
+use crate::{app::AppState, npc::Npc, physics::Layer, player::Player, vfx::DamageParticlesEvent};
 
 use super::health::TakeDamageEvent;
 
@@ -16,7 +13,7 @@ pub struct LaserPlugin;
 
 impl Plugin for LaserPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<Laser>()
+        app.register_type::<LaserState>()
             .init_resource::<LaserHandles>()
             .add_systems(Startup, setup_assets)
             .add_systems(
@@ -80,16 +77,16 @@ fn setup_assets(
 }
 
 #[derive(Copy, Clone, Reflect, Component)]
-pub struct LaserConfig {
+pub struct Laser {
     pub range: f32,
     pub dps: f32,
     pub duration: f32,
     pub cooldown: f32,
 }
 
-fn init_laser(q_laser: Query<Entity, (With<LaserConfig>, Without<Laser>)>, mut cmd: Commands) {
+fn init_laser(q_laser: Query<Entity, (With<Laser>, Without<LaserState>)>, mut cmd: Commands) {
     for ent in &q_laser {
-        cmd.entity(ent).insert(Laser {
+        cmd.entity(ent).insert(LaserState {
             target: None,
             ray: None,
             time_ended: 0.,
@@ -98,7 +95,7 @@ fn init_laser(q_laser: Query<Entity, (With<LaserConfig>, Without<Laser>)>, mut c
 }
 
 #[derive(Component, Reflect)]
-pub struct Laser {
+pub struct LaserState {
     pub target: Option<Entity>,
     pub ray: Option<Entity>,
     pub time_ended: f32,
@@ -107,8 +104,8 @@ pub struct Laser {
 fn laser_target_npc(
     time: Res<Time>,
     q_space: SpatialQuery,
-    mut q_laser: Query<(&mut Laser, &LaserConfig, &Transform), With<Player>>,
-    q_npc: Query<&Transform, With<NonPlayerCharacter>>,
+    mut q_laser: Query<(&mut LaserState, &Laser, &Transform), With<Player>>,
+    q_npc: Query<&Transform, With<Npc>>,
 ) {
     for (mut laser, laser_config, tr_player) in &mut q_laser {
         if laser.target.is_some()
@@ -140,7 +137,7 @@ fn laser_target_npc(
 
 fn laser_target_player(
     time: Res<Time>,
-    mut q_laser: Query<(&mut Laser, &LaserConfig, &Transform), Without<Player>>,
+    mut q_laser: Query<(&mut LaserState, &Laser, &Transform), Without<Player>>,
     q_player: Query<(Entity, &Transform), With<Player>>,
 ) {
     for (mut laser, laser_config, tr_src) in &mut q_laser {
@@ -183,7 +180,7 @@ pub struct LaserRayMesh;
 fn laser_shoot_ray(
     time: Res<Time>,
     weapons: Res<LaserHandles>,
-    mut q_laser: Query<(Entity, &mut Laser, Has<Player>)>,
+    mut q_laser: Query<(Entity, &mut LaserState, Has<Player>)>,
     mut cmd: Commands,
 ) {
     for (source, mut laser, is_player) in &mut q_laser {
@@ -234,9 +231,12 @@ fn laser_ray_update(
     time: Res<Time>,
     mut ev_damage_particles: EventWriter<DamageParticlesEvent>,
     mut q_ray: Query<(&mut LaserRay, &mut Transform, &Children), Without<LaserRayMesh>>,
-    mut q_ray_mesh: Query<(&mut Transform, &mut Visibility), (With<LaserRayMesh>, Without<Laser>)>,
+    mut q_ray_mesh: Query<
+        (&mut Transform, &mut Visibility),
+        (With<LaserRayMesh>, Without<LaserState>),
+    >,
     mut q_targets: Query<
-        (&Transform, Option<&LaserConfig>, Has<Player>),
+        (&Transform, Option<&Laser>, Has<Player>),
         (Without<LaserRay>, Without<LaserRayMesh>),
     >,
     mut ev_take_damage: EventWriter<TakeDamageEvent>,
@@ -306,7 +306,7 @@ fn laser_ray_update(
 fn laser_ray_despawn(
     time: Res<Time>,
     q_ray: Query<(Entity, &LaserRay)>,
-    mut q_laser: Query<&mut Laser>,
+    mut q_laser: Query<&mut LaserState>,
     mut cmd: Commands,
 ) {
     for (ray_ent, ray) in &q_ray {
