@@ -1,14 +1,20 @@
-use bevy::{ecs::system::Command, prelude::*};
+use bevy::{
+    asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
+    ecs::system::Command,
+    prelude::*,
+    utils::{thiserror, BoxedFuture},
+};
 use bevy_xpbd_3d::prelude::*;
-use rand::distributions::WeightedIndex;
-use rand::prelude::*;
+use rand::{distributions::WeightedIndex, prelude::*};
+use serde::Deserialize;
+use thiserror::Error;
 
 use crate::{
     app::{AppState, RunState},
     debug_ui::{DebugUiCommand, DebugUiEvent},
     physics::{Layer, ALL_LAYERS},
     player::Player,
-    skills::{health::Health, init_skills, laser::Laser, melee::Melee, Skill},
+    skills::{health::Health, init_skills, Skill},
 };
 
 pub struct NpcPlugin;
@@ -16,9 +22,10 @@ pub struct NpcPlugin;
 impl Plugin for NpcPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<NonPlayerCharacter>()
+            .init_asset::<NonPlayerCharactersAsset>()
+            .init_asset_loader::<NonPlayerCharactersAssetLoader>()
             .init_resource::<NpcHandles>()
-            .init_resource::<NonPlayerCharacters>()
-            .add_systems(Startup, (setup_npc_handles, setup_npcs))
+            .add_systems(Startup, setup_npc_handles)
             .add_systems(OnEnter(AppState::Cleanup), cleanup_npcs)
             .add_systems(
                 OnTransition {
@@ -38,13 +45,16 @@ impl Plugin for NpcPlugin {
 pub struct NpcHandles {
     pub meshes: Vec<Handle<Mesh>>,
     pub materials: Vec<Handle<StandardMaterial>>,
+    pub config: Handle<NonPlayerCharactersAsset>,
 }
 
 fn setup_npc_handles(
     mut npc_handles: ResMut<NpcHandles>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
+    npc_handles.config = asset_server.load("npcs.ron");
     npc_handles.meshes = vec![
         meshes.add(
             Mesh::try_from(shape::Icosphere {
@@ -77,10 +87,7 @@ fn setup_npc_handles(
     ];
 }
 
-#[derive(Resource, Default)]
-pub struct NonPlayerCharacters(pub Vec<NonPlayerCharacter>);
-
-#[derive(Reflect, Clone)]
+#[derive(Reflect, Clone, Debug, Deserialize)]
 pub struct NonPlayerCharacter {
     pub name: String,
     pub max_hp: u32,
@@ -93,39 +100,42 @@ pub struct NonPlayerCharacter {
     pub skills: Vec<Skill>,
 }
 
-fn setup_npcs(mut npcs: ResMut<NonPlayerCharacters>) {
-    npcs.0 = vec![
-        NonPlayerCharacter {
-            name: "Cortez Limonero".to_string(),
-            max_hp: 1,
-            xp_drop: 1,
-            speed: 2.,
-            radius: 0.5,
-            frequency: 1.,
-            mesh_idx: 0,
-            material_idx: 0,
-            skills: vec![Skill::Melee(vec![Melee { range: 1., dps: 3 }])],
-        },
-        NonPlayerCharacter {
-            name: "Luz Tomatera".to_string(),
-            max_hp: 10,
-            xp_drop: 10,
-            speed: 1.5,
-            radius: 1.,
-            frequency: 0.1,
-            mesh_idx: 1,
-            material_idx: 1,
-            skills: vec![
-                Skill::Melee(vec![Melee { range: 1.5, dps: 3 }]),
-                Skill::Laser(vec![Laser {
-                    range: 10.,
-                    dps: 5.,
-                    duration: 0.2,
-                    cooldown: 1.,
-                }]),
-            ],
-        },
-    ];
+#[derive(Asset, TypePath, Debug, Deserialize)]
+pub struct NonPlayerCharactersAsset(pub Vec<NonPlayerCharacter>);
+
+#[derive(Default)]
+pub struct NonPlayerCharactersAssetLoader;
+
+#[non_exhaustive]
+#[derive(Debug, Error)]
+pub enum NonPlayerCharactersAssetLoaderError {
+    #[error("Could not load asset: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("Could not parse RON: {0}")]
+    RonSpannedError(#[from] ron::error::SpannedError),
+}
+
+impl AssetLoader for NonPlayerCharactersAssetLoader {
+    type Asset = NonPlayerCharactersAsset;
+    type Settings = ();
+    type Error = NonPlayerCharactersAssetLoaderError;
+    fn load<'a>(
+        &'a self,
+        reader: &'a mut Reader,
+        _settings: &'a (),
+        _load_context: &'a mut LoadContext,
+    ) -> BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
+        Box::pin(async move {
+            let mut bytes = Vec::new();
+            reader.read_to_end(&mut bytes).await?;
+            let custom_asset = ron::de::from_bytes::<NonPlayerCharactersAsset>(&bytes)?;
+            Ok(custom_asset)
+        })
+    }
+
+    fn extensions(&self) -> &[&str] {
+        &["ron"]
+    }
 }
 
 #[derive(Component, Reflect, Clone)]
@@ -192,7 +202,8 @@ fn spawn_start_npcs(mut ev_debug_ui: EventWriter<DebugUiEvent>) {
 const NPC_DIST: f32 = 30.0;
 
 fn spawn_random_npcs(
-    npcs: Res<NonPlayerCharacters>,
+    npc_handles: Res<NpcHandles>,
+    npc_assets: Res<Assets<NonPlayerCharactersAsset>>,
     mut ev_debug_ui: EventReader<DebugUiEvent>,
     mut cmd: Commands,
 ) {
@@ -200,6 +211,10 @@ fn spawn_random_npcs(
         if ev.command == DebugUiCommand::SpawnNpcs {
             let count = ev.param;
             info!("spawning {count} NPCs...");
+            let Some(npcs) = npc_assets.get(&npc_handles.config) else {
+                error!("NPC config asset not loaded!");
+                return;
+            };
 
             let mut rng = thread_rng();
             let npc_idx = WeightedIndex::new(npcs.0.iter().map(|npc| npc.frequency)).unwrap();

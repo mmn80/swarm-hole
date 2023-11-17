@@ -1,4 +1,5 @@
 use bevy::{app::PluginGroupBuilder, prelude::*};
+use serde::Deserialize;
 
 use self::{
     health::HealthPlugin,
@@ -24,7 +25,7 @@ impl PluginGroup for SkillPluginGroup {
     }
 }
 
-#[derive(Clone, Reflect)]
+#[derive(Clone, Reflect, Debug, Deserialize)]
 pub enum Skill {
     Melee(Vec<Melee>),
     Laser(Vec<Laser>),

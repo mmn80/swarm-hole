@@ -4,6 +4,7 @@ use bevy::{
     prelude::*,
 };
 use bevy_xpbd_3d::prelude::*;
+use serde::Deserialize;
 
 use crate::{app::AppState, npc::Npc, physics::Layer, player::Player, vfx::DamageParticlesEvent};
 
@@ -76,7 +77,7 @@ fn setup_assets(
     });
 }
 
-#[derive(Copy, Clone, Reflect, Component)]
+#[derive(Copy, Clone, Reflect, Component, Debug, Deserialize)]
 pub struct Laser {
     pub range: f32,
     pub dps: f32,
