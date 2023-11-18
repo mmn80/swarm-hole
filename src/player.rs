@@ -13,7 +13,8 @@ use crate::{
     debug_ui::DebugUi,
     physics::{Layer, ALL_LAYERS},
     skills::{
-        health::Health, init_skills, xp_drops::XpGather, Skill, SkillsAsset, SkillsAssetHandle,
+        health::Health, xp_drops::XpGather, HotReloadEquippedSkills, Skill, SkillsAsset,
+        SkillsAssetHandle,
     },
 };
 
@@ -34,13 +35,13 @@ impl Plugin for PlayerPlugin {
                 },
                 spawn_main_player,
             )
-            .add_systems(OnEnter(AppState::Cleanup), cleanup_players)
             .add_systems(
                 PhysicsSchedule,
                 move_player
                     .before(PhysicsStepSet::BroadPhase)
                     .run_if(in_state(AppState::Run)),
-            );
+            )
+            .add_systems(OnEnter(AppState::Cleanup), cleanup_players);
     }
 }
 
@@ -219,13 +220,14 @@ impl Command for SpawnPlayer {
                 )
                 .with_max_time_of_impact(0.11)
                 .with_max_hits(1),
+                HotReloadEquippedSkills,
             ))
             .id();
         world
             .entity_mut(id)
             .insert(Name::new(format!("Player {} ({id:?})", pc.name)));
 
-        init_skills(id, &skills, 0, world);
+        Skill::insert_components(&skills, 0, id, world);
     }
 }
 

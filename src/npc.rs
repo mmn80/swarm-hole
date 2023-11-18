@@ -13,7 +13,7 @@ use crate::{
     debug_ui::{DebugUiCommand, DebugUiEvent},
     physics::{Layer, ALL_LAYERS},
     player::Player,
-    skills::{health::Health, init_skills, Skill},
+    skills::{health::Health, Skill},
 };
 
 pub struct NpcPlugin;
@@ -183,7 +183,7 @@ impl Command for SpawnNpc {
                 .entity_mut(id)
                 .insert(Name::new(format!("NPC {:?} ({id:?})", npc.name)));
 
-            init_skills(id, &npc.skills, 0, world);
+            Skill::insert_components(&npc.skills, 0, id, world);
         }
 
         if let Some(mut run_state) = world.get_resource_mut::<RunState>() {
