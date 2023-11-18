@@ -52,7 +52,7 @@ fn setup_skills_asset_handle(
     mut skills_asset_handle: ResMut<SkillsAssetHandle>,
     asset_server: Res<AssetServer>,
 ) {
-    skills_asset_handle.0 = asset_server.load("player.skills.ron");
+    skills_asset_handle.0 = asset_server.load("all.skills.ron");
 }
 
 #[derive(PartialEq, Eq, Copy, Clone)]
@@ -77,7 +77,9 @@ impl Skill {
     }
 
     pub fn insert_component(&self, level: u8, entity: Entity, world: &mut World) {
-        let mut ent = world.entity_mut(entity);
+        let Some(mut ent) = world.get_entity_mut(entity) else {
+            return;
+        };
         let lvl = level as usize;
         match self {
             Skill::Melee(levels) => {
@@ -120,7 +122,7 @@ pub struct EquippedSkill {
 }
 
 #[derive(Component)]
-pub struct EquippedSkills(Vec<EquippedSkill>);
+pub struct EquippedSkills(pub Vec<EquippedSkill>);
 
 impl EquippedSkills {
     pub fn update_skill(&mut self, skill: SkillIndex, level: u8) {

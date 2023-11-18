@@ -13,7 +13,7 @@ use crate::{
     debug_ui::{DebugUiCommand, DebugUiEvent},
     physics::{Layer, ALL_LAYERS},
     player::Player,
-    skills::{health::Health, Skill},
+    skills::{health::Health, EquippedSkills, Skill, UpdateSkillComponent},
 };
 
 pub struct NpcPlugin;
@@ -25,7 +25,6 @@ impl Plugin for NpcPlugin {
             .init_asset_loader::<NonPlayerCharactersAssetLoader>()
             .init_resource::<NpcHandles>()
             .add_systems(Startup, setup_npc_handles)
-            .add_systems(OnEnter(AppState::Cleanup), cleanup_npcs)
             .add_systems(
                 OnTransition {
                     from: AppState::Menu,
@@ -36,7 +35,9 @@ impl Plugin for NpcPlugin {
             .add_systems(
                 Update,
                 (spawn_random_npcs, move_npcs).run_if(in_state(AppState::Run)),
-            );
+            )
+            .add_systems(Update, hot_reload_npcs)
+            .add_systems(OnEnter(AppState::Cleanup), cleanup_npcs);
     }
 }
 
@@ -102,6 +103,12 @@ pub struct NonPlayerCharacter {
 #[derive(Asset, TypePath, Debug, Deserialize)]
 pub struct NonPlayerCharactersAsset(pub Vec<NonPlayerCharacter>);
 
+impl NonPlayerCharactersAsset {
+    pub fn get_npc_by_index(&self, index: NpcAssetIndex) -> Option<&NonPlayerCharacter> {
+        self.0.get(index.0)
+    }
+}
+
 #[derive(Default)]
 pub struct NonPlayerCharactersAssetLoader;
 
@@ -146,6 +153,7 @@ pub struct Npc {
 
 pub struct SpawnNpc {
     pub character: NonPlayerCharacter,
+    pub npc_index: NpcAssetIndex,
     pub location: Vec2,
 }
 
@@ -163,6 +171,7 @@ impl Command for SpawnNpc {
                         xp_drop: npc.xp_drop,
                         speed: npc.speed,
                     },
+                    HotReloadNpc(self.npc_index),
                     Health(npc.max_hp as f32),
                     PbrBundle {
                         transform: Transform::from_xyz(
@@ -224,12 +233,14 @@ fn spawn_random_npcs(
             let mut n = 0;
             for xi in -w..=w {
                 for zi in -w..=w {
-                    let npc = &npcs.0[npc_idx.sample(&mut rng)];
+                    let idx = npc_idx.sample(&mut rng);
+                    let npc = &npcs.0[idx];
                     let x = xi as f32 * NPC_DIST + rng.gen_range(-dist..dist);
                     let z = zi as f32 * NPC_DIST + rng.gen_range(-dist..dist);
 
                     cmd.add(SpawnNpc {
                         character: npc.clone(),
+                        npc_index: NpcAssetIndex(idx),
                         location: Vec2::new(x, z),
                     });
 
@@ -265,6 +276,49 @@ fn move_npcs(
             Vec2::new(player_pos.x - npc_pos.x, player_pos.z - npc_pos.z).normalize() * npc.speed;
         lin_vel.x = dir.x;
         lin_vel.z = dir.y;
+    }
+}
+
+#[derive(PartialEq, Copy, Clone)]
+pub struct NpcAssetIndex(usize);
+
+#[derive(Component)]
+pub struct HotReloadNpc(NpcAssetIndex);
+
+fn hot_reload_npcs(
+    npc_handles: Res<NpcHandles>,
+    npcs_assets: Res<Assets<NonPlayerCharactersAsset>>,
+    mut skills_asset_events: EventReader<AssetEvent<NonPlayerCharactersAsset>>,
+    mut q_npcs: Query<(Entity, &mut Npc, &HotReloadNpc, &EquippedSkills)>,
+
+    mut cmd: Commands,
+) {
+    for ev in skills_asset_events.read() {
+        let h = npc_handles.config.clone();
+        if ev.is_loaded_with_dependencies(&h) {
+            if let Some(asset) = npcs_assets.get(h) {
+                for (entity, mut npc, hot_reload_npc, equipped_skills) in &mut q_npcs {
+                    if let Some(npc_src) = asset.get_npc_by_index(hot_reload_npc.0) {
+                        npc.max_hp = npc_src.max_hp;
+                        npc.xp_drop = npc_src.xp_drop;
+                        npc.speed = npc_src.speed;
+                        for equipped_skill in &equipped_skills.0 {
+                            if let Some(skill) = npc_src
+                                .skills
+                                .iter()
+                                .find(|s| s.get_index() == equipped_skill.skill)
+                            {
+                                cmd.add(UpdateSkillComponent {
+                                    entity,
+                                    skill: skill.clone(),
+                                    level: equipped_skill.level,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
