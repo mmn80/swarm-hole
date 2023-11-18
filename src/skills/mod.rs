@@ -44,7 +44,7 @@ impl Plugin for SkillsPlugin {
 }
 
 #[derive(Resource, Default)]
-pub struct SkillsAssetHandle(Handle<SkillsAsset>);
+pub struct SkillsAssetHandle(pub Handle<SkillsAsset>);
 
 fn setup_skills_asset_handle(
     mut skills_asset_handle: ResMut<SkillsAssetHandle>,
@@ -57,6 +57,19 @@ fn setup_skills_asset_handle(
 pub enum Skill {
     Melee(Vec<Melee>),
     Laser(Vec<Laser>),
+}
+
+impl Skill {
+    pub fn enum_index(&self) -> u8 {
+        match self {
+            Skill::Melee(_) => 0,
+            Skill::Laser(_) => 1,
+        }
+    }
+
+    pub fn same_skill(&self, other: &Skill) -> bool {
+        self.enum_index() == other.enum_index()
+    }
 }
 
 #[derive(Asset, TypePath, Debug, Deserialize)]
@@ -97,15 +110,15 @@ impl AssetLoader for SkillsAssetLoader {
     }
 }
 
-pub fn init_skills(entity: Entity, skills: &Vec<Skill>, world: &mut World) {
+pub fn init_skills(entity: Entity, skills: &Vec<Skill>, level: usize, world: &mut World) {
     for skill in skills {
         let mut ent = world.entity_mut(entity);
         match skill {
             Skill::Melee(levels) => {
-                ent.insert(levels[0].clone());
+                ent.insert(levels[level].clone());
             }
             Skill::Laser(levels) => {
-                ent.insert(levels[0].clone());
+                ent.insert(levels[level].clone());
             }
         }
     }

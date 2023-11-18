@@ -179,10 +179,11 @@ impl Command for SpawnNpc {
                     CollisionLayers::new([Layer::NPC], ALL_LAYERS),
                 ))
                 .id();
-            init_skills(id, &npc.skills, world);
             world
                 .entity_mut(id)
                 .insert(Name::new(format!("NPC {:?} ({id:?})", npc.name)));
+
+            init_skills(id, &npc.skills, 0, world);
         }
 
         if let Some(mut run_state) = world.get_resource_mut::<RunState>() {

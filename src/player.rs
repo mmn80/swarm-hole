@@ -1,12 +1,20 @@
-use bevy::{ecs::system::Command, prelude::*};
+use bevy::{
+    asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
+    ecs::system::Command,
+    prelude::*,
+    utils::{thiserror, thiserror::Error, BoxedFuture},
+};
 use bevy_xpbd_3d::{math::*, prelude::*, PhysicsSchedule, PhysicsStepSet};
+use serde::Deserialize;
 
 use crate::{
     app::AppState,
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
     physics::{Layer, ALL_LAYERS},
-    skills::{health::Health, init_skills, laser::Laser, xp_drops::XpGather, Skill},
+    skills::{
+        health::Health, init_skills, xp_drops::XpGather, Skill, SkillsAsset, SkillsAssetHandle,
+    },
 };
 
 pub struct PlayerPlugin;
@@ -15,9 +23,10 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<PlayerCharacter>()
             .register_type::<Player>()
+            .init_asset::<PlayerCharactersAsset>()
+            .init_asset_loader::<PlayerCharactersAssetLoader>()
             .init_resource::<PcHandles>()
-            .init_resource::<PlayerCharacters>()
-            .add_systems(Startup, (setup_player_handles, setup_pcs))
+            .add_systems(Startup, setup_player_handles)
             .add_systems(
                 OnTransition {
                     from: AppState::Menu,
@@ -39,16 +48,20 @@ impl Plugin for PlayerPlugin {
 pub struct PcHandles {
     pub meshes: Vec<Handle<Mesh>>,
     pub materials: Vec<Handle<StandardMaterial>>,
+    pub config: Handle<PlayerCharactersAsset>,
 }
 
 fn setup_player_handles(
-    mut player_handles: ResMut<PcHandles>,
+    mut pc_handles: ResMut<PcHandles>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
+    pc_handles.config = asset_server.load("all.pcs.ron");
+
     let (height, width) = (2., 0.3);
     let cap_h = height - 2. * width;
-    player_handles.meshes = vec![meshes.add(Mesh::from(shape::Capsule {
+    pc_handles.meshes = vec![meshes.add(Mesh::from(shape::Capsule {
         radius: width,
         rings: 0,
         depth: cap_h,
@@ -56,7 +69,7 @@ fn setup_player_handles(
         longitudes: 32,
         uv_profile: shape::CapsuleUvProfile::Aspect,
     }))];
-    player_handles.materials = vec![materials.add(StandardMaterial {
+    pc_handles.materials = vec![materials.add(StandardMaterial {
         base_color: Color::BLACK,
         metallic: 0.0,
         perceptual_roughness: 0.5,
@@ -64,10 +77,7 @@ fn setup_player_handles(
     })];
 }
 
-#[derive(Resource, Default)]
-pub struct PlayerCharacters(pub Vec<PlayerCharacter>);
-
-#[derive(Reflect, Clone)]
+#[derive(Reflect, Clone, Debug, Deserialize)]
 pub struct PlayerCharacter {
     pub name: String,
     pub max_hp: u32,
@@ -79,31 +89,56 @@ pub struct PlayerCharacter {
     pub height: f32,
     pub mesh_idx: usize,
     pub material_idx: usize,
-    pub skills: Vec<Skill>,
+    pub starting_skills: Vec<Skill>,
 }
 
-fn setup_pcs(mut pcs: ResMut<PlayerCharacters>) {
-    pcs.0 = vec![PlayerCharacter {
-        name: "Jose Capsulado".to_string(),
-        max_hp: 100,
-        hp_regen_per_sec: 1.,
-        gather_range: 5.,
-        gather_acceleration: 50.,
-        speed: 4.,
-        width: 0.3,
-        height: 2.,
-        mesh_idx: 0,
-        material_idx: 0,
-        skills: vec![Skill::Laser(vec![Laser {
-            range: 15.,
-            dps: 20.,
-            duration: 0.5,
-            cooldown: 0.5,
-        }])],
-    }];
+#[derive(Asset, TypePath, Debug, Deserialize)]
+pub struct PlayerCharactersAsset(pub Vec<PlayerCharacter>);
+
+#[derive(Default)]
+pub struct PlayerCharactersAssetLoader;
+
+#[non_exhaustive]
+#[derive(Debug, Error)]
+pub enum PlayerCharactersAssetLoaderError {
+    #[error("Could not load asset: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("Could not parse RON: {0}")]
+    RonSpannedError(#[from] ron::error::SpannedError),
 }
 
-fn spawn_main_player(pcs: Res<PlayerCharacters>, mut cmd: Commands) {
+impl AssetLoader for PlayerCharactersAssetLoader {
+    type Asset = PlayerCharactersAsset;
+    type Settings = ();
+    type Error = PlayerCharactersAssetLoaderError;
+    fn load<'a>(
+        &'a self,
+        reader: &'a mut Reader,
+        _settings: &'a (),
+        _load_context: &'a mut LoadContext,
+    ) -> BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
+        Box::pin(async move {
+            let mut bytes = Vec::new();
+            reader.read_to_end(&mut bytes).await?;
+            let custom_asset = ron::de::from_bytes::<PlayerCharactersAsset>(&bytes)?;
+            Ok(custom_asset)
+        })
+    }
+
+    fn extensions(&self) -> &[&str] {
+        &["pcs.ron"]
+    }
+}
+
+fn spawn_main_player(
+    pc_handles: Res<PcHandles>,
+    pc_assets: Res<Assets<PlayerCharactersAsset>>,
+    mut cmd: Commands,
+) {
+    let Some(pcs) = pc_assets.get(&pc_handles.config) else {
+        error!("PC config asset not loaded!");
+        return;
+    };
     cmd.add(SpawnPlayer {
         character: pcs.0.get(0).unwrap().clone(),
         location: Vec2::ZERO,
@@ -126,10 +161,31 @@ pub struct SpawnPlayer {
 
 impl Command for SpawnPlayer {
     fn apply(self, world: &mut World) {
+        let pc = &self.character;
         let Some(pc_handles) = world.get_resource::<PcHandles>() else {
             return;
         };
-        let pc = &self.character;
+        let skills = {
+            let Some(skills_assets) = world.get_resource::<Assets<SkillsAsset>>() else {
+                return;
+            };
+            let Some(skills_asset_handle) = world.get_resource::<SkillsAssetHandle>() else {
+                return;
+            };
+            let Some(skills_asset) = skills_assets.get(skills_asset_handle.0.clone()) else {
+                return;
+            };
+            let mut skills = vec![];
+            for skill in &skills_asset.0 {
+                for starting_skill in &pc.starting_skills {
+                    if skill.same_skill(starting_skill) {
+                        skills.push(skill.clone())
+                    }
+                }
+            }
+            skills
+        };
+
         let cap_h = pc.height - 2. * pc.width;
         let id = world
             .spawn((
@@ -165,10 +221,11 @@ impl Command for SpawnPlayer {
                 .with_max_hits(1),
             ))
             .id();
-        init_skills(id, &pc.skills, world);
         world
             .entity_mut(id)
             .insert(Name::new(format!("Player {} ({id:?})", pc.name)));
+
+        init_skills(id, &skills, 0, world);
     }
 }
 

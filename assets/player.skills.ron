@@ -1,10 +1,7 @@
 ([
-    Melee([
-        ( range: 1.5, dps: 3 ),
-    ]),
     Laser([
-        ( range: 10., dps: 5.0, duration: 0.2, cooldown: 1.0, ),
-        ( range: 10., dps: 5.0, duration: 0.2, cooldown: 0.7, ),
-        ( range: 10., dps: 5.0, duration: 0.2, cooldown: 0.4, ),
+        ( range: 15., dps: 20.0, duration: 0.5, cooldown: 0.5, ),
+        ( range: 15., dps: 30.0, duration: 0.5, cooldown: 0.5, ),
+        ( range: 15., dps: 40.0, duration: 0.5, cooldown: 0.5, ),
     ]),
 ])
