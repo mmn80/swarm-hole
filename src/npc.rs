@@ -2,12 +2,11 @@ use bevy::{
     asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
     ecs::system::Command,
     prelude::*,
-    utils::{thiserror, BoxedFuture},
+    utils::{thiserror, thiserror::Error, BoxedFuture},
 };
 use bevy_xpbd_3d::prelude::*;
 use rand::{distributions::WeightedIndex, prelude::*};
 use serde::Deserialize;
-use thiserror::Error;
 
 use crate::{
     app::{AppState, RunState},
@@ -54,7 +53,7 @@ fn setup_npc_handles(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
-    npc_handles.config = asset_server.load("npcs.ron");
+    npc_handles.config = asset_server.load("all.npcs.ron");
     npc_handles.meshes = vec![
         meshes.add(
             Mesh::try_from(shape::Icosphere {
@@ -134,7 +133,7 @@ impl AssetLoader for NonPlayerCharactersAssetLoader {
     }
 
     fn extensions(&self) -> &[&str] {
-        &["ron"]
+        &["npcs.ron"]
     }
 }
 
