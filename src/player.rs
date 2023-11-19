@@ -173,6 +173,11 @@ impl Command for SpawnPlayer {
                     }
                 }
             }
+            for starting_skill in &pc.starting_skills {
+                if !skills.iter().any(|s| s.same_skill(starting_skill)) {
+                    skills.push(starting_skill.clone())
+                }
+            }
             skills
         };
 

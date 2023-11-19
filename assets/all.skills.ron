@@ -1,22 +1,13 @@
 ([
-    Health([
-        ( max_hp: 100, ),
-    ]),
     MaxHealthBoost([
         ( max_hp: 100, ),
         ( max_hp: 200, ),
         ( max_hp: 300, ),
     ]),
-    HealthRegen([
-        ( hp_per_sec: 1.0, ),
-    ]),
     HealthRegenBoost([
         ( hp_per_sec: 1.0, ),
         ( hp_per_sec: 2.0, ),
         ( hp_per_sec: 3.0, ),
-    ]),
-    XpGather([
-        ( xp_per_level: 10, range: 5.0, acceleration: 50.0, ),
     ]),
     XpGatherBoost([
         ( xp_per_level: 10, range: 5.0, acceleration: 50.0, ),
