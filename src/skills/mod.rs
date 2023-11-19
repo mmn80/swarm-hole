@@ -8,16 +8,16 @@ use bevy::{
 use serde::Deserialize;
 
 use self::{
-    health::{HealthPlugin, HealthRegen},
+    health::{HealthPlugin, HealthRegen, MaxHealth},
     laser::{Laser, LaserPlugin},
     melee::{Melee, MeleePlugin},
-    xp_drops::{XpDropsPlugin, XpGather},
+    xp::{XpDropsPlugin, XpGather},
 };
 
 pub mod health;
 pub mod laser;
 pub mod melee;
-pub mod xp_drops;
+pub mod xp;
 
 pub struct SkillPluginGroup;
 
@@ -60,6 +60,7 @@ pub struct SkillIndex(u8);
 
 #[derive(Clone, Reflect, Debug, Deserialize)]
 pub enum Skill {
+    Health(Vec<MaxHealth>),
     HealthRegen(Vec<HealthRegen>),
     XpGather(Vec<XpGather>),
     Melee(Vec<Melee>),
@@ -69,10 +70,11 @@ pub enum Skill {
 impl Skill {
     pub fn get_index(&self) -> SkillIndex {
         match self {
-            Skill::HealthRegen(_) => SkillIndex(0),
-            Skill::XpGather(_) => SkillIndex(1),
-            Skill::Melee(_) => SkillIndex(2),
-            Skill::Laser(_) => SkillIndex(3),
+            Skill::Health(_) => SkillIndex(0),
+            Skill::HealthRegen(_) => SkillIndex(1),
+            Skill::XpGather(_) => SkillIndex(2),
+            Skill::Melee(_) => SkillIndex(3),
+            Skill::Laser(_) => SkillIndex(4),
         }
     }
 
@@ -86,6 +88,9 @@ impl Skill {
         };
         let lvl = level as usize;
         match self {
+            Skill::Health(levels) => {
+                ent.insert(levels[lvl].clone());
+            }
             Skill::HealthRegen(levels) => {
                 ent.insert(levels[lvl].clone());
             }

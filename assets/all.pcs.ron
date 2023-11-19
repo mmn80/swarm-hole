@@ -1,12 +1,11 @@
 ([
     (
         name: "Cortez Limonero",
-        max_hp: 100,
         speed: 4.0,
         width: 0.3,
         height: 2.0,
         mesh_idx: 0,
         material_idx: 0,
-        starting_skills: [ HealthRegen([]), XpGather([]), Laser([]) ],
+        starting_skills: [ Health([]), HealthRegen([]), XpGather([]), Laser([]) ],
     ),
 ])

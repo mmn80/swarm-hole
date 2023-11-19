@@ -7,7 +7,10 @@ use rand::prelude::*;
 use crate::{
     app::{is_running, AppState, RunState},
     player::Player,
-    skills::{health::Health, xp_drops::XpGatherState},
+    skills::{
+        health::{Health, MaxHealth},
+        xp::XpGatherState,
+    },
 };
 
 pub struct MainUiPlugin;
@@ -242,7 +245,7 @@ struct LevelText;
 
 fn update_player_ui(
     time: Res<Time>,
-    q_player: Query<(&XpGatherState, &Health), With<Player>>,
+    q_player: Query<(&XpGatherState, &Health, &MaxHealth), With<Player>>,
     mut q_hp_txt: Query<&mut Text, (With<HpText>, Without<XpText>)>,
     mut q_xp_txt: Query<&mut Text, (With<XpText>, Without<HpText>)>,
     mut q_level_txt: Query<&mut Text, (With<LevelText>, Without<HpText>, Without<XpText>)>,
@@ -256,12 +259,12 @@ fn update_player_ui(
     let Ok(mut txt_level) = q_level_txt.get_single_mut() else {
         return;
     };
-    let Ok((xp_gather_state, health)) = q_player.get_single() else {
+    let Ok((xp_gather_state, health, max_health)) = q_player.get_single() else {
         txt_hp.sections[1].value = "-".to_string();
         txt_xp.sections[1].value = "-".to_string();
         return;
     };
-    txt_hp.sections[1].style.color = if health.hp < 50. {
+    txt_hp.sections[1].style.color = if health.0 < 50. {
         let sec = time.elapsed_seconds();
         Color::Rgba {
             red: (4. * sec).sin() / 4.0 + 1.0,
@@ -273,7 +276,7 @@ fn update_player_ui(
         Color::default()
     };
     {
-        let (hp, max_hp) = (health.hp as u32, health.max_hp as u32);
+        let (hp, max_hp) = (health.0 as u32, max_health.max_hp);
         if hp < max_hp {
             txt_hp.sections[1].value = format!("{}/{}", hp, max_hp);
         } else {

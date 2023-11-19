@@ -13,7 +13,7 @@ use crate::{
     debug_ui::{DebugUiCommand, DebugUiEvent},
     physics::{Layer, ALL_LAYERS},
     player::Player,
-    skills::{health::Health, EquippedSkills, Skill, UpdateSkillComponent},
+    skills::{EquippedSkills, Skill, UpdateSkillComponent},
 };
 
 pub struct NpcPlugin;
@@ -90,7 +90,6 @@ fn setup_npc_handles(
 #[derive(Reflect, Clone, Debug, Deserialize)]
 pub struct NonPlayerCharacter {
     pub name: String,
-    pub max_hp: u32,
     pub xp_drop: u32,
     pub speed: f32,
     pub frequency: f32,
@@ -146,7 +145,6 @@ impl AssetLoader for NonPlayerCharactersAssetLoader {
 
 #[derive(Component, Reflect, Clone)]
 pub struct Npc {
-    pub max_hp: u32,
     pub xp_drop: u32,
     pub speed: f32,
 }
@@ -167,12 +165,10 @@ impl Command for SpawnNpc {
             let id = world
                 .spawn((
                     Npc {
-                        max_hp: npc.max_hp,
                         xp_drop: npc.xp_drop,
                         speed: npc.speed,
                     },
                     HotReloadNpc(self.npc_index),
-                    Health::new(npc.max_hp as f32),
                     PbrBundle {
                         transform: Transform::from_xyz(
                             self.location.x,
@@ -299,7 +295,6 @@ fn hot_reload_npcs(
             if let Some(asset) = npcs_assets.get(h) {
                 for (entity, mut npc, hot_reload_npc, equipped_skills) in &mut q_npcs {
                     if let Some(npc_src) = asset.get_npc_by_index(hot_reload_npc.0) {
-                        npc.max_hp = npc_src.max_hp;
                         npc.xp_drop = npc_src.xp_drop;
                         npc.speed = npc_src.speed;
                         for equipped_skill in &equipped_skills.0 {

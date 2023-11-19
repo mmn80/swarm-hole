@@ -12,7 +12,7 @@ use crate::{
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
     physics::{Layer, ALL_LAYERS},
-    skills::{health::Health, HotReloadEquippedSkills, Skill, SkillsAsset, SkillsAssetHandle},
+    skills::{HotReloadEquippedSkills, Skill, SkillsAsset, SkillsAssetHandle},
 };
 
 pub struct PlayerPlugin;
@@ -78,7 +78,6 @@ fn setup_player_handles(
 #[derive(Reflect, Clone, Debug, Deserialize)]
 pub struct PlayerCharacter {
     pub name: String,
-    pub max_hp: u32,
     pub speed: f32,
     pub width: f32,
     pub height: f32,
@@ -181,7 +180,6 @@ impl Command for SpawnPlayer {
         let id = world
             .spawn((
                 Player { speed: pc.speed },
-                Health::new(pc.max_hp as f32),
                 PbrBundle {
                     transform: Transform::from_xyz(
                         self.location.x,

@@ -1,7 +1,6 @@
 ([
     (
         name: "Cortez Limonero",
-        max_hp: 1,
         xp_drop: 1,
         speed: 2.0,
         radius: 0.5,
@@ -9,12 +8,12 @@
         mesh_idx: 0,
         material_idx: 0,
         skills: [
+            Health([( max_hp: 1 )]),
             Melee([( range: 1.0, dps: 3 ),])
         ],
     ),
     (
         name: "Luz Tomatera",
-        max_hp: 10,
         xp_drop: 10,
         speed: 1.5,
         radius: 1.0,
@@ -22,6 +21,7 @@
         mesh_idx: 1,
         material_idx: 1,
         skills: [
+            Health([( max_hp: 10 )]),
             Melee([( range: 1.5, dps: 3 ),]),
             Laser([( range: 10., dps: 5.0, duration: 0.2, cooldown: 1.0, ),]),
         ],

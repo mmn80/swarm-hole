@@ -9,7 +9,7 @@ use crate::{
     player::Player,
 };
 
-use super::xp_drops::{XpDrop, XpDrops};
+use super::xp::{XpDrop, XpDrops};
 
 pub struct HealthPlugin;
 
@@ -17,8 +17,22 @@ impl Plugin for HealthPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<TakeDamageEvent>().add_systems(
             Update,
-            (take_damage, regen_health, die).run_if(in_state(AppState::Run)),
+            (init_health, take_damage, regen_health, die).run_if(in_state(AppState::Run)),
         );
+    }
+}
+
+#[derive(Component, Reflect, Clone, Debug, Deserialize)]
+pub struct MaxHealth {
+    pub max_hp: u32,
+}
+
+#[derive(Component)]
+pub struct Health(pub f32);
+
+fn init_health(q_xp_gather: Query<(Entity, &MaxHealth), Without<Health>>, mut cmd: Commands) {
+    for (ent, max_health) in &q_xp_gather {
+        cmd.entity(ent).insert(Health(max_health.max_hp as f32));
     }
 }
 
@@ -27,18 +41,10 @@ pub struct HealthRegen {
     pub hp_per_sec: f32,
 }
 
-#[derive(Component)]
-pub struct Health {
-    pub hp: f32,
-    pub max_hp: f32,
-}
-
-impl Health {
-    pub fn new(max_health: f32) -> Self {
-        Self {
-            hp: max_health,
-            max_hp: max_health,
-        }
+fn regen_health(time: Res<Time>, mut q_regen: Query<(&mut Health, &MaxHealth, &HealthRegen)>) {
+    for (mut health, max_health, health_regen) in &mut q_regen {
+        health.0 = (health.0 + health_regen.hp_per_sec * time.delta_seconds())
+            .min(max_health.max_hp as f32);
     }
 }
 
@@ -51,19 +57,12 @@ pub struct TakeDamageEvent {
 fn take_damage(mut ev_take_damage: EventReader<TakeDamageEvent>, mut q_health: Query<&mut Health>) {
     for TakeDamageEvent { target, damage } in ev_take_damage.read() {
         if let Ok(mut health) = q_health.get_mut(*target) {
-            health.hp = if *damage >= health.hp {
+            health.0 = if *damage >= health.0 {
                 0.
             } else {
-                health.hp - damage
+                health.0 - damage
             };
         }
-    }
-}
-
-fn regen_health(time: Res<Time>, mut q_regen: Query<(&mut Health, &HealthRegen)>) {
-    for (mut health, health_regen) in &mut q_regen {
-        health.hp =
-            (health.hp + health_regen.hp_per_sec * time.delta_seconds()).min(health.max_hp as f32);
     }
 }
 
@@ -76,7 +75,7 @@ fn die(
     mut cmd: Commands,
 ) {
     for (npc_ent, health, tr_npc, npc, is_player) in &q_npc {
-        if health.hp <= f32::EPSILON {
+        if health.0 <= f32::EPSILON {
             if let Some(npc) = npc {
                 run_state.live_npcs -= 1;
 
