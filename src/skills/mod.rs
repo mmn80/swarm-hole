@@ -8,10 +8,10 @@ use bevy::{
 use serde::Deserialize;
 
 use self::{
-    health::{HealthPlugin, HealthRegen, MaxHealth},
+    health::{HealthPlugin, HealthRegen, HealthRegenBoost, MaxHealth, MaxHealthBoost},
     laser::{Laser, LaserPlugin},
     melee::{Melee, MeleePlugin},
-    xp::{XpDropsPlugin, XpGather},
+    xp::{XpDropsPlugin, XpGather, XpGatherBoost},
 };
 
 pub mod health;
@@ -61,8 +61,11 @@ pub struct SkillIndex(u8);
 #[derive(Clone, Reflect, Debug, Deserialize)]
 pub enum Skill {
     Health(Vec<MaxHealth>),
+    MaxHealthBoost(Vec<MaxHealthBoost>),
     HealthRegen(Vec<HealthRegen>),
+    HealthRegenBoost(Vec<HealthRegenBoost>),
     XpGather(Vec<XpGather>),
+    XpGatherBoost(Vec<XpGatherBoost>),
     Melee(Vec<Melee>),
     Laser(Vec<Laser>),
 }
@@ -71,10 +74,13 @@ impl Skill {
     pub fn get_index(&self) -> SkillIndex {
         match self {
             Skill::Health(_) => SkillIndex(0),
-            Skill::HealthRegen(_) => SkillIndex(1),
-            Skill::XpGather(_) => SkillIndex(2),
-            Skill::Melee(_) => SkillIndex(3),
-            Skill::Laser(_) => SkillIndex(4),
+            Skill::MaxHealthBoost(_) => SkillIndex(1),
+            Skill::HealthRegen(_) => SkillIndex(2),
+            Skill::HealthRegenBoost(_) => SkillIndex(3),
+            Skill::XpGather(_) => SkillIndex(4),
+            Skill::XpGatherBoost(_) => SkillIndex(5),
+            Skill::Melee(_) => SkillIndex(6),
+            Skill::Laser(_) => SkillIndex(7),
         }
     }
 
@@ -91,10 +97,19 @@ impl Skill {
             Skill::Health(levels) => {
                 ent.insert(levels[lvl].clone());
             }
+            Skill::MaxHealthBoost(levels) => {
+                ent.insert(levels[lvl].clone());
+            }
             Skill::HealthRegen(levels) => {
                 ent.insert(levels[lvl].clone());
             }
+            Skill::HealthRegenBoost(levels) => {
+                ent.insert(levels[lvl].clone());
+            }
             Skill::XpGather(levels) => {
+                ent.insert(levels[lvl].clone());
+            }
+            Skill::XpGatherBoost(levels) => {
                 ent.insert(levels[lvl].clone());
             }
             Skill::Melee(levels) => {

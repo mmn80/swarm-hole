@@ -12,7 +12,13 @@ impl Plugin for XpDropsPlugin {
             .add_systems(Startup, setup_xp_drops)
             .add_systems(
                 Update,
-                (init_gather_state, gather_xp, slow_xp_drops).run_if(in_state(AppState::Run)),
+                (
+                    init_gather_state,
+                    init_xp_gather_boost,
+                    gather_xp,
+                    slow_xp_drops,
+                )
+                    .run_if(in_state(AppState::Run)),
             )
             .add_systems(OnEnter(AppState::Cleanup), cleanup_xp_drops);
     }
@@ -120,6 +126,21 @@ fn gather_xp(
                 }
             }
         }
+    }
+}
+
+#[derive(Component, Reflect, Clone, Debug, Deserialize)]
+pub struct XpGatherBoost {
+    pub xp_per_level: u32,
+    pub range: f32,
+    pub acceleration: f32,
+}
+
+fn init_xp_gather_boost(mut q_xp_gather: Query<(&XpGatherBoost, &mut XpGather)>) {
+    for (xp_gather_boost, mut xp_gather) in &mut q_xp_gather {
+        xp_gather.xp_per_level = xp_gather_boost.xp_per_level;
+        xp_gather.range = xp_gather_boost.range;
+        xp_gather.acceleration = xp_gather_boost.acceleration;
     }
 }
 
