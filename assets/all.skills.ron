@@ -1,5 +1,5 @@
 ((
-    health: Some([
+    health_boost: Some([
         ( max_hp: 100, ),
         ( max_hp: 200, ),
         ( max_hp: 300, ),
