@@ -6,11 +6,11 @@
         height: 2.0,
         mesh_idx: 0,
         material_idx: 0,
-        starting_skills: [
-            Health([( max_hp: 100 )]),
-            HealthRegen([( hp_per_sec: 1.0 )]),
-            XpGather([( xp_per_level: 10, range: 5.0, acceleration: 50.0 )]),
-            Laser([])
-        ],
+        default_skills: (
+            health: Some([( max_hp: 100 )]),
+            health_regen: Some([( hp_per_sec: 1.0 )]),
+            xp_gather: Some([( xp_per_level: 10, range: 5.0, acceleration: 50.0 )]),
+        ),
+        starting_skills: [ Laser ]
     ),
 ])

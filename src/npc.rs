@@ -13,7 +13,7 @@ use crate::{
     debug_ui::{DebugUiCommand, DebugUiEvent},
     physics::{Layer, ALL_LAYERS},
     player::Player,
-    skills::{EquippedSkills, Skill, UpdateSkillComponent},
+    skills::{Skills, UpdateSkillComponents},
 };
 
 pub struct NpcPlugin;
@@ -96,7 +96,7 @@ pub struct NonPlayerCharacter {
     pub radius: f32,
     pub mesh_idx: usize,
     pub material_idx: usize,
-    pub skills: Vec<Skill>,
+    pub skills: Skills,
 }
 
 #[derive(Asset, TypePath, Debug, Deserialize)]
@@ -188,7 +188,7 @@ impl Command for SpawnNpc {
                 .entity_mut(id)
                 .insert(Name::new(format!("NPC {:?} ({id:?})", npc.name)));
 
-            Skill::insert_components(&npc.skills, 0, id, world);
+            npc.skills.insert_components(id, world);
         }
 
         if let Some(mut run_state) = world.get_resource_mut::<RunState>() {
@@ -285,7 +285,7 @@ fn hot_reload_npcs(
     npc_handles: Res<NpcHandles>,
     npcs_assets: Res<Assets<NonPlayerCharactersAsset>>,
     mut skills_asset_events: EventReader<AssetEvent<NonPlayerCharactersAsset>>,
-    mut q_npcs: Query<(Entity, &mut Npc, &HotReloadNpc, &EquippedSkills)>,
+    mut q_npcs: Query<(Entity, &mut Npc, &HotReloadNpc)>,
 
     mut cmd: Commands,
 ) {
@@ -293,23 +293,14 @@ fn hot_reload_npcs(
         let h = npc_handles.config.clone();
         if ev.is_loaded_with_dependencies(&h) {
             if let Some(asset) = npcs_assets.get(h) {
-                for (entity, mut npc, hot_reload_npc, equipped_skills) in &mut q_npcs {
+                for (entity, mut npc, hot_reload_npc) in &mut q_npcs {
                     if let Some(npc_src) = asset.get_npc_by_index(hot_reload_npc.0) {
                         npc.xp_drop = npc_src.xp_drop;
                         npc.speed = npc_src.speed;
-                        for equipped_skill in &equipped_skills.0 {
-                            if let Some(skill) = npc_src
-                                .skills
-                                .iter()
-                                .find(|s| s.get_index() == equipped_skill.skill)
-                            {
-                                cmd.add(UpdateSkillComponent {
-                                    entity,
-                                    skill: skill.clone(),
-                                    level: equipped_skill.level,
-                                });
-                            }
-                        }
+                        cmd.add(UpdateSkillComponents {
+                            entity,
+                            skills: npc_src.skills.clone(),
+                        });
                     }
                 }
             }

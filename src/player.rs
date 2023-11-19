@@ -12,7 +12,10 @@ use crate::{
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
     physics::{Layer, ALL_LAYERS},
-    skills::{HotReloadEquippedSkills, Skill, SkillsAsset, SkillsAssetHandle},
+    skills::{
+        EquippedSkill, EquippedSkills, HotReloadEquippedSkills, Skill, Skills, SkillsAsset,
+        SkillsAssetHandle,
+    },
 };
 
 pub struct PlayerPlugin;
@@ -83,6 +86,7 @@ pub struct PlayerCharacter {
     pub height: f32,
     pub mesh_idx: usize,
     pub material_idx: usize,
+    pub default_skills: Skills,
     pub starting_skills: Vec<Skill>,
 }
 
@@ -155,35 +159,10 @@ impl Command for SpawnPlayer {
         let Some(pc_handles) = world.get_resource::<PcHandles>() else {
             return;
         };
-        let skills = {
-            let Some(skills_assets) = world.get_resource::<Assets<SkillsAsset>>() else {
-                return;
-            };
-            let Some(skills_asset_handle) = world.get_resource::<SkillsAssetHandle>() else {
-                return;
-            };
-            let Some(skills_asset) = skills_assets.get(skills_asset_handle.0.clone()) else {
-                return;
-            };
-            let mut skills = vec![];
-            for skill in &skills_asset.0 {
-                for starting_skill in &pc.starting_skills {
-                    if skill.same_skill(starting_skill) {
-                        skills.push(skill.clone())
-                    }
-                }
-            }
-            for starting_skill in &pc.starting_skills {
-                if !skills.iter().any(|s| s.same_skill(starting_skill)) {
-                    skills.push(starting_skill.clone())
-                }
-            }
-            skills
-        };
-
         let cap_h = pc.height - 2. * pc.width;
         let id = world
             .spawn((
+                Name::new(format!("Player {}", pc.name)),
                 Player { speed: pc.speed },
                 PbrBundle {
                     transform: Transform::from_xyz(
@@ -209,11 +188,34 @@ impl Command for SpawnPlayer {
                 HotReloadEquippedSkills,
             ))
             .id();
-        world
-            .entity_mut(id)
-            .insert(Name::new(format!("Player {} ({id:?})", pc.name)));
 
-        Skill::insert_components(&skills, 0, id, world);
+        // init default skills
+        pc.default_skills.insert_components(id, world);
+
+        // init starting skills
+        {
+            if let Some(mut equipped) = world.get_mut::<EquippedSkills>(id) {
+                for skill in &pc.starting_skills {
+                    equipped.update_skill(EquippedSkill {
+                        skill: *skill,
+                        level: 0,
+                    });
+                }
+            }
+        }
+        let skills = {
+            let Some(skills_assets) = world.get_resource::<Assets<SkillsAsset>>() else {
+                return;
+            };
+            let Some(skills_asset_handle) = world.get_resource::<SkillsAssetHandle>() else {
+                return;
+            };
+            let Some(skills_asset) = skills_assets.get(skills_asset_handle.0.clone()) else {
+                return;
+            };
+            skills_asset.0.clone()
+        };
+        skills.insert_components(id, world);
     }
 }
 
