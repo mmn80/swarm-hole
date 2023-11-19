@@ -12,10 +12,7 @@ use crate::{
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
     physics::{Layer, ALL_LAYERS},
-    skills::{
-        health::Health, xp_drops::XpGather, HotReloadEquippedSkills, Skill, SkillsAsset,
-        SkillsAssetHandle,
-    },
+    skills::{health::Health, HotReloadEquippedSkills, Skill, SkillsAsset, SkillsAssetHandle},
 };
 
 pub struct PlayerPlugin;
@@ -83,8 +80,6 @@ pub struct PlayerCharacter {
     pub name: String,
     pub max_hp: u32,
     pub hp_regen_per_sec: f32,
-    pub gather_range: f32,
-    pub gather_acceleration: f32,
     pub speed: f32,
     pub width: f32,
     pub height: f32,
@@ -151,8 +146,6 @@ pub struct Player {
     pub speed: f32,
     pub max_hp: u32,
     pub hp_regen_per_sec: f32,
-    pub gather_range: f32,
-    pub gather_acceleration: f32,
 }
 
 pub struct SpawnPlayer {
@@ -194,10 +187,7 @@ impl Command for SpawnPlayer {
                     speed: pc.speed,
                     max_hp: pc.max_hp,
                     hp_regen_per_sec: pc.hp_regen_per_sec,
-                    gather_range: pc.gather_range,
-                    gather_acceleration: pc.gather_acceleration,
                 },
-                XpGather(0),
                 Health(pc.max_hp as f32),
                 PbrBundle {
                     transform: Transform::from_xyz(

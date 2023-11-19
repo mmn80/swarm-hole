@@ -20,7 +20,7 @@ impl Plugin for LaserPlugin {
             .add_systems(
                 Update,
                 (
-                    init_laser,
+                    init_laser_state,
                     (
                         (laser_target_npc, laser_target_player),
                         laser_shoot_ray,
@@ -85,7 +85,7 @@ pub struct Laser {
     pub cooldown: f32,
 }
 
-fn init_laser(q_laser: Query<Entity, (With<Laser>, Without<LaserState>)>, mut cmd: Commands) {
+fn init_laser_state(q_laser: Query<Entity, (With<Laser>, Without<LaserState>)>, mut cmd: Commands) {
     for ent in &q_laser {
         cmd.entity(ent).insert(LaserState {
             target: None,

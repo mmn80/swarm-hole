@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::*;
+use serde::Deserialize;
 
-use crate::{app::AppState, physics::Layer, player::Player};
+use crate::{app::AppState, physics::Layer};
 
 pub struct XpDropsPlugin;
 
@@ -11,7 +12,7 @@ impl Plugin for XpDropsPlugin {
             .add_systems(Startup, setup_xp_drops)
             .add_systems(
                 Update,
-                (gather_xp, slow_xp_drops).run_if(in_state(AppState::Run)),
+                (init_gather_state, gather_xp, slow_xp_drops).run_if(in_state(AppState::Run)),
             )
             .add_systems(OnEnter(AppState::Cleanup), cleanup_xp_drops);
     }
@@ -57,37 +58,63 @@ impl XpDrop {
     }
 }
 
+#[derive(Component, Reflect, Clone, Debug, Deserialize)]
+pub struct XpGather {
+    pub xp_per_level: u32,
+    pub gather_range: f32,
+    pub gather_acceleration: f32,
+}
+
 #[derive(Component)]
-pub struct XpGather(pub u32);
+pub struct XpGatherState {
+    pub xp: u32,
+    pub level: u32,
+}
+
+impl XpGatherState {
+    pub fn gather(&mut self, xp: u32, xp_per_level: u32) {
+        self.xp += xp;
+        self.level = self.xp / xp_per_level;
+    }
+}
+
+fn init_gather_state(
+    q_xp_gather: Query<Entity, (With<XpGather>, Without<XpGatherState>)>,
+    mut cmd: Commands,
+) {
+    for ent in &q_xp_gather {
+        cmd.entity(ent).insert(XpGatherState { xp: 0, level: 0 });
+    }
+}
 
 fn gather_xp(
     time: Res<Time>,
     q_space: SpatialQuery,
-    mut q_xp_gather: Query<(&Transform, &Player, &mut XpGather)>,
+    mut q_xp_gather: Query<(&Transform, &XpGather, &mut XpGatherState)>,
     mut q_xp_drop: Query<(Entity, &Transform, &mut LinearVelocity, &XpDrop)>,
     mut cmd: Commands,
 ) {
-    for (tr_player, player, mut xp_gather) in &mut q_xp_gather {
+    for (tr_gatherer, xp_gather, mut xp_gather_state) in &mut q_xp_gather {
         for ent in q_space
             .shape_intersections(
-                &Collider::ball(player.gather_range),
-                tr_player.translation,
+                &Collider::ball(xp_gather.gather_range),
+                tr_gatherer.translation,
                 Quat::default(),
                 SpatialQueryFilter::new().with_masks([Layer::Building]),
             )
             .iter()
         {
             if let Ok((ent, tr_xp, mut lin_vel, xp_drop)) = q_xp_drop.get_mut(*ent) {
-                let mut delta = tr_player.translation - tr_xp.translation;
+                let mut delta = tr_gatherer.translation - tr_xp.translation;
                 if delta.length() < XpDrop::get_height(xp_drop.0) + 1. {
-                    xp_gather.0 += xp_drop.0;
+                    xp_gather_state.gather(xp_drop.0, xp_gather.xp_per_level);
                     cmd.entity(ent).despawn_recursive();
                 } else {
                     lin_vel.y = 0.;
                     let old_speed = lin_vel.length();
                     delta.y = 0.;
                     delta = delta.normalize()
-                        * (old_speed + time.delta_seconds() * player.gather_acceleration);
+                        * (old_speed + time.delta_seconds() * xp_gather.gather_acceleration);
                     lin_vel.x = delta.x;
                     lin_vel.z = delta.z;
                 }

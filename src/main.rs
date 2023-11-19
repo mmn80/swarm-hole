@@ -10,7 +10,7 @@ use bevy_hanabi::prelude::*;
 use bevy_xpbd_3d::prelude::*;
 
 use swarm_hole::{
-    app::{AppState, MainMenuPlugin, INFINITE_TEMP_COLOR},
+    app::{AppState, MainMenuPlugin},
     camera::MainCameraPlugin,
     debug_ui::DebugUiPlugin,
     light::MainLightsPlugin,
@@ -19,7 +19,7 @@ use swarm_hole::{
     player::PlayerPlugin,
     skills::SkillPluginGroup,
     terrain::TerrainPlugin,
-    ui::MainUiPlugin,
+    ui::{MainUiPlugin, INFINITE_TEMP_COLOR},
     vfx::VfxPlugin,
 };
 

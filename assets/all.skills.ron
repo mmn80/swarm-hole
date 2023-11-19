@@ -1,4 +1,7 @@
 ([
+    XpGather([
+        ( xp_per_level: 10, gather_range: 5.0, gather_acceleration: 50.0, ),
+    ]),
     Laser([
         ( range: 15., dps: 20.0, duration: 0.5, cooldown: 0.5, ),
         ( range: 15., dps: 30.0, duration: 0.5, cooldown: 0.5, ),

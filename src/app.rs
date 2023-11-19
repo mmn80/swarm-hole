@@ -2,7 +2,10 @@ use std::time::Duration;
 
 use bevy::{app::AppExit, prelude::*};
 
-use crate::debug_ui::DebugUi;
+use crate::{
+    debug_ui::DebugUi,
+    ui::{BUTTON_HOVERED_COLOR, BUTTON_NORMAL_COLOR, BUTTON_PRESSED_COLOR, INFINITE_TEMP_COLOR},
+};
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum AppState {
@@ -105,16 +108,6 @@ pub fn is_running(app_state: Res<State<AppState>>) -> bool {
 #[derive(Component)]
 struct MainMenuUi;
 
-pub const INFINITE_TEMP_COLOR: Color = Color::rgb_linear(
-    148. / u8::MAX as f32,
-    177. / u8::MAX as f32,
-    255. / u8::MAX as f32,
-);
-
-const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
-const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
-const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
-
 fn setup_menu(mut cmd: Commands) {
     cmd.spawn((
         NodeBundle {
@@ -139,7 +132,7 @@ fn setup_menu(mut cmd: Commands) {
                     align_items: AlignItems::Center,
                     ..default()
                 },
-                background_color: NORMAL_BUTTON.into(),
+                background_color: BUTTON_NORMAL_COLOR.into(),
                 ..default()
             })
             .with_children(|parent| {
@@ -165,14 +158,14 @@ fn update_menu(
     for (interaction, mut color) in &mut q_interaction {
         match *interaction {
             Interaction::Pressed => {
-                *color = PRESSED_BUTTON.into();
+                *color = BUTTON_PRESSED_COLOR.into();
                 next_state.set(AppState::Run);
             }
             Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
+                *color = BUTTON_HOVERED_COLOR.into();
             }
             Interaction::None => {
-                *color = NORMAL_BUTTON.into();
+                *color = BUTTON_NORMAL_COLOR.into();
             }
         }
     }

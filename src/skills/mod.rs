@@ -11,7 +11,7 @@ use self::{
     health::HealthPlugin,
     laser::{Laser, LaserPlugin},
     melee::{Melee, MeleePlugin},
-    xp_drops::XpDropsPlugin,
+    xp_drops::{XpDropsPlugin, XpGather},
 };
 
 pub mod health;
@@ -60,6 +60,7 @@ pub struct SkillIndex(u8);
 
 #[derive(Clone, Reflect, Debug, Deserialize)]
 pub enum Skill {
+    XpGather(Vec<XpGather>),
     Melee(Vec<Melee>),
     Laser(Vec<Laser>),
 }
@@ -67,8 +68,9 @@ pub enum Skill {
 impl Skill {
     pub fn get_index(&self) -> SkillIndex {
         match self {
-            Skill::Melee(_) => SkillIndex(0),
-            Skill::Laser(_) => SkillIndex(1),
+            Skill::XpGather(_) => SkillIndex(0),
+            Skill::Melee(_) => SkillIndex(1),
+            Skill::Laser(_) => SkillIndex(2),
         }
     }
 
@@ -82,6 +84,9 @@ impl Skill {
         };
         let lvl = level as usize;
         match self {
+            Skill::XpGather(levels) => {
+                ent.insert(levels[lvl].clone());
+            }
             Skill::Melee(levels) => {
                 ent.insert(levels[lvl].clone());
             }
