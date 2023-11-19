@@ -8,7 +8,7 @@ use bevy::{
 use serde::Deserialize;
 
 use self::{
-    health::HealthPlugin,
+    health::{HealthPlugin, HealthRegen},
     laser::{Laser, LaserPlugin},
     melee::{Melee, MeleePlugin},
     xp_drops::{XpDropsPlugin, XpGather},
@@ -60,6 +60,7 @@ pub struct SkillIndex(u8);
 
 #[derive(Clone, Reflect, Debug, Deserialize)]
 pub enum Skill {
+    HealthRegen(Vec<HealthRegen>),
     XpGather(Vec<XpGather>),
     Melee(Vec<Melee>),
     Laser(Vec<Laser>),
@@ -68,9 +69,10 @@ pub enum Skill {
 impl Skill {
     pub fn get_index(&self) -> SkillIndex {
         match self {
-            Skill::XpGather(_) => SkillIndex(0),
-            Skill::Melee(_) => SkillIndex(1),
-            Skill::Laser(_) => SkillIndex(2),
+            Skill::HealthRegen(_) => SkillIndex(0),
+            Skill::XpGather(_) => SkillIndex(1),
+            Skill::Melee(_) => SkillIndex(2),
+            Skill::Laser(_) => SkillIndex(3),
         }
     }
 
@@ -84,6 +86,9 @@ impl Skill {
         };
         let lvl = level as usize;
         match self {
+            Skill::HealthRegen(levels) => {
+                ent.insert(levels[lvl].clone());
+            }
             Skill::XpGather(levels) => {
                 ent.insert(levels[lvl].clone());
             }

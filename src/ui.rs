@@ -261,7 +261,7 @@ fn update_player_ui(
         txt_xp.sections[1].value = "-".to_string();
         return;
     };
-    txt_hp.sections[1].style.color = if health.0 < 50. {
+    txt_hp.sections[1].style.color = if health.hp < 50. {
         let sec = time.elapsed_seconds();
         Color::Rgba {
             red: (4. * sec).sin() / 4.0 + 1.0,
@@ -272,7 +272,14 @@ fn update_player_ui(
     } else {
         Color::default()
     };
-    txt_hp.sections[1].value = format!("{}", health.0 as u32);
+    {
+        let (hp, max_hp) = (health.hp as u32, health.max_hp as u32);
+        if hp < max_hp {
+            txt_hp.sections[1].value = format!("{}/{}", hp, max_hp);
+        } else {
+            txt_hp.sections[1].value = format!("{}", hp);
+        }
+    }
     txt_xp.sections[1].value = format!("{}", xp_gather_state.xp);
     txt_level.sections[1].value = format!("{}", xp_gather_state.level);
 }

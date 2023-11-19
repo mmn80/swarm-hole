@@ -79,7 +79,6 @@ fn setup_player_handles(
 pub struct PlayerCharacter {
     pub name: String,
     pub max_hp: u32,
-    pub hp_regen_per_sec: f32,
     pub speed: f32,
     pub width: f32,
     pub height: f32,
@@ -144,8 +143,6 @@ fn spawn_main_player(
 #[derive(Component, Reflect)]
 pub struct Player {
     pub speed: f32,
-    pub max_hp: u32,
-    pub hp_regen_per_sec: f32,
 }
 
 pub struct SpawnPlayer {
@@ -183,12 +180,8 @@ impl Command for SpawnPlayer {
         let cap_h = pc.height - 2. * pc.width;
         let id = world
             .spawn((
-                Player {
-                    speed: pc.speed,
-                    max_hp: pc.max_hp,
-                    hp_regen_per_sec: pc.hp_regen_per_sec,
-                },
-                Health(pc.max_hp as f32),
+                Player { speed: pc.speed },
+                Health::new(pc.max_hp as f32),
                 PbrBundle {
                     transform: Transform::from_xyz(
                         self.location.x,

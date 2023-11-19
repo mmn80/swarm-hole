@@ -61,8 +61,8 @@ impl XpDrop {
 #[derive(Component, Reflect, Clone, Debug, Deserialize)]
 pub struct XpGather {
     pub xp_per_level: u32,
-    pub gather_range: f32,
-    pub gather_acceleration: f32,
+    pub range: f32,
+    pub acceleration: f32,
 }
 
 #[derive(Component)]
@@ -97,7 +97,7 @@ fn gather_xp(
     for (tr_gatherer, xp_gather, mut xp_gather_state) in &mut q_xp_gather {
         for ent in q_space
             .shape_intersections(
-                &Collider::ball(xp_gather.gather_range),
+                &Collider::ball(xp_gather.range),
                 tr_gatherer.translation,
                 Quat::default(),
                 SpatialQueryFilter::new().with_masks([Layer::Building]),
@@ -114,7 +114,7 @@ fn gather_xp(
                     let old_speed = lin_vel.length();
                     delta.y = 0.;
                     delta = delta.normalize()
-                        * (old_speed + time.delta_seconds() * xp_gather.gather_acceleration);
+                        * (old_speed + time.delta_seconds() * xp_gather.acceleration);
                     lin_vel.x = delta.x;
                     lin_vel.z = delta.z;
                 }

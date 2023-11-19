@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::*;
+use serde::Deserialize;
 
 use crate::{
     app::{AppState, RunState},
@@ -21,8 +22,25 @@ impl Plugin for HealthPlugin {
     }
 }
 
+#[derive(Component, Reflect, Clone, Debug, Deserialize)]
+pub struct HealthRegen {
+    pub hp_per_sec: f32,
+}
+
 #[derive(Component)]
-pub struct Health(pub f32);
+pub struct Health {
+    pub hp: f32,
+    pub max_hp: f32,
+}
+
+impl Health {
+    pub fn new(max_health: f32) -> Self {
+        Self {
+            hp: max_health,
+            max_hp: max_health,
+        }
+    }
+}
 
 #[derive(Event)]
 pub struct TakeDamageEvent {
@@ -33,19 +51,19 @@ pub struct TakeDamageEvent {
 fn take_damage(mut ev_take_damage: EventReader<TakeDamageEvent>, mut q_health: Query<&mut Health>) {
     for TakeDamageEvent { target, damage } in ev_take_damage.read() {
         if let Ok(mut health) = q_health.get_mut(*target) {
-            health.0 = if *damage >= health.0 {
+            health.hp = if *damage >= health.hp {
                 0.
             } else {
-                health.0 - damage
+                health.hp - damage
             };
         }
     }
 }
 
-fn regen_health(time: Res<Time>, mut q_player: Query<(&mut Health, &Player)>) {
-    for (mut health, player) in &mut q_player {
-        health.0 =
-            (health.0 + player.hp_regen_per_sec * time.delta_seconds()).min(player.max_hp as f32);
+fn regen_health(time: Res<Time>, mut q_regen: Query<(&mut Health, &HealthRegen)>) {
+    for (mut health, health_regen) in &mut q_regen {
+        health.hp =
+            (health.hp + health_regen.hp_per_sec * time.delta_seconds()).min(health.max_hp as f32);
     }
 }
 
@@ -58,7 +76,7 @@ fn die(
     mut cmd: Commands,
 ) {
     for (npc_ent, health, tr_npc, npc, is_player) in &q_npc {
-        if health.0 <= f32::EPSILON {
+        if health.hp <= f32::EPSILON {
             if let Some(npc) = npc {
                 run_state.live_npcs -= 1;
 

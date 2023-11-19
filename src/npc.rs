@@ -172,7 +172,7 @@ impl Command for SpawnNpc {
                         speed: npc.speed,
                     },
                     HotReloadNpc(self.npc_index),
-                    Health(npc.max_hp as f32),
+                    Health::new(npc.max_hp as f32),
                     PbrBundle {
                         transform: Transform::from_xyz(
                             self.location.x,
