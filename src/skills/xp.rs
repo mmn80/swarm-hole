@@ -74,13 +74,26 @@ pub struct XpGather {
 #[derive(Component)]
 pub struct XpGatherState {
     pub xp: u32,
-    pub level: u32,
+    gather_level: u32,
+    player_level: u32,
 }
 
 impl XpGatherState {
+    pub fn get_gather_level(&self) -> u32 {
+        self.gather_level + 1
+    }
+
+    pub fn get_player_level(&self) -> u32 {
+        self.player_level + 1
+    }
+
+    pub fn upgrade_player_level(&mut self) {
+        self.player_level += 1;
+    }
+
     pub fn gather(&mut self, xp: u32, xp_per_level: u32) {
         self.xp += xp;
-        self.level = self.xp / xp_per_level;
+        self.gather_level = self.xp / xp_per_level;
     }
 }
 
@@ -89,7 +102,11 @@ fn init_gather_state(
     mut cmd: Commands,
 ) {
     for ent in &q_xp_gather {
-        cmd.entity(ent).insert(XpGatherState { xp: 0, level: 0 });
+        cmd.entity(ent).insert(XpGatherState {
+            xp: 0,
+            gather_level: 0,
+            player_level: 0,
+        });
     }
 }
 

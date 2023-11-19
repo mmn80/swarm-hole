@@ -38,9 +38,12 @@ impl Plugin for MainUiPlugin {
                 update_run_time_ui,
                 update_app_state_ui,
                 update_npcs_ui,
-                update_skill_upgrade_ui,
             )
                 .run_if(is_running),
+        )
+        .add_systems(
+            Update,
+            update_skill_upgrade_ui.run_if(in_state(AppState::Upgrade)),
         );
     }
 }
@@ -284,7 +287,7 @@ fn update_player_ui(
         }
     }
     txt_xp.sections[1].value = format!("{}", xp_gather_state.xp);
-    txt_level.sections[1].value = format!("{}", xp_gather_state.level);
+    txt_level.sections[1].value = format!("{}", xp_gather_state.get_gather_level());
 }
 
 #[derive(Component)]

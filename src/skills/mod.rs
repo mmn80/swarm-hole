@@ -5,13 +5,16 @@ use bevy::{
     prelude::*,
     utils::{thiserror, thiserror::Error, BoxedFuture},
 };
+use rand::prelude::*;
 use serde::Deserialize;
+
+use crate::app::AppState;
 
 use self::{
     health::{HealthPlugin, HealthRegen, HealthRegenBoost, MaxHealth, MaxHealthBoost},
     laser::{Laser, LaserPlugin},
     melee::{Melee, MeleePlugin},
-    xp::{XpDropsPlugin, XpGather, XpGatherBoost},
+    xp::{XpDropsPlugin, XpGather, XpGatherBoost, XpGatherState},
 };
 
 pub mod health;
@@ -40,12 +43,18 @@ impl Plugin for SkillsPlugin {
             .init_asset::<SkillsAsset>()
             .init_asset_loader::<SkillsAssetLoader>()
             .init_resource::<SkillsAssetHandle>()
+            .init_resource::<SkillUpgradeOptions>()
             .add_systems(Startup, setup_skills_asset_handle)
-            .add_systems(Update, hot_reload_equipped_skills);
+            .add_systems(Update, hot_reload_equipped_skills)
+            .add_systems(Update, init_upgrade_menu.run_if(in_state(AppState::Run)))
+            .add_systems(
+                Update,
+                apply_upgrade_selection.run_if(in_state(AppState::Upgrade)),
+            );
     }
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Reflect, Debug, Deserialize)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Reflect, Debug, Deserialize)]
 pub enum Skill {
     Health,
     HealthBoost,
@@ -70,6 +79,61 @@ pub struct Skills {
 }
 
 impl Skills {
+    //TODO: make macro
+    pub fn get_skill_levels(&self) -> Vec<EquippedSkill> {
+        let mut res = vec![];
+        if let Some(levels) = &self.health {
+            res.push(EquippedSkill {
+                skill: Skill::Health,
+                level: levels.len() as u8,
+            });
+        }
+        if let Some(levels) = &self.health_boost {
+            res.push(EquippedSkill {
+                skill: Skill::HealthBoost,
+                level: levels.len() as u8,
+            });
+        }
+        if let Some(levels) = &self.health_regen {
+            res.push(EquippedSkill {
+                skill: Skill::HealthRegen,
+                level: levels.len() as u8,
+            });
+        }
+        if let Some(levels) = &self.health_regen_boost {
+            res.push(EquippedSkill {
+                skill: Skill::HealthRegenBoost,
+                level: levels.len() as u8,
+            });
+        }
+        if let Some(levels) = &self.xp_gather {
+            res.push(EquippedSkill {
+                skill: Skill::XpGather,
+                level: levels.len() as u8,
+            });
+        }
+        if let Some(levels) = &self.xp_gather_boost {
+            res.push(EquippedSkill {
+                skill: Skill::XpGatherBoost,
+                level: levels.len() as u8,
+            });
+        }
+        if let Some(levels) = &self.melee {
+            res.push(EquippedSkill {
+                skill: Skill::Melee,
+                level: levels.len() as u8,
+            });
+        }
+        if let Some(levels) = &self.laser {
+            res.push(EquippedSkill {
+                skill: Skill::Laser,
+                level: levels.len() as u8,
+            });
+        }
+        res
+    }
+
+    //TODO: make macro
     pub fn insert_components(&self, entity: Entity, world: &mut World) {
         let Some(mut ent) = world.get_entity_mut(entity) else {
             return;
@@ -187,7 +251,17 @@ impl Command for UpdateSkillComponents {
 #[derive(Copy, Clone)]
 pub struct EquippedSkill {
     pub skill: Skill,
-    pub level: u8,
+    level: u8,
+}
+
+impl EquippedSkill {
+    pub fn new(skill: Skill) -> Self {
+        Self { skill, level: 0 }
+    }
+
+    pub fn get_level(&self) -> u8 {
+        self.level + 1
+    }
 }
 
 #[derive(Component, Clone)]
@@ -236,6 +310,89 @@ fn hot_reload_equipped_skills(
             }
         }
     }
+}
+
+#[derive(Resource, Default)]
+pub struct SkillUpgradeOptions {
+    pub entity: Option<Entity>,
+    pub skills: Vec<EquippedSkill>,
+    pub selected: Option<EquippedSkill>,
+}
+
+fn init_upgrade_menu(
+    mut next_state: ResMut<NextState<AppState>>,
+    mut upgrades: ResMut<SkillUpgradeOptions>,
+    skills_asset_handle: Res<SkillsAssetHandle>,
+    skills_asset: Res<Assets<SkillsAsset>>,
+    q_xp_gather_state: Query<(Entity, &XpGatherState)>,
+    q_equipped_skills: Query<&EquippedSkills>,
+) {
+    for (entity, xp_gather_state) in &q_xp_gather_state {
+        if xp_gather_state.get_gather_level() > xp_gather_state.get_player_level() {
+            if let Ok(equipped_skills) = q_equipped_skills.get(entity) {
+                upgrades.entity = Some(entity);
+                upgrades.selected = None;
+                let mut all_skills = equipped_skills.0.clone();
+                for skill in &mut all_skills {
+                    skill.level += 1;
+                }
+                if let Some(skills_asset) = skills_asset.get(&skills_asset_handle.0) {
+                    for mut skill in skills_asset.0.get_skill_levels() {
+                        if let Ok(idx) = all_skills.binary_search_by(|s| s.skill.cmp(&skill.skill))
+                        {
+                            if all_skills[idx].level >= skill.level {
+                                all_skills.remove(idx);
+                            }
+                        } else {
+                            skill.level = 0;
+                            all_skills.push(skill);
+                        }
+                    }
+                }
+                upgrades.skills.clear();
+                let mut rng = thread_rng();
+                upgrades.skills = all_skills
+                    .choose_multiple(&mut rng, 3)
+                    .map(|s| s.clone())
+                    .collect();
+                next_state.set(AppState::Upgrade);
+            }
+        } else {
+            upgrades.entity = None;
+            upgrades.skills.clear();
+            upgrades.selected = None;
+        }
+    }
+}
+
+fn apply_upgrade_selection(
+    mut next_state: ResMut<NextState<AppState>>,
+    mut upgrades: ResMut<SkillUpgradeOptions>,
+    skills_asset_handle: Res<SkillsAssetHandle>,
+    skills_asset: Res<Assets<SkillsAsset>>,
+    mut q_xp_gather_state: Query<&mut XpGatherState>,
+    mut q_equipped_skills: Query<&mut EquippedSkills>,
+    mut cmd: Commands,
+) {
+    let (Some(entity), Some(selected)) = (upgrades.entity, upgrades.selected) else {
+        return;
+    };
+    if let Ok(mut xp_gather_state) = q_xp_gather_state.get_mut(entity) {
+        xp_gather_state.upgrade_player_level();
+    }
+    if let Ok(mut equipped_skills) = q_equipped_skills.get_mut(entity) {
+        equipped_skills.update_skill(selected);
+    }
+    if let Some(skills_asset) = skills_asset.get(&skills_asset_handle.0) {
+        cmd.add(UpdateSkillComponents {
+            entity,
+            skills: skills_asset.0.clone(),
+        });
+    }
+    upgrades.entity = None;
+    upgrades.skills.clear();
+    upgrades.selected = None;
+    next_state.set(AppState::Run);
 }
 
 #[derive(Resource, Default)]

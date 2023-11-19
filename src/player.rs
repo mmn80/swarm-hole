@@ -196,10 +196,7 @@ impl Command for SpawnPlayer {
         {
             if let Some(mut equipped) = world.get_mut::<EquippedSkills>(id) {
                 for skill in &pc.starting_skills {
-                    equipped.update_skill(EquippedSkill {
-                        skill: *skill,
-                        level: 0,
-                    });
+                    equipped.update_skill(EquippedSkill::new(*skill));
                 }
             }
         }

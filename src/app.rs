@@ -13,6 +13,7 @@ pub enum AppState {
     Menu,
     Run,
     Paused,
+    Upgrade,
     Lost,
     Won,
     Cleanup,
@@ -87,6 +88,11 @@ fn update_app_state(
                 next_state.set(AppState::Run);
             }
         }
+        AppState::Upgrade => {
+            if esc {
+                next_state.set(AppState::Paused);
+            }
+        }
         AppState::Run => {
             if esc || enter {
                 next_state.set(AppState::Paused);
@@ -101,6 +107,7 @@ pub fn is_running(app_state: Res<State<AppState>>) -> bool {
     let state = *app_state.get();
     return state == AppState::Run
         || state == AppState::Paused
+        || state == AppState::Upgrade
         || state == AppState::Lost
         || state == AppState::Won;
 }
