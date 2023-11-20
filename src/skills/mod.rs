@@ -304,7 +304,7 @@ fn hot_reload_equipped_skills(
                 for entity in &q_equipped {
                     cmd.add(UpdateSkillComponents {
                         entity,
-                        skills: skills_asset.0.clone(),
+                        skills: skills_asset.skills.clone(),
                     });
                 }
             }
@@ -337,7 +337,7 @@ fn init_upgrade_menu(
                     skill.level += 1;
                 }
                 if let Some(skills_asset) = skills_asset.get(&skills_asset_handle.0) {
-                    for mut skill in skills_asset.0.get_skill_levels() {
+                    for mut skill in skills_asset.skills.get_skill_levels() {
                         if let Ok(idx) = all_skills.binary_search_by(|s| s.skill.cmp(&skill.skill))
                         {
                             if all_skills[idx].level >= skill.level {
@@ -386,7 +386,7 @@ fn apply_upgrade_selection(
     if let Some(skills_asset) = skills_asset.get(&skills_asset_handle.0) {
         cmd.add(UpdateSkillComponents {
             entity,
-            skills: skills_asset.0.clone(),
+            skills: skills_asset.skills.clone(),
         });
     }
     upgrades.entity = None;
@@ -405,8 +405,17 @@ fn setup_skills_asset_handle(
     skills_asset_handle.0 = asset_server.load("all.skills.ron");
 }
 
+#[derive(Debug, Deserialize)]
+pub struct SkillUiConfig {
+    pub skill: Skill,
+    pub name: String,
+}
+
 #[derive(Asset, TypePath, Debug, Deserialize)]
-pub struct SkillsAsset(pub Skills);
+pub struct SkillsAsset {
+    pub ui_config: Vec<SkillUiConfig>,
+    pub skills: Skills,
+}
 
 #[derive(Default)]
 pub struct SkillsAssetLoader;

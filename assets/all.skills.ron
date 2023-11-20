@@ -1,22 +1,58 @@
-((
-    health_boost: Some([
-        ( max_hp: 100, ),
-        ( max_hp: 200, ),
-        ( max_hp: 300, ),
-    ]),
-    health_regen_boost: Some([
-        ( hp_per_sec: 1.0, ),
-        ( hp_per_sec: 2.0, ),
-        ( hp_per_sec: 3.0, ),
-    ]),
-    xp_gather_boost: Some([
-        ( xp_per_level: 10, range: 5.0, acceleration: 50.0, ),
-        ( xp_per_level: 10, range: 10.0, acceleration: 75.0, ),
-        ( xp_per_level: 10, range: 15.0, acceleration: 100.0, ),
-    ]),
-    laser: Some([
-        ( range: 15., dps: 20.0, duration: 0.5, cooldown: 0.5, ),
-        ( range: 15., dps: 30.0, duration: 0.5, cooldown: 0.5, ),
-        ( range: 15., dps: 40.0, duration: 0.5, cooldown: 0.5, ),
-    ]),
-))
+(
+    ui_config: [
+        (
+            skill: Health,
+            name: "Health"
+        ),
+        (
+            skill: HealthBoost,
+            name: "Health Boost"
+        ),
+        (
+            skill: HealthRegen,
+            name: "Health Regeneration"
+        ),
+        (
+            skill: HealthRegenBoost,
+            name: "Health Regeneration Boost"
+        ),
+        (
+            skill: XpGather,
+            name: "XP Gathering"
+        ),
+        (
+            skill: XpGatherBoost,
+            name: "XP Gathering Boost"
+        ),
+        (
+            skill: Melee,
+            name: "Melee"
+        ),
+        (
+            skill: Laser,
+            name: "Laser"
+        ),
+    ],
+    skills: (
+        health_boost: Some([
+            ( max_hp: 100, ),
+            ( max_hp: 200, ),
+            ( max_hp: 300, ),
+        ]),
+        health_regen_boost: Some([
+            ( hp_per_sec: 1.0, ),
+            ( hp_per_sec: 2.0, ),
+            ( hp_per_sec: 3.0, ),
+        ]),
+        xp_gather_boost: Some([
+            ( xp_per_level: 10, range: 5.0, acceleration: 50.0, ),
+            ( xp_per_level: 10, range: 10.0, acceleration: 75.0, ),
+            ( xp_per_level: 10, range: 15.0, acceleration: 100.0, ),
+        ]),
+        laser: Some([
+            ( range: 15., dps: 20.0, duration: 0.5, cooldown: 0.5, ),
+            ( range: 15., dps: 30.0, duration: 0.5, cooldown: 0.5, ),
+            ( range: 15., dps: 40.0, duration: 0.5, cooldown: 0.5, ),
+        ]),
+    )
+)

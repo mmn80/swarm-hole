@@ -210,7 +210,7 @@ impl Command for SpawnPlayer {
             let Some(skills_asset) = skills_assets.get(skills_asset_handle.0.clone()) else {
                 return;
             };
-            skills_asset.0.clone()
+            skills_asset.skills.clone()
         };
         skills.insert_components(id, world);
     }

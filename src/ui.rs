@@ -456,20 +456,20 @@ fn update_app_state_ui(
         return;
     };
     let state = *app_state.get();
-    if state == AppState::Run {
-        style.display = Display::None;
-    } else if style.display == Display::None {
+    if state == AppState::Paused {
         style.display = Display::Flex;
-        if state == AppState::Paused {
-            txt_run_state.sections[0].value = "PAUSED".to_string();
-            txt_run_state.sections[0].style.color = INFINITE_TEMP_COLOR;
-        } else if state == AppState::Won {
-            txt_run_state.sections[0].value = "DONE".to_string();
-            txt_run_state.sections[0].style.color = Color::GOLD;
-        } else if state == AppState::Lost {
-            txt_run_state.sections[0].value = LOSE_STRS[thread_rng().gen_range(0..10)].to_string();
-            txt_run_state.sections[0].style.color = Color::ORANGE_RED;
-        }
+        txt_run_state.sections[0].value = "PAUSED".to_string();
+        txt_run_state.sections[0].style.color = INFINITE_TEMP_COLOR;
+    } else if state == AppState::Won {
+        style.display = Display::Flex;
+        txt_run_state.sections[0].value = "DONE".to_string();
+        txt_run_state.sections[0].style.color = Color::GOLD;
+    } else if state == AppState::Lost {
+        style.display = Display::Flex;
+        txt_run_state.sections[0].value = LOSE_STRS[thread_rng().gen_range(0..10)].to_string();
+        txt_run_state.sections[0].style.color = Color::ORANGE_RED;
+    } else {
+        style.display = Display::None;
     }
 }
 
