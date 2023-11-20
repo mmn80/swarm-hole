@@ -2,27 +2,27 @@
     ui_config: [
         (
             skill: Health,
-            name: "Health"
+            name: "Max Health (default)"
         ),
         (
             skill: HealthBoost,
-            name: "Health Boost"
+            name: "Max Health"
         ),
         (
             skill: HealthRegen,
-            name: "Health Regeneration"
+            name: "Health Regeneration (default)"
         ),
         (
             skill: HealthRegenBoost,
-            name: "Health Regeneration Boost"
+            name: "Health Regeneration"
         ),
         (
             skill: XpGather,
-            name: "XP Gathering"
+            name: "XP Gathering (default)"
         ),
         (
             skill: XpGatherBoost,
-            name: "XP Gathering Boost"
+            name: "XP Gathering"
         ),
         (
             skill: Melee,

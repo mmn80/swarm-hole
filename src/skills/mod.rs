@@ -80,7 +80,7 @@ pub struct Skills {
 
 impl Skills {
     //TODO: make macro
-    pub fn get_skill_levels(&self) -> Vec<EquippedSkill> {
+    pub fn get_max_skill_levels(&self) -> Vec<EquippedSkill> {
         let mut res = vec![];
         if let Some(levels) = &self.health {
             res.push(EquippedSkill {
@@ -333,22 +333,30 @@ fn init_upgrade_menu(
     for (entity, xp_gather_state, max_skills) in &q_xp_gather_state {
         if xp_gather_state.get_gather_level() > xp_gather_state.get_player_level() {
             if let Ok(equipped_skills) = q_equipped_skills.get(entity) {
-                upgrades.entity = Some(entity);
-                upgrades.selected = None;
-                let mut skill_upgrades = equipped_skills.0.clone();
-                for skill in &mut skill_upgrades {
-                    skill.level += 1;
-                }
-                if skill_upgrades.len() < max_skills.0 as usize {
-                    if let Some(skills_asset) = skills_asset.get(&skills_asset_handle.0) {
-                        for mut skill in skills_asset.skills.get_skill_levels() {
-                            if let Ok(idx) =
-                                skill_upgrades.binary_search_by(|s| s.skill.cmp(&skill.skill))
+                let mut skill_upgrades = vec![];
+                if let Some(skills_asset) = skills_asset.get(&skills_asset_handle.0) {
+                    let all_equipped = equipped_skills.0.clone();
+                    let max_levels = skills_asset.skills.get_max_skill_levels();
+                    let mut all_equipped_count = 0;
+                    for skill in all_equipped {
+                        if let Some(max_skill) = max_levels.iter().find(|s| s.skill == skill.skill)
+                        {
+                            all_equipped_count += 1;
+                            if skill.level < max_skill.level - 1 {
+                                skill_upgrades.push(skill);
+                            }
+                        }
+                    }
+                    for skill in &mut skill_upgrades {
+                        skill.level += 1;
+                    }
+                    if all_equipped_count < max_skills.0 as usize {
+                        for mut skill in max_levels {
+                            if skill_upgrades
+                                .iter()
+                                .find(|s| s.skill == skill.skill)
+                                .is_none()
                             {
-                                if skill_upgrades[idx].level >= skill.level {
-                                    skill_upgrades.remove(idx);
-                                }
-                            } else {
                                 skill.level = 0;
                                 skill_upgrades.push(skill);
                             }
@@ -361,7 +369,11 @@ fn init_upgrade_menu(
                     .choose_multiple(&mut rng, 3)
                     .map(|s| s.clone())
                     .collect();
-                next_state.set(AppState::Upgrade);
+                if !upgrades.skills.is_empty() {
+                    upgrades.entity = Some(entity);
+                    upgrades.selected = None;
+                    next_state.set(AppState::Upgrade);
+                }
             }
         } else {
             upgrades.entity = None;

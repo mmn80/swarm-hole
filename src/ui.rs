@@ -10,6 +10,7 @@ use crate::{
     skills::{
         health::{Health, MaxHealth},
         xp::XpGatherState,
+        SkillUpgradeOptions, SkillsAsset, SkillsAssetHandle,
     },
 };
 
@@ -41,6 +42,7 @@ impl Plugin for MainUiPlugin {
             )
                 .run_if(is_running),
         )
+        .add_systems(OnEnter(AppState::Upgrade), init_skill_upgrade_ui)
         .add_systems(
             Update,
             update_skill_upgrade_ui.run_if(in_state(AppState::Upgrade)),
@@ -499,7 +501,7 @@ fn setup_upgrade_ui(mut cmd: Commands) {
     });
 }
 
-fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_, '_, '_>, index: u8) {
+fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_, '_, '_>, index: usize) {
     if index > 0 {
         parent.spawn(NodeBundle {
             style: Style {
@@ -526,14 +528,24 @@ fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_, '_, '_>, index: u8) {
         ))
         .with_children(|parent| {
             parent.spawn((
-                TextBundle::from_section(
-                    format!("Upgrade {index}"),
-                    TextStyle {
-                        font_size: 30.0,
-                        color: INFINITE_TEMP_COLOR,
-                        ..default()
-                    },
-                )
+                TextBundle::from_sections([
+                    TextSection::new(
+                        format!("Upgrade {index}"),
+                        TextStyle {
+                            font_size: 30.0,
+                            color: INFINITE_TEMP_COLOR,
+                            ..default()
+                        },
+                    ),
+                    TextSection::new(
+                        format!("Level"),
+                        TextStyle {
+                            font_size: 30.0,
+                            color: Color::AQUAMARINE,
+                            ..default()
+                        },
+                    ),
+                ])
                 .with_text_alignment(TextAlignment::Center)
                 .with_style(Style {
                     margin: UiRect::all(Val::Px(40.)),
@@ -548,21 +560,62 @@ fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_, '_, '_>, index: u8) {
 struct SkillUpgradeRoot;
 
 #[derive(Component)]
-struct SkillUpgradeButton(u8);
+struct SkillUpgradeButton(usize);
 
 #[derive(Component)]
-struct SkillUpgradeText(u8);
+struct SkillUpgradeText(usize);
+
+fn init_skill_upgrade_ui(
+    upgrade_options: Res<SkillUpgradeOptions>,
+    skills_asset_handle: Res<SkillsAssetHandle>,
+    skills_asset: Res<Assets<SkillsAsset>>,
+    mut q_root: Query<&mut Style, With<SkillUpgradeRoot>>,
+    mut q_buttons: Query<(&mut Style, &SkillUpgradeButton), Without<SkillUpgradeRoot>>,
+    mut q_texts: Query<(&mut Text, &SkillUpgradeText)>,
+) {
+    let Some(skills_asset) = skills_asset.get(&skills_asset_handle.0) else {
+        return;
+    };
+    for (mut text, marker) in &mut q_texts {
+        if let Some(skill) = upgrade_options.skills.get(marker.0) {
+            if let Some(ui_skill) = skills_asset
+                .ui_config
+                .iter()
+                .find(|conf| conf.skill == skill.skill)
+            {
+                text.sections[0].value = format!("{}", ui_skill.name);
+                text.sections[1].value = format!(" Level {}", skill.get_level());
+            }
+        }
+    }
+    for (mut style, button) in &mut q_buttons {
+        if button.0 >= upgrade_options.skills.len() {
+            style.display = Display::None;
+        } else {
+            style.display = Display::Flex;
+        }
+    }
+    for mut style in &mut q_root {
+        style.display = Display::Flex;
+    }
+}
 
 fn update_skill_upgrade_ui(
+    mut upgrade_options: ResMut<SkillUpgradeOptions>,
+    mut q_root: Query<&mut Style, With<SkillUpgradeRoot>>,
     mut q_interaction: Query<
         (&Interaction, &mut BackgroundColor, &SkillUpgradeButton),
         (Changed<Interaction>, With<Button>),
     >,
 ) {
-    for (interaction, mut color, SkillUpgradeButton(_idx)) in &mut q_interaction {
+    for (interaction, mut color, SkillUpgradeButton(idx)) in &mut q_interaction {
         match *interaction {
             Interaction::Pressed => {
                 *color = BUTTON_PRESSED_COLOR.into();
+                upgrade_options.selected = upgrade_options.skills.get(*idx).map(|s| s.clone());
+                for mut style in &mut q_root {
+                    style.display = Display::None;
+                }
             }
             Interaction::Hovered => {
                 *color = BUTTON_HOVERED_COLOR.into();
