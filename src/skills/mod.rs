@@ -91,14 +91,14 @@ impl ReflectedSkill {
 
 impl Skills {
     //TODO: make macro
-    pub fn get_reflected(&self) -> HashMap<Skill, Vec<Box<dyn Reflect>>> {
+    pub fn get_reflected(&self) -> HashMap<Skill, Vec<Box<dyn Struct>>> {
         let mut res = HashMap::new();
         if let Some(levels) = &self.health {
             res.insert(
                 Skill::Health,
                 levels
                     .iter()
-                    .map(|s| Box::new(s.clone()).into_reflect())
+                    .map(|s| Box::new(s.clone()) as Box<dyn Struct>)
                     .collect(),
             );
         }
@@ -107,7 +107,7 @@ impl Skills {
                 Skill::HealthBoost,
                 levels
                     .iter()
-                    .map(|s| Box::new(s.clone()).into_reflect())
+                    .map(|s| Box::new(s.clone()) as Box<dyn Struct>)
                     .collect(),
             );
         }
@@ -116,7 +116,7 @@ impl Skills {
                 Skill::HealthRegen,
                 levels
                     .iter()
-                    .map(|s| Box::new(s.clone()).into_reflect())
+                    .map(|s| Box::new(s.clone()) as Box<dyn Struct>)
                     .collect(),
             );
         }
@@ -125,7 +125,7 @@ impl Skills {
                 Skill::HealthRegenBoost,
                 levels
                     .iter()
-                    .map(|s| Box::new(s.clone()).into_reflect())
+                    .map(|s| Box::new(s.clone()) as Box<dyn Struct>)
                     .collect(),
             );
         }
@@ -134,7 +134,7 @@ impl Skills {
                 Skill::XpGather,
                 levels
                     .iter()
-                    .map(|s| Box::new(s.clone()).into_reflect())
+                    .map(|s| Box::new(s.clone()) as Box<dyn Struct>)
                     .collect(),
             );
         }
@@ -143,7 +143,7 @@ impl Skills {
                 Skill::XpGatherBoost,
                 levels
                     .iter()
-                    .map(|s| Box::new(s.clone()).into_reflect())
+                    .map(|s| Box::new(s.clone()) as Box<dyn Struct>)
                     .collect(),
             );
         }
@@ -152,7 +152,7 @@ impl Skills {
                 Skill::Melee,
                 levels
                     .iter()
-                    .map(|s| Box::new(s.clone()).into_reflect())
+                    .map(|s| Box::new(s.clone()) as Box<dyn Struct>)
                     .collect(),
             );
         }
@@ -161,7 +161,7 @@ impl Skills {
                 Skill::Laser,
                 levels
                     .iter()
-                    .map(|s| Box::new(s.clone()).into_reflect())
+                    .map(|s| Box::new(s.clone()) as Box<dyn Struct>)
                     .collect(),
             );
         }
