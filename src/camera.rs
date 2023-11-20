@@ -27,7 +27,7 @@ pub struct MainCamera {
     pub mouse_ray: Option<Ray>,
 }
 
-const START_DIST: f32 = 50.0;
+const START_DIST: f32 = 75.0;
 
 impl Default for MainCamera {
     fn default() -> Self {

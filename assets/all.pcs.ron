@@ -6,7 +6,7 @@
         height: 2.0,
         mesh_idx: 0,
         material_idx: 0,
-        max_skills: 2,
+        max_skills: 3,
         default_skills: (
             health: Some([( max_hp: 100 )]),
             health_regen: Some([( hp_per_sec: 1.0 )]),

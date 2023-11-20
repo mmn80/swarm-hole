@@ -338,12 +338,12 @@ fn init_upgrade_menu(
                     let all_equipped = equipped_skills.0.clone();
                     let max_levels = skills_asset.skills.get_max_skill_levels();
                     let mut all_equipped_count = 0;
-                    for skill in all_equipped {
+                    for skill in &all_equipped {
                         if let Some(max_skill) = max_levels.iter().find(|s| s.skill == skill.skill)
                         {
                             all_equipped_count += 1;
                             if skill.level < max_skill.level - 1 {
-                                skill_upgrades.push(skill);
+                                skill_upgrades.push(skill.clone());
                             }
                         }
                     }
@@ -352,7 +352,7 @@ fn init_upgrade_menu(
                     }
                     if all_equipped_count < max_skills.0 as usize {
                         for mut skill in max_levels {
-                            if skill_upgrades
+                            if all_equipped
                                 .iter()
                                 .find(|s| s.skill == skill.skill)
                                 .is_none()
