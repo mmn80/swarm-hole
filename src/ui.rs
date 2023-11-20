@@ -10,7 +10,7 @@ use crate::{
     skills::{
         health::{Health, MaxHealth},
         xp::XpGatherState,
-        SkillUpgradeOptions, SkillsAsset, SkillsAssetHandle,
+        SkillUpgradeOptions, Skills, SkillsAsset, SkillsAssetHandle,
     },
 };
 
@@ -519,6 +519,7 @@ fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_, '_, '_>, index: usize)
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
                     min_width: Val::Px(600.),
+                    flex_direction: FlexDirection::Column,
                     ..default()
                 },
                 background_color: BUTTON_NORMAL_COLOR.into(),
@@ -533,7 +534,7 @@ fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_, '_, '_>, index: usize)
                         format!("Upgrade {index}"),
                         TextStyle {
                             font_size: 30.0,
-                            color: INFINITE_TEMP_COLOR,
+                            color: Color::AQUAMARINE,
                             ..default()
                         },
                     ),
@@ -541,17 +542,34 @@ fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_, '_, '_>, index: usize)
                         format!("Level"),
                         TextStyle {
                             font_size: 30.0,
-                            color: Color::AQUAMARINE,
+                            color: INFINITE_TEMP_COLOR,
                             ..default()
                         },
                     ),
                 ])
                 .with_text_alignment(TextAlignment::Center)
                 .with_style(Style {
-                    margin: UiRect::all(Val::Px(40.)),
+                    margin: UiRect::new(Val::Px(40.), Val::Px(40.), Val::Px(40.), Val::Px(10.)),
                     ..default()
                 }),
                 SkillUpgradeText(index),
+            ));
+
+            parent.spawn((
+                TextBundle::from_section(
+                    format!("upgrade details for {index}"),
+                    TextStyle {
+                        font_size: 20.0,
+                        color: INFINITE_TEMP_COLOR,
+                        ..default()
+                    },
+                )
+                .with_text_alignment(TextAlignment::Center)
+                .with_style(Style {
+                    margin: UiRect::new(Val::Px(40.), Val::Px(40.), Val::Px(10.), Val::Px(40.)),
+                    ..default()
+                }),
+                SkillUpgradeDetailsText(index),
             ));
         });
 }
@@ -565,6 +583,9 @@ struct SkillUpgradeButton(usize);
 #[derive(Component)]
 struct SkillUpgradeText(usize);
 
+#[derive(Component)]
+struct SkillUpgradeDetailsText(usize);
+
 fn init_skill_upgrade_ui(
     upgrade_options: Res<SkillUpgradeOptions>,
     skills_asset_handle: Res<SkillsAssetHandle>,
@@ -572,6 +593,7 @@ fn init_skill_upgrade_ui(
     mut q_root: Query<&mut Style, With<SkillUpgradeRoot>>,
     mut q_buttons: Query<(&mut Style, &SkillUpgradeButton), Without<SkillUpgradeRoot>>,
     mut q_texts: Query<(&mut Text, &SkillUpgradeText)>,
+    mut q_detail_texts: Query<(&mut Text, &SkillUpgradeDetailsText), Without<SkillUpgradeText>>,
 ) {
     let Some(skills_asset) = skills_asset.get(&skills_asset_handle.0) else {
         return;
@@ -585,6 +607,47 @@ fn init_skill_upgrade_ui(
             {
                 text.sections[0].value = format!("{}", ui_skill.name);
                 text.sections[1].value = format!(" Level {}", skill.get_level());
+            }
+        }
+    }
+    let refl = skills_asset.skills.get_reflected();
+    for (mut text, marker) in &mut q_detail_texts {
+        if let Some(skill) = upgrade_options.skills.get(marker.0) {
+            if let Some(refl_levels) = refl.get(&skill.skill) {
+                let mut str = String::new();
+                let l = skill.get_level() as usize - 1;
+                let props = Skills::parse_numeric_fields(&refl_levels[l]);
+                let props_prev_opt = if l == 0 {
+                    None
+                } else {
+                    Some(Skills::parse_numeric_fields(&refl_levels[l - 1]))
+                };
+                for (fld_name, val) in props {
+                    if let Some(ref props_prev) = props_prev_opt {
+                        if let Some(val_prev) = props_prev.get(&fld_name) {
+                            let delta = val - *val_prev;
+                            let delta_positive = delta.is_sign_positive();
+                            let delta = (delta.abs() * 10.).round() / 10.;
+                            if delta > 0.01 {
+                                if !str.is_empty() {
+                                    str.push_str(", ");
+                                }
+                                let delta_str = if delta_positive {
+                                    format!("+{delta}")
+                                } else {
+                                    format!("-{delta}")
+                                };
+                                str.push_str(&format!("{fld_name} {delta_str} ({val})"));
+                            }
+                        }
+                    } else {
+                        if !str.is_empty() {
+                            str.push_str(", ");
+                        }
+                        str.push_str(&format!("{fld_name} {val}"));
+                    }
+                }
+                text.sections[0].value = format!("{str}");
             }
         }
     }

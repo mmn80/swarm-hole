@@ -168,6 +168,25 @@ impl Skills {
         res
     }
 
+    pub fn parse_numeric_fields(refl: &Box<dyn Struct>) -> HashMap<String, f32> {
+        let mut res = HashMap::new();
+        for fld_idx in 0..refl.field_len() {
+            if let (Some(fln_name), Some(fld_val)) = (refl.name_at(fld_idx), refl.field_at(fld_idx))
+            {
+                let mut f32_val = fld_val.downcast_ref::<f32>().map(|n| *n);
+                if f32_val.is_none() {
+                    if let Some(n) = fld_val.downcast_ref::<u32>() {
+                        f32_val = Some(*n as f32);
+                    }
+                }
+                if let Some(num) = f32_val {
+                    res.insert(fln_name.to_string(), num);
+                }
+            }
+        }
+        res
+    }
+
     //TODO: make macro
     pub fn insert_components(&self, entity: Entity, world: &mut World) {
         let Some(mut ent) = world.get_entity_mut(entity) else {
