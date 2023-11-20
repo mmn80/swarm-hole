@@ -312,6 +312,9 @@ fn hot_reload_equipped_skills(
     }
 }
 
+#[derive(Component)]
+pub struct MaxUpgradableSkills(pub u8);
+
 #[derive(Resource, Default)]
 pub struct SkillUpgradeOptions {
     pub entity: Option<Entity>,
@@ -324,34 +327,37 @@ fn init_upgrade_menu(
     mut upgrades: ResMut<SkillUpgradeOptions>,
     skills_asset_handle: Res<SkillsAssetHandle>,
     skills_asset: Res<Assets<SkillsAsset>>,
-    q_xp_gather_state: Query<(Entity, &XpGatherState)>,
+    q_xp_gather_state: Query<(Entity, &XpGatherState, &MaxUpgradableSkills)>,
     q_equipped_skills: Query<&EquippedSkills>,
 ) {
-    for (entity, xp_gather_state) in &q_xp_gather_state {
+    for (entity, xp_gather_state, max_skills) in &q_xp_gather_state {
         if xp_gather_state.get_gather_level() > xp_gather_state.get_player_level() {
             if let Ok(equipped_skills) = q_equipped_skills.get(entity) {
                 upgrades.entity = Some(entity);
                 upgrades.selected = None;
-                let mut all_skills = equipped_skills.0.clone();
-                for skill in &mut all_skills {
+                let mut skill_upgrades = equipped_skills.0.clone();
+                for skill in &mut skill_upgrades {
                     skill.level += 1;
                 }
-                if let Some(skills_asset) = skills_asset.get(&skills_asset_handle.0) {
-                    for mut skill in skills_asset.skills.get_skill_levels() {
-                        if let Ok(idx) = all_skills.binary_search_by(|s| s.skill.cmp(&skill.skill))
-                        {
-                            if all_skills[idx].level >= skill.level {
-                                all_skills.remove(idx);
+                if skill_upgrades.len() < max_skills.0 as usize {
+                    if let Some(skills_asset) = skills_asset.get(&skills_asset_handle.0) {
+                        for mut skill in skills_asset.skills.get_skill_levels() {
+                            if let Ok(idx) =
+                                skill_upgrades.binary_search_by(|s| s.skill.cmp(&skill.skill))
+                            {
+                                if skill_upgrades[idx].level >= skill.level {
+                                    skill_upgrades.remove(idx);
+                                }
+                            } else {
+                                skill.level = 0;
+                                skill_upgrades.push(skill);
                             }
-                        } else {
-                            skill.level = 0;
-                            all_skills.push(skill);
                         }
                     }
                 }
                 upgrades.skills.clear();
                 let mut rng = thread_rng();
-                upgrades.skills = all_skills
+                upgrades.skills = skill_upgrades
                     .choose_multiple(&mut rng, 3)
                     .map(|s| s.clone())
                     .collect();

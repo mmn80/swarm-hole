@@ -13,8 +13,8 @@ use crate::{
     debug_ui::DebugUi,
     physics::{Layer, ALL_LAYERS},
     skills::{
-        EquippedSkill, EquippedSkills, HotReloadEquippedSkills, Skill, Skills, SkillsAsset,
-        SkillsAssetHandle,
+        EquippedSkill, EquippedSkills, HotReloadEquippedSkills, MaxUpgradableSkills, Skill, Skills,
+        SkillsAsset, SkillsAssetHandle,
     },
 };
 
@@ -86,6 +86,7 @@ pub struct PlayerCharacter {
     pub height: f32,
     pub mesh_idx: usize,
     pub material_idx: usize,
+    pub max_skills: u8,
     pub default_skills: Skills,
     pub starting_skills: Vec<Skill>,
 }
@@ -186,6 +187,7 @@ impl Command for SpawnPlayer {
                 .with_max_time_of_impact(0.11)
                 .with_max_hits(1),
                 HotReloadEquippedSkills,
+                MaxUpgradableSkills(pc.max_skills),
             ))
             .id();
 
