@@ -3,7 +3,7 @@ use bevy::{
     asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
     ecs::system::Command,
     prelude::*,
-    utils::{thiserror, thiserror::Error, BoxedFuture},
+    utils::{thiserror, thiserror::Error, BoxedFuture, HashMap},
 };
 use rand::prelude::*;
 use serde::Deserialize;
@@ -54,7 +54,7 @@ impl Plugin for SkillsPlugin {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Reflect, Debug, Deserialize)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Reflect, Debug, Deserialize, Hash)]
 pub enum Skill {
     Health,
     HealthBoost,
@@ -78,57 +78,92 @@ pub struct Skills {
     pub laser: Option<Vec<Laser>>,
 }
 
+pub struct ReflectedSkill {
+    pub skill: Skill,
+    pub levels: Vec<Box<dyn Reflect>>,
+}
+
+impl ReflectedSkill {
+    pub fn new(skill: Skill, levels: Vec<Box<dyn Reflect>>) -> Self {
+        Self { skill, levels }
+    }
+}
+
 impl Skills {
     //TODO: make macro
-    pub fn get_max_skill_levels(&self) -> Vec<EquippedSkill> {
-        let mut res = vec![];
+    pub fn get_reflected(&self) -> HashMap<Skill, Vec<Box<dyn Reflect>>> {
+        let mut res = HashMap::new();
         if let Some(levels) = &self.health {
-            res.push(EquippedSkill {
-                skill: Skill::Health,
-                level: levels.len() as u8,
-            });
+            res.insert(
+                Skill::Health,
+                levels
+                    .iter()
+                    .map(|s| Box::new(s.clone()).into_reflect())
+                    .collect(),
+            );
         }
         if let Some(levels) = &self.health_boost {
-            res.push(EquippedSkill {
-                skill: Skill::HealthBoost,
-                level: levels.len() as u8,
-            });
+            res.insert(
+                Skill::HealthBoost,
+                levels
+                    .iter()
+                    .map(|s| Box::new(s.clone()).into_reflect())
+                    .collect(),
+            );
         }
         if let Some(levels) = &self.health_regen {
-            res.push(EquippedSkill {
-                skill: Skill::HealthRegen,
-                level: levels.len() as u8,
-            });
+            res.insert(
+                Skill::HealthRegen,
+                levels
+                    .iter()
+                    .map(|s| Box::new(s.clone()).into_reflect())
+                    .collect(),
+            );
         }
         if let Some(levels) = &self.health_regen_boost {
-            res.push(EquippedSkill {
-                skill: Skill::HealthRegenBoost,
-                level: levels.len() as u8,
-            });
+            res.insert(
+                Skill::HealthRegenBoost,
+                levels
+                    .iter()
+                    .map(|s| Box::new(s.clone()).into_reflect())
+                    .collect(),
+            );
         }
         if let Some(levels) = &self.xp_gather {
-            res.push(EquippedSkill {
-                skill: Skill::XpGather,
-                level: levels.len() as u8,
-            });
+            res.insert(
+                Skill::XpGather,
+                levels
+                    .iter()
+                    .map(|s| Box::new(s.clone()).into_reflect())
+                    .collect(),
+            );
         }
         if let Some(levels) = &self.xp_gather_boost {
-            res.push(EquippedSkill {
-                skill: Skill::XpGatherBoost,
-                level: levels.len() as u8,
-            });
+            res.insert(
+                Skill::XpGatherBoost,
+                levels
+                    .iter()
+                    .map(|s| Box::new(s.clone()).into_reflect())
+                    .collect(),
+            );
         }
         if let Some(levels) = &self.melee {
-            res.push(EquippedSkill {
-                skill: Skill::Melee,
-                level: levels.len() as u8,
-            });
+            res.insert(
+                Skill::Melee,
+                levels
+                    .iter()
+                    .map(|s| Box::new(s.clone()).into_reflect())
+                    .collect(),
+            );
         }
         if let Some(levels) = &self.laser {
-            res.push(EquippedSkill {
-                skill: Skill::Laser,
-                level: levels.len() as u8,
-            });
+            res.insert(
+                Skill::Laser,
+                levels
+                    .iter()
+                    .map(|s| Box::new(s.clone()).into_reflect())
+                    .collect(),
+            );
         }
         res
     }
@@ -336,13 +371,12 @@ fn init_upgrade_menu(
                 let mut skill_upgrades = vec![];
                 if let Some(skills_asset) = skills_asset.get(&skills_asset_handle.0) {
                     let all_equipped = equipped_skills.0.clone();
-                    let max_levels = skills_asset.skills.get_max_skill_levels();
+                    let refl_skills = skills_asset.skills.get_reflected();
                     let mut all_equipped_count = 0;
                     for skill in &all_equipped {
-                        if let Some(max_skill) = max_levels.iter().find(|s| s.skill == skill.skill)
-                        {
+                        if let Some(levels) = refl_skills.get(&skill.skill) {
                             all_equipped_count += 1;
-                            if skill.level < max_skill.level - 1 {
+                            if (skill.level as usize) < levels.len() - 1 {
                                 skill_upgrades.push(skill.clone());
                             }
                         }
@@ -351,14 +385,9 @@ fn init_upgrade_menu(
                         skill.level += 1;
                     }
                     if all_equipped_count < max_skills.0 as usize {
-                        for mut skill in max_levels {
-                            if all_equipped
-                                .iter()
-                                .find(|s| s.skill == skill.skill)
-                                .is_none()
-                            {
-                                skill.level = 0;
-                                skill_upgrades.push(skill);
+                        for skill in refl_skills.keys() {
+                            if all_equipped.iter().find(|s| s.skill == *skill).is_none() {
+                                skill_upgrades.push(EquippedSkill::new(*skill));
                             }
                         }
                     }
