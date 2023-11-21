@@ -82,12 +82,12 @@ impl Level {
         self.0 == 0
     }
 
-    pub fn is_last(&self, levels_count: usize) -> bool {
-        self.0 as usize >= levels_count - 1
-    }
-
-    pub fn next(&self) -> Self {
-        Self(self.0 + 1)
+    pub fn next(&self, levels_count: usize) -> Option<Self> {
+        if self.0 as usize >= levels_count - 1 {
+            None
+        } else {
+            Some(Self(self.0 + 1))
+        }
     }
 
     pub fn prev(&self) -> Option<Self> {
@@ -355,15 +355,15 @@ fn init_upgrade_menu(
                     for skill in &equipped_skills.selected {
                         if let Some(levels) = refl_skills.get(skill) {
                             if let Some(level) = equipped_skills.equipped.get(skill) {
-                                if !level.is_last(levels.len()) {
-                                    skill_upgrades.push((*skill, level.next()));
+                                if let Some(next_level) = level.next(levels.len()) {
+                                    skill_upgrades.push((*skill, next_level));
                                 }
                             }
                         }
                     }
                     if equipped_skills.selected.len() < max_skills.0 as usize {
                         for skill in refl_skills.keys() {
-                            if !equipped_skills.equipped.contains_key(skill) {
+                            if !equipped_skills.selected.contains(skill) {
                                 skill_upgrades.push((*skill, Level::default()));
                             }
                         }

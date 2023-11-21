@@ -22,21 +22,21 @@
         ),
     ],
     skills: (
-        health_boost: Some([
+        health: Some([
+            ( max_hp: 100, ),
             ( max_hp: 150, ),
             ( max_hp: 200, ),
             ( max_hp: 250, ),
             ( max_hp: 300, ),
-            ( max_hp: 350, ),
         ]),
-        health_regen_boost: Some([
+        health_regen: Some([
+            ( hp_per_sec: 1.0, ),
             ( hp_per_sec: 2.0, ),
             ( hp_per_sec: 3.0, ),
             ( hp_per_sec: 4.0, ),
             ( hp_per_sec: 5.0, ),
-            ( hp_per_sec: 6.0, ),
         ]),
-        xp_gather_boost: Some([
+        xp_gather: Some([
             ( xp_per_level: 10, range: 10.0, acceleration: 50.0, ),
             ( xp_per_level: 10, range: 15.0, acceleration: 75.0, ),
             ( xp_per_level: 10, range: 20.0, acceleration: 100.0, ),
