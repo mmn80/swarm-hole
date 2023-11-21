@@ -599,45 +599,42 @@ fn init_skill_upgrade_ui(
         return;
     };
     for (mut text, marker) in &mut q_texts {
-        if let Some(skill) = upgrade_options.skills.get(marker.0) {
+        if let Some((skill, level)) = upgrade_options.skills.get(marker.0) {
             if let Some(ui_skill) = skills_asset
                 .ui_config
                 .iter()
-                .find(|conf| conf.skill == skill.skill)
+                .find(|conf| conf.skill == *skill)
             {
                 text.sections[0].value = format!("{}", ui_skill.name);
-                text.sections[1].value = format!(" Level {}", skill.get_level());
+                text.sections[1].value = format!(" Level {level}");
             }
         }
     }
     let refl = skills_asset.skills.get_reflected();
     for (mut text, marker) in &mut q_detail_texts {
-        if let Some(skill) = upgrade_options.skills.get(marker.0) {
-            if let Some(refl_levels) = refl.get(&skill.skill) {
+        if let Some((skill, level)) = upgrade_options.skills.get(marker.0) {
+            if let Some(refl_levels) = refl.get(skill) {
                 let mut str = String::new();
-                let l = skill.get_level() as usize - 1;
-                let props = Skills::parse_numeric_fields(&refl_levels[l]);
-                let props_prev_opt = if l == 0 {
-                    None
-                } else {
-                    Some(Skills::parse_numeric_fields(&refl_levels[l - 1]))
-                };
+                let props = Skills::parse_numeric_fields(level.index(&refl_levels).unwrap());
                 for (fld_name, val) in props {
-                    if let Some(ref props_prev) = props_prev_opt {
-                        if let Some(val_prev) = props_prev.get(&fld_name) {
-                            let delta = val - *val_prev;
-                            let delta_positive = delta.is_sign_positive();
-                            let delta = (delta.abs() * 10.).round() / 10.;
-                            if delta > 0.01 {
-                                if !str.is_empty() {
-                                    str.push_str(", ");
+                    if let Some(prev_level) = level.prev() {
+                        if let Some(refl) = prev_level.index(refl_levels) {
+                            let props_prev = Skills::parse_numeric_fields(refl);
+                            if let Some(val_prev) = props_prev.get(&fld_name) {
+                                let delta = val - *val_prev;
+                                let delta_positive = delta.is_sign_positive();
+                                let delta = (delta.abs() * 10.).round() / 10.;
+                                if delta > 0.01 {
+                                    if !str.is_empty() {
+                                        str.push_str(", ");
+                                    }
+                                    let delta_str = if delta_positive {
+                                        format!("+{delta}")
+                                    } else {
+                                        format!("-{delta}")
+                                    };
+                                    str.push_str(&format!("{fld_name} {delta_str} ({val})"));
                                 }
-                                let delta_str = if delta_positive {
-                                    format!("+{delta}")
-                                } else {
-                                    format!("-{delta}")
-                                };
-                                str.push_str(&format!("{fld_name} {delta_str} ({val})"));
                             }
                         }
                     } else {
@@ -675,7 +672,7 @@ fn update_skill_upgrade_ui(
         match *interaction {
             Interaction::Pressed => {
                 *color = BUTTON_PRESSED_COLOR.into();
-                upgrade_options.selected = upgrade_options.skills.get(*idx).map(|s| s.clone());
+                upgrade_options.selected = upgrade_options.skills.get(*idx).copied();
                 for mut style in &mut q_root {
                     style.display = Display::None;
                 }

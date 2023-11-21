@@ -1,9 +1,11 @@
+use std::fmt;
+
 use bevy::{
     app::PluginGroupBuilder,
     asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
     ecs::system::Command,
     prelude::*,
-    utils::{thiserror, thiserror::Error, BoxedFuture, HashMap},
+    utils::{thiserror, thiserror::Error, BoxedFuture, HashMap, HashSet},
 };
 use rand::prelude::*;
 use serde::Deserialize;
@@ -11,10 +13,10 @@ use serde::Deserialize;
 use crate::app::AppState;
 
 use self::{
-    health::{HealthPlugin, HealthRegen, HealthRegenBoost, MaxHealth, MaxHealthBoost},
+    health::{HealthPlugin, HealthRegen, MaxHealth},
     laser::{Laser, LaserPlugin},
     melee::{Melee, MeleePlugin},
-    xp::{XpDropsPlugin, XpGather, XpGatherBoost, XpGatherState},
+    xp::{XpGather, XpGatherState, XpPlugin},
 };
 
 pub mod health;
@@ -29,7 +31,7 @@ impl PluginGroup for SkillPluginGroup {
         PluginGroupBuilder::start::<Self>()
             .add(SkillsPlugin)
             .add(HealthPlugin)
-            .add(XpDropsPlugin)
+            .add(XpPlugin)
             .add(LaserPlugin)
             .add(MeleePlugin)
     }
@@ -57,11 +59,8 @@ impl Plugin for SkillsPlugin {
 #[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Reflect, Debug, Deserialize, Hash)]
 pub enum Skill {
     Health,
-    HealthBoost,
     HealthRegen,
-    HealthRegenBoost,
     XpGather,
-    XpGatherBoost,
     Melee,
     Laser,
 }
@@ -69,13 +68,45 @@ pub enum Skill {
 #[derive(Clone, Reflect, Debug, Deserialize)]
 pub struct Skills {
     pub health: Option<Vec<MaxHealth>>,
-    pub health_boost: Option<Vec<MaxHealthBoost>>,
     pub health_regen: Option<Vec<HealthRegen>>,
-    pub health_regen_boost: Option<Vec<HealthRegenBoost>>,
     pub xp_gather: Option<Vec<XpGather>>,
-    pub xp_gather_boost: Option<Vec<XpGatherBoost>>,
     pub melee: Option<Vec<Melee>>,
     pub laser: Option<Vec<Laser>>,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Debug, Reflect, Deserialize)]
+pub struct Level(u8);
+
+impl Level {
+    pub fn is_first(&self) -> bool {
+        self.0 == 0
+    }
+
+    pub fn is_last(&self, levels_count: usize) -> bool {
+        self.0 as usize >= levels_count - 1
+    }
+
+    pub fn next(&self) -> Self {
+        Self(self.0 + 1)
+    }
+
+    pub fn prev(&self) -> Option<Self> {
+        if self.0 == 0 {
+            None
+        } else {
+            Some(Self(self.0 - 1))
+        }
+    }
+
+    pub fn index<'a, T>(&'a self, list: &'a Vec<T>) -> Option<&T> {
+        list.get(self.0 as usize)
+    }
+}
+
+impl fmt::Display for Level {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0 + 1)
+    }
 }
 
 pub struct ReflectedSkill {
@@ -102,15 +133,6 @@ impl Skills {
                     .collect(),
             );
         }
-        if let Some(levels) = &self.health_boost {
-            res.insert(
-                Skill::HealthBoost,
-                levels
-                    .iter()
-                    .map(|s| Box::new(s.clone()) as Box<dyn Struct>)
-                    .collect(),
-            );
-        }
         if let Some(levels) = &self.health_regen {
             res.insert(
                 Skill::HealthRegen,
@@ -120,27 +142,9 @@ impl Skills {
                     .collect(),
             );
         }
-        if let Some(levels) = &self.health_regen_boost {
-            res.insert(
-                Skill::HealthRegenBoost,
-                levels
-                    .iter()
-                    .map(|s| Box::new(s.clone()) as Box<dyn Struct>)
-                    .collect(),
-            );
-        }
         if let Some(levels) = &self.xp_gather {
             res.insert(
                 Skill::XpGather,
-                levels
-                    .iter()
-                    .map(|s| Box::new(s.clone()) as Box<dyn Struct>)
-                    .collect(),
-            );
-        }
-        if let Some(levels) = &self.xp_gather_boost {
-            res.insert(
-                Skill::XpGatherBoost,
                 levels
                     .iter()
                     .map(|s| Box::new(s.clone()) as Box<dyn Struct>)
@@ -196,94 +200,61 @@ impl Skills {
             if let Some(equipped) = ent.get::<EquippedSkills>() {
                 (true, equipped.clone())
             } else {
-                (false, EquippedSkills(vec![]))
+                (false, EquippedSkills::default())
             }
         };
         {
             let skill = Skill::Health;
-            let sk = equipped.get(skill);
-            if !had_equipped || sk.is_some() {
+            let lvl = equipped.get_level(skill);
+            if !had_equipped || lvl.is_some() {
                 if let Some(levels) = &self.health {
-                    let sk = sk.unwrap_or(EquippedSkill { skill, level: 0 });
-                    ent.insert(levels[sk.level as usize].clone());
-                    equipped.update_skill(sk);
-                }
-            }
-        }
-        {
-            let skill = Skill::HealthBoost;
-            let sk = equipped.get(skill);
-            if !had_equipped || sk.is_some() {
-                if let Some(levels) = &self.health_boost {
-                    let sk = sk.unwrap_or(EquippedSkill { skill, level: 0 });
-                    ent.insert(levels[sk.level as usize].clone());
-                    equipped.update_skill(sk);
+                    let lvl = lvl.unwrap_or_default();
+                    ent.insert(lvl.index(levels).unwrap().clone());
+                    equipped.set_level(skill, lvl, false);
                 }
             }
         }
         {
             let skill = Skill::HealthRegen;
-            let sk = equipped.get(skill);
-            if !had_equipped || sk.is_some() {
+            let lvl = equipped.get_level(skill);
+            if !had_equipped || lvl.is_some() {
                 if let Some(levels) = &self.health_regen {
-                    let sk = sk.unwrap_or(EquippedSkill { skill, level: 0 });
-                    ent.insert(levels[sk.level as usize].clone());
-                    equipped.update_skill(sk);
-                }
-            }
-        }
-        {
-            let skill = Skill::HealthRegenBoost;
-            let sk = equipped.get(skill);
-            if !had_equipped || sk.is_some() {
-                if let Some(levels) = &self.health_regen_boost {
-                    let sk = sk.unwrap_or(EquippedSkill { skill, level: 0 });
-                    ent.insert(levels[sk.level as usize].clone());
-                    equipped.update_skill(sk);
+                    let lvl = lvl.unwrap_or_default();
+                    ent.insert(lvl.index(levels).unwrap().clone());
+                    equipped.set_level(skill, lvl, false);
                 }
             }
         }
         {
             let skill = Skill::XpGather;
-            let sk = equipped.get(skill);
-            if !had_equipped || sk.is_some() {
+            let lvl = equipped.get_level(skill);
+            if !had_equipped || lvl.is_some() {
                 if let Some(levels) = &self.xp_gather {
-                    let sk = sk.unwrap_or(EquippedSkill { skill, level: 0 });
-                    ent.insert(levels[sk.level as usize].clone());
-                    equipped.update_skill(sk);
-                }
-            }
-        }
-        {
-            let skill = Skill::XpGatherBoost;
-            let sk = equipped.get(skill);
-            if !had_equipped || sk.is_some() {
-                if let Some(levels) = &self.xp_gather_boost {
-                    let sk = sk.unwrap_or(EquippedSkill { skill, level: 0 });
-                    ent.insert(levels[sk.level as usize].clone());
-                    equipped.update_skill(sk);
+                    let lvl = lvl.unwrap_or_default();
+                    ent.insert(lvl.index(levels).unwrap().clone());
+                    equipped.set_level(skill, lvl, false);
                 }
             }
         }
         {
             let skill = Skill::Melee;
-            let sk = equipped.get(skill);
-            if !had_equipped || sk.is_some() {
+            let lvl = equipped.get_level(skill);
+            if !had_equipped || lvl.is_some() {
                 if let Some(levels) = &self.melee {
-                    let sk = sk.unwrap_or(EquippedSkill { skill, level: 0 });
-                    ent.insert(levels[sk.level as usize].clone());
-                    equipped.update_skill(sk);
+                    let lvl = lvl.unwrap_or_default();
+                    ent.insert(lvl.index(levels).unwrap().clone());
+                    equipped.set_level(skill, lvl, false);
                 }
             }
         }
         {
             let skill = Skill::Laser;
-            let sk = equipped.get(skill);
-            if !had_equipped || sk.is_some() {
+            let lvl = equipped.get_level(skill);
+            if !had_equipped || lvl.is_some() {
                 if let Some(levels) = &self.laser {
-                    let sk = sk.unwrap_or(EquippedSkill { skill, level: 0 });
-                    ent.insert(levels[sk.level as usize].clone());
-                    equipped.update_skill(sk);
+                    let lvl = lvl.unwrap_or_default();
+                    ent.insert(lvl.index(levels).unwrap().clone());
+                    equipped.set_level(skill, lvl, false);
                 }
             }
         }
@@ -302,41 +273,32 @@ impl Command for UpdateSkillComponents {
     }
 }
 
-#[derive(Copy, Clone)]
-pub struct EquippedSkill {
-    pub skill: Skill,
-    level: u8,
+#[derive(Component, Clone, Default)]
+pub struct EquippedSkills {
+    pub equipped: HashMap<Skill, Level>,
+    pub selected: HashSet<Skill>,
 }
-
-impl EquippedSkill {
-    pub fn new(skill: Skill) -> Self {
-        Self { skill, level: 0 }
-    }
-
-    pub fn get_level(&self) -> u8 {
-        self.level + 1
-    }
-}
-
-#[derive(Component, Clone)]
-pub struct EquippedSkills(pub Vec<EquippedSkill>);
 
 impl EquippedSkills {
-    pub fn get(&self, skill: Skill) -> Option<EquippedSkill> {
-        self.0.iter().find(|s| s.skill == skill).map(|s| *s)
-    }
-
-    pub fn update_skill(&mut self, skill: EquippedSkill) {
-        let mut found = false;
-        for equipped in &mut self.0 {
-            if equipped.skill == skill.skill {
-                equipped.level = skill.level;
-                found = true;
-                break;
+    pub fn new(pre_equipped: &Vec<(Skill, Level)>, pre_selected: &Vec<Skill>) -> Self {
+        let mut equipped = HashMap::from_iter(pre_equipped.into_iter().cloned());
+        let selected = HashSet::from_iter(pre_selected.into_iter().cloned());
+        for skill in &selected {
+            if !equipped.contains_key(skill) {
+                equipped.insert(*skill, Level::default());
             }
         }
-        if !found {
-            self.0.push(skill);
+        Self { equipped, selected }
+    }
+
+    pub fn get_level(&self, skill: Skill) -> Option<Level> {
+        self.equipped.get(&skill).copied()
+    }
+
+    pub fn set_level(&mut self, skill: Skill, level: Level, is_selected: bool) {
+        self.equipped.insert(skill, level);
+        if is_selected {
+            self.selected.insert(skill);
         }
     }
 }
@@ -372,8 +334,8 @@ pub struct MaxUpgradableSkills(pub u8);
 #[derive(Resource, Default)]
 pub struct SkillUpgradeOptions {
     pub entity: Option<Entity>,
-    pub skills: Vec<EquippedSkill>,
-    pub selected: Option<EquippedSkill>,
+    pub skills: Vec<(Skill, Level)>,
+    pub selected: Option<(Skill, Level)>,
 }
 
 fn init_upgrade_menu(
@@ -389,24 +351,20 @@ fn init_upgrade_menu(
             if let Ok(equipped_skills) = q_equipped_skills.get(entity) {
                 let mut skill_upgrades = vec![];
                 if let Some(skills_asset) = skills_asset.get(&skills_asset_handle.0) {
-                    let all_equipped = equipped_skills.0.clone();
                     let refl_skills = skills_asset.skills.get_reflected();
-                    let mut all_equipped_count = 0;
-                    for skill in &all_equipped {
-                        if let Some(levels) = refl_skills.get(&skill.skill) {
-                            all_equipped_count += 1;
-                            if (skill.level as usize) < levels.len() - 1 {
-                                skill_upgrades.push(skill.clone());
+                    for skill in &equipped_skills.selected {
+                        if let Some(levels) = refl_skills.get(skill) {
+                            if let Some(level) = equipped_skills.equipped.get(skill) {
+                                if !level.is_last(levels.len()) {
+                                    skill_upgrades.push((*skill, level.next()));
+                                }
                             }
                         }
                     }
-                    for skill in &mut skill_upgrades {
-                        skill.level += 1;
-                    }
-                    if all_equipped_count < max_skills.0 as usize {
+                    if equipped_skills.selected.len() < max_skills.0 as usize {
                         for skill in refl_skills.keys() {
-                            if all_equipped.iter().find(|s| s.skill == *skill).is_none() {
-                                skill_upgrades.push(EquippedSkill::new(*skill));
+                            if !equipped_skills.equipped.contains_key(skill) {
+                                skill_upgrades.push((*skill, Level::default()));
                             }
                         }
                     }
@@ -440,14 +398,14 @@ fn apply_upgrade_selection(
     mut q_equipped_skills: Query<&mut EquippedSkills>,
     mut cmd: Commands,
 ) {
-    let (Some(entity), Some(selected)) = (upgrades.entity, upgrades.selected) else {
+    let (Some(entity), Some((sel_skill, sel_level))) = (upgrades.entity, upgrades.selected) else {
         return;
     };
     if let Ok(mut xp_gather_state) = q_xp_gather_state.get_mut(entity) {
         xp_gather_state.upgrade_player_level();
     }
     if let Ok(mut equipped_skills) = q_equipped_skills.get_mut(entity) {
-        equipped_skills.update_skill(selected);
+        equipped_skills.set_level(sel_skill, sel_level, true);
     }
     if let Some(skills_asset) = skills_asset.get(&skills_asset_handle.0) {
         cmd.add(UpdateSkillComponents {

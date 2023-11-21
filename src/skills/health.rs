@@ -17,15 +17,7 @@ impl Plugin for HealthPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<TakeDamageEvent>().add_systems(
             Update,
-            (
-                init_health,
-                init_max_health_boost,
-                init_health_regen_boost,
-                take_damage,
-                regen_health,
-                die,
-            )
-                .run_if(in_state(AppState::Run)),
+            (init_health, take_damage, regen_health, die).run_if(in_state(AppState::Run)),
         );
     }
 }
@@ -45,17 +37,6 @@ fn init_health(q_health: Query<(Entity, &MaxHealth), Without<Health>>, mut cmd: 
 }
 
 #[derive(Component, Reflect, Clone, Debug, Deserialize)]
-pub struct MaxHealthBoost {
-    pub max_hp: u32,
-}
-
-fn init_max_health_boost(mut q_max_health: Query<(&MaxHealthBoost, &mut MaxHealth)>) {
-    for (max_health_boost, mut max_health) in &mut q_max_health {
-        max_health.max_hp = max_health_boost.max_hp;
-    }
-}
-
-#[derive(Component, Reflect, Clone, Debug, Deserialize)]
 pub struct HealthRegen {
     pub hp_per_sec: f32,
 }
@@ -64,17 +45,6 @@ fn regen_health(time: Res<Time>, mut q_regen: Query<(&mut Health, &MaxHealth, &H
     for (mut health, max_health, health_regen) in &mut q_regen {
         health.0 = (health.0 + health_regen.hp_per_sec * time.delta_seconds())
             .min(max_health.max_hp as f32);
-    }
-}
-
-#[derive(Component, Reflect, Clone, Debug, Deserialize)]
-pub struct HealthRegenBoost {
-    pub hp_per_sec: f32,
-}
-
-fn init_health_regen_boost(mut q_health_regen: Query<(&HealthRegenBoost, &mut HealthRegen)>) {
-    for (health_regen_boost, mut health_regen) in &mut q_health_regen {
-        health_regen.hp_per_sec = health_regen_boost.hp_per_sec;
     }
 }
 

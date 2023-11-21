@@ -13,8 +13,8 @@ use crate::{
     debug_ui::DebugUi,
     physics::{Layer, ALL_LAYERS},
     skills::{
-        EquippedSkill, EquippedSkills, HotReloadEquippedSkills, MaxUpgradableSkills, Skill, Skills,
-        SkillsAsset, SkillsAssetHandle,
+        EquippedSkills, HotReloadEquippedSkills, Level, MaxUpgradableSkills, Skill, SkillsAsset,
+        SkillsAssetHandle,
     },
 };
 
@@ -86,9 +86,9 @@ pub struct PlayerCharacter {
     pub height: f32,
     pub mesh_idx: usize,
     pub material_idx: usize,
-    pub max_skills: u8,
-    pub default_skills: Skills,
-    pub starting_skills: Vec<Skill>,
+    pub max_selected_skills: u8,
+    pub default_skills: Vec<(Skill, Level)>,
+    pub selected_skills: Vec<Skill>,
 }
 
 #[derive(Asset, TypePath, Debug, Deserialize)]
@@ -186,22 +186,12 @@ impl Command for SpawnPlayer {
                 )
                 .with_max_time_of_impact(0.11)
                 .with_max_hits(1),
+                MaxUpgradableSkills(pc.max_selected_skills),
+                EquippedSkills::new(&pc.default_skills, &pc.selected_skills),
                 HotReloadEquippedSkills,
-                MaxUpgradableSkills(pc.max_skills),
             ))
             .id();
 
-        // init default skills
-        pc.default_skills.insert_components(id, world);
-
-        // init starting skills
-        {
-            if let Some(mut equipped) = world.get_mut::<EquippedSkills>(id) {
-                for skill in &pc.starting_skills {
-                    equipped.update_skill(EquippedSkill::new(*skill));
-                }
-            }
-        }
         let skills = {
             let Some(skills_assets) = world.get_resource::<Assets<SkillsAsset>>() else {
                 return;
