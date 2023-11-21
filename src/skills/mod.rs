@@ -66,7 +66,7 @@ pub enum Skill {
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Reflect, Debug, Deserialize, Hash)]
 pub enum Attribute {
-    MaxHP,
+    MaxHp,
     HpPerSec,
     Range,
     Acceleration,

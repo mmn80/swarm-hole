@@ -7,7 +7,7 @@
         Laser: "Laser",
     },
     attributes: {
-        MaxHP: ( 
+        MaxHp: ( 
             field_name: "max_hp", 
             ui_name: "max hp",
         ),
@@ -38,11 +38,11 @@
     },
     upgrades: {
         Health: [
-            { MaxHP: U(100), },
-            { MaxHP: U(150), },
-            { MaxHP: U(200), },
-            { MaxHP: U(250), },
-            { MaxHP: U(300), },
+            { MaxHp: U(100), },
+            { MaxHp: U(150), },
+            { MaxHp: U(200), },
+            { MaxHp: U(250), },
+            { MaxHp: U(300), },
         ],
         HealthRegen: [
             { HpPerSec: F(1.0), },

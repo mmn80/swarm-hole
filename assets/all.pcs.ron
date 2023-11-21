@@ -8,7 +8,7 @@
         material_idx: 0,
         max_selected_skills: 3,
         default_skills: {
-            Health: { MaxHP: U(100), },
+            Health: { MaxHp: U(100), },
             HealthRegen: { HpPerSec: F(1.0), },
             XpGather: { Range: F(10.0), Acceleration: F(50.0), },
         },
