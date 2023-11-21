@@ -2,7 +2,7 @@ use bevy::{
     asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
     ecs::system::Command,
     prelude::*,
-    utils::{thiserror, thiserror::Error, BoxedFuture},
+    utils::{thiserror, thiserror::Error, BoxedFuture, HashMap},
 };
 use bevy_xpbd_3d::{math::*, prelude::*, PhysicsSchedule, PhysicsStepSet};
 use serde::Deserialize;
@@ -13,8 +13,8 @@ use crate::{
     debug_ui::DebugUi,
     physics::{Layer, ALL_LAYERS},
     skills::{
-        EquippedSkills, HotReloadEquippedSkills, Level, MaxUpgradableSkills, Skill, SkillsAsset,
-        SkillsAssetHandle,
+        EquippedSkills, HotReloadEquippedSkills, Level, MaxUpgradableSkills, Skill, SkillSpec,
+        SkillSpecs, Skills,
     },
 };
 
@@ -87,7 +87,7 @@ pub struct PlayerCharacter {
     pub mesh_idx: usize,
     pub material_idx: usize,
     pub max_selected_skills: u8,
-    pub default_skills: Vec<(Skill, Level)>,
+    pub default_skills: HashMap<Skill, SkillSpec>,
     pub selected_skills: Vec<Skill>,
 }
 
@@ -161,50 +161,51 @@ impl Command for SpawnPlayer {
             return;
         };
         let cap_h = pc.height - 2. * pc.width;
-        let id = world
-            .spawn((
-                Name::new(format!("Player {}", pc.name)),
-                Player { speed: pc.speed },
-                PbrBundle {
-                    transform: Transform::from_xyz(
-                        self.location.x,
-                        pc.height / 2. + 0.2,
-                        self.location.y,
-                    ),
-                    mesh: pc_handles.meshes.get(pc.mesh_idx).unwrap().clone(),
-                    material: pc_handles.materials.get(pc.material_idx).unwrap().clone(),
-                    ..default()
-                },
-                RigidBody::Kinematic,
-                Collider::capsule(cap_h, pc.width),
-                CollisionLayers::new([Layer::Player], ALL_LAYERS),
-                ShapeCaster::new(
-                    Collider::capsule(cap_h - 0.1, pc.width - 0.05),
-                    Vector::ZERO,
-                    Quaternion::default(),
-                    Vector::NEG_Y,
-                )
-                .with_max_time_of_impact(0.11)
-                .with_max_hits(1),
-                MaxUpgradableSkills(pc.max_selected_skills),
-                EquippedSkills::new(&pc.default_skills, &pc.selected_skills),
-                HotReloadEquippedSkills,
-            ))
-            .id();
 
-        let skills = {
-            let Some(skills_assets) = world.get_resource::<Assets<SkillsAsset>>() else {
-                return;
-            };
-            let Some(skills_asset_handle) = world.get_resource::<SkillsAssetHandle>() else {
-                return;
-            };
-            let Some(skills_asset) = skills_assets.get(skills_asset_handle.0.clone()) else {
-                return;
-            };
-            skills_asset.skills.clone()
+        let Some(skills) = world.get_resource::<Skills>() else {
+            return;
         };
-        skills.insert_components(id, world);
+        let mut specs = SkillSpecs::default();
+        for (skill, spec) in &pc.default_skills {
+            specs.0.insert(*skill, (Level::default(), spec.clone()));
+        }
+        for skill in &pc.selected_skills {
+            if let Some(levels) = skills.upgrades.get(skill) {
+                specs
+                    .0
+                    .insert(*skill, (Level::default(), levels[0].clone()));
+            }
+        }
+
+        world.spawn((
+            Name::new(format!("Player {}", pc.name)),
+            Player { speed: pc.speed },
+            PbrBundle {
+                transform: Transform::from_xyz(
+                    self.location.x,
+                    pc.height / 2. + 0.2,
+                    self.location.y,
+                ),
+                mesh: pc_handles.meshes.get(pc.mesh_idx).unwrap().clone(),
+                material: pc_handles.materials.get(pc.material_idx).unwrap().clone(),
+                ..default()
+            },
+            RigidBody::Kinematic,
+            Collider::capsule(cap_h, pc.width),
+            CollisionLayers::new([Layer::Player], ALL_LAYERS),
+            ShapeCaster::new(
+                Collider::capsule(cap_h - 0.1, pc.width - 0.05),
+                Vector::ZERO,
+                Quaternion::default(),
+                Vector::NEG_Y,
+            )
+            .with_max_time_of_impact(0.11)
+            .with_max_hits(1),
+            MaxUpgradableSkills(pc.max_selected_skills),
+            EquippedSkills::default(),
+            specs,
+            HotReloadEquippedSkills,
+        ));
     }
 }
 

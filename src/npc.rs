@@ -2,7 +2,7 @@ use bevy::{
     asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
     ecs::system::Command,
     prelude::*,
-    utils::{thiserror, thiserror::Error, BoxedFuture},
+    utils::{thiserror, thiserror::Error, BoxedFuture, HashMap},
 };
 use bevy_xpbd_3d::prelude::*;
 use rand::{distributions::WeightedIndex, prelude::*};
@@ -13,7 +13,7 @@ use crate::{
     debug_ui::{DebugUiCommand, DebugUiEvent},
     physics::{Layer, ALL_LAYERS},
     player::Player,
-    skills::{Skills, UpdateSkillComponents},
+    skills::{EquippedSkills, Level, Skill, SkillSpec, SkillSpecs},
 };
 
 pub struct NpcPlugin;
@@ -96,7 +96,7 @@ pub struct NonPlayerCharacter {
     pub radius: f32,
     pub mesh_idx: usize,
     pub material_idx: usize,
-    pub skills: Skills,
+    pub skills: HashMap<Skill, SkillSpec>,
 }
 
 #[derive(Asset, TypePath, Debug, Deserialize)]
@@ -162,6 +162,12 @@ impl Command for SpawnNpc {
                 return;
             };
             let npc = &self.character;
+
+            let mut specs = SkillSpecs::default();
+            for (skill, spec) in &npc.skills {
+                specs.0.insert(*skill, (Level::default(), spec.clone()));
+            }
+
             let id = world
                 .spawn((
                     Npc {
@@ -182,13 +188,13 @@ impl Command for SpawnNpc {
                     RigidBody::Kinematic,
                     Collider::ball(npc.radius),
                     CollisionLayers::new([Layer::NPC], ALL_LAYERS),
+                    EquippedSkills::default(),
+                    specs,
                 ))
                 .id();
             world
                 .entity_mut(id)
                 .insert(Name::new(format!("NPC {:?} ({id:?})", npc.name)));
-
-            npc.skills.insert_components(id, world);
         }
 
         if let Some(mut run_state) = world.get_resource_mut::<RunState>() {
@@ -286,7 +292,6 @@ fn hot_reload_npcs(
     npcs_assets: Res<Assets<NonPlayerCharactersAsset>>,
     mut skills_asset_events: EventReader<AssetEvent<NonPlayerCharactersAsset>>,
     mut q_npcs: Query<(Entity, &mut Npc, &HotReloadNpc)>,
-
     mut cmd: Commands,
 ) {
     for ev in skills_asset_events.read() {
@@ -297,10 +302,11 @@ fn hot_reload_npcs(
                     if let Some(npc_src) = asset.get_npc_by_index(hot_reload_npc.0) {
                         npc.xp_drop = npc_src.xp_drop;
                         npc.speed = npc_src.speed;
-                        cmd.add(UpdateSkillComponents {
-                            entity,
-                            skills: npc_src.skills.clone(),
-                        });
+                        let mut specs = SkillSpecs::default();
+                        for (skill, spec) in &npc_src.skills {
+                            specs.0.insert(*skill, (Level::default(), spec.clone()));
+                        }
+                        cmd.entity(entity).insert(specs);
                     }
                 }
             }

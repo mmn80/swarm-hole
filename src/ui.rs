@@ -10,7 +10,7 @@ use crate::{
     skills::{
         health::{Health, MaxHealth},
         xp::XpGatherState,
-        SkillUpgradeOptions, Skills, SkillsAsset, SkillsAssetHandle,
+        SkillUpgradeOptions, Skills,
     },
 };
 
@@ -588,60 +588,58 @@ struct SkillUpgradeDetailsText(usize);
 
 fn init_skill_upgrade_ui(
     upgrade_options: Res<SkillUpgradeOptions>,
-    skills_asset_handle: Res<SkillsAssetHandle>,
-    skills_asset: Res<Assets<SkillsAsset>>,
+    skills: Res<Skills>,
     mut q_root: Query<&mut Style, With<SkillUpgradeRoot>>,
     mut q_buttons: Query<(&mut Style, &SkillUpgradeButton), Without<SkillUpgradeRoot>>,
     mut q_texts: Query<(&mut Text, &SkillUpgradeText)>,
     mut q_detail_texts: Query<(&mut Text, &SkillUpgradeDetailsText), Without<SkillUpgradeText>>,
 ) {
-    let Some(skills_asset) = skills_asset.get(&skills_asset_handle.0) else {
-        return;
-    };
     for (mut text, marker) in &mut q_texts {
         if let Some((skill, level)) = upgrade_options.skills.get(marker.0) {
-            if let Some(ui_skill) = skills_asset
-                .ui_config
-                .iter()
-                .find(|conf| conf.skill == *skill)
-            {
-                text.sections[0].value = format!("{}", ui_skill.name);
+            if let Some(skill_name) = skills.skills.get(skill) {
+                text.sections[0].value = skill_name.to_string();
                 text.sections[1].value = format!(" Level {level}");
             }
         }
     }
-    let refl = skills_asset.skills.get_reflected();
     for (mut text, marker) in &mut q_detail_texts {
         if let Some((skill, level)) = upgrade_options.skills.get(marker.0) {
-            if let Some(refl_levels) = refl.get(skill) {
+            if let Some(levels) = skills.upgrades.get(skill) {
                 let mut str = String::new();
-                let props = Skills::parse_numeric_fields(level.index(&refl_levels).unwrap());
-                for (fld_name, val) in props {
-                    if let Some(prev_level) = level.prev() {
-                        if let Some(refl) = prev_level.index(refl_levels) {
-                            let props_prev = Skills::parse_numeric_fields(refl);
-                            if let Some(val_prev) = props_prev.get(&fld_name) {
-                                let delta = val - *val_prev;
-                                let delta_positive = delta.is_sign_positive();
-                                let delta = (delta.abs() * 10.).round() / 10.;
-                                if delta > 0.01 {
-                                    if !str.is_empty() {
-                                        str.push_str(", ");
+                let spec = level.index(&levels).unwrap();
+                for (attr, val) in &spec.0 {
+                    let val_f32 = (val.as_f32() * 10.).round() / 10.;
+                    if let Some(fld_name) = skills.attributes.get(attr) {
+                        if let Some(prev_level) = level.prev() {
+                            if let Some(prev_spec) = prev_level.index(levels) {
+                                if let Some(val_prev) = prev_spec.0.get(attr) {
+                                    if let Some(delta) = val.delta(*val_prev) {
+                                        let delta = delta.as_f32();
+                                        let delta_positive = delta.is_sign_positive();
+                                        let delta = (delta.abs() * 10.).round() / 10.;
+                                        if delta > 0.01 {
+                                            if !str.is_empty() {
+                                                str.push_str(", ");
+                                            }
+                                            let delta_str = if delta_positive {
+                                                format!("+{delta}")
+                                            } else {
+                                                format!("-{delta}")
+                                            };
+
+                                            str.push_str(&format!(
+                                                "{fld_name} {delta_str} ({val_f32})"
+                                            ));
+                                        }
                                     }
-                                    let delta_str = if delta_positive {
-                                        format!("+{delta}")
-                                    } else {
-                                        format!("-{delta}")
-                                    };
-                                    str.push_str(&format!("{fld_name} {delta_str} ({val})"));
                                 }
                             }
+                        } else {
+                            if !str.is_empty() {
+                                str.push_str(", ");
+                            }
+                            str.push_str(&format!("{fld_name} {val_f32}"));
                         }
-                    } else {
-                        if !str.is_empty() {
-                            str.push_str(", ");
-                        }
-                        str.push_str(&format!("{fld_name} {val}"));
                     }
                 }
                 text.sections[0].value = format!("{str}");
