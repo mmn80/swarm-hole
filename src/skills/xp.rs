@@ -4,6 +4,8 @@ use serde::Deserialize;
 
 use crate::{app::AppState, physics::Layer};
 
+use super::{apply_skill_specs, IsSkill, Skill};
+
 pub struct XpPlugin;
 
 impl Plugin for XpPlugin {
@@ -12,7 +14,13 @@ impl Plugin for XpPlugin {
             .add_systems(Startup, setup_xp_drops)
             .add_systems(
                 Update,
-                (init_gather_state, gather_xp, slow_xp_drops).run_if(in_state(AppState::Run)),
+                (
+                    apply_skill_specs::<XpGather>,
+                    init_gather_state,
+                    gather_xp,
+                    slow_xp_drops,
+                )
+                    .run_if(in_state(AppState::Run)),
             )
             .add_systems(OnEnter(AppState::Cleanup), cleanup_xp_drops);
     }
@@ -58,11 +66,17 @@ impl XpDrop {
     }
 }
 
-#[derive(Component, Reflect, Clone, Debug, Deserialize)]
+#[derive(Component, Reflect, Clone, Debug, Default, Deserialize)]
 pub struct XpGather {
     pub xp_per_level: u32,
     pub range: f32,
     pub acceleration: f32,
+}
+
+impl IsSkill for XpGather {
+    fn skill() -> Skill {
+        Skill::XpGather
+    }
 }
 
 #[derive(Component)]

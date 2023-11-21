@@ -4,21 +4,29 @@ use serde::Deserialize;
 
 use crate::{app::AppState, npc::Npc, physics::Layer};
 
-use super::health::TakeDamageEvent;
+use super::{apply_skill_specs, health::TakeDamageEvent, IsSkill, Skill};
 
 pub struct MeleePlugin;
 
 impl Plugin for MeleePlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<Melee>()
-            .add_systems(Update, update_melee.run_if(in_state(AppState::Run)));
+        app.register_type::<Melee>().add_systems(
+            Update,
+            (apply_skill_specs::<Melee>, update_melee).run_if(in_state(AppState::Run)),
+        );
     }
 }
 
-#[derive(Component, Reflect, Clone, Debug, Deserialize)]
+#[derive(Component, Reflect, Clone, Debug, Default, Deserialize)]
 pub struct Melee {
     pub range: f32,
     pub dps: u32,
+}
+
+impl IsSkill for Melee {
+    fn skill() -> Skill {
+        Skill::Melee
+    }
 }
 
 fn update_melee(

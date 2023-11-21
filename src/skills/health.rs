@@ -23,6 +23,7 @@ impl Plugin for HealthPlugin {
             Update,
             (
                 apply_skill_specs::<MaxHealth>,
+                apply_skill_specs::<HealthRegen>,
                 init_health,
                 take_damage,
                 regen_health,
@@ -39,7 +40,7 @@ pub struct MaxHealth {
 }
 
 impl IsSkill for MaxHealth {
-    fn skill() -> super::Skill {
+    fn skill() -> Skill {
         Skill::Health
     }
 }
@@ -53,9 +54,15 @@ fn init_health(q_health: Query<(Entity, &MaxHealth), Without<Health>>, mut cmd: 
     }
 }
 
-#[derive(Component, Reflect, Clone, Debug, Deserialize)]
+#[derive(Component, Reflect, Clone, Debug, Default, Deserialize)]
 pub struct HealthRegen {
     pub hp_per_sec: f32,
+}
+
+impl IsSkill for HealthRegen {
+    fn skill() -> Skill {
+        Skill::HealthRegen
+    }
 }
 
 fn regen_health(time: Res<Time>, mut q_regen: Query<(&mut Health, &MaxHealth, &HealthRegen)>) {

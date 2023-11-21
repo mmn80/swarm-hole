@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::{app::AppState, npc::Npc, physics::Layer, player::Player, vfx::DamageParticlesEvent};
 
-use super::health::TakeDamageEvent;
+use super::{apply_skill_specs, health::TakeDamageEvent, IsSkill, Skill};
 
 pub struct LaserPlugin;
 
@@ -20,6 +20,7 @@ impl Plugin for LaserPlugin {
             .add_systems(
                 Update,
                 (
+                    apply_skill_specs::<Laser>,
                     init_laser_state,
                     (
                         (laser_target_npc, laser_target_player),
@@ -77,12 +78,18 @@ fn setup_assets(
     });
 }
 
-#[derive(Copy, Clone, Reflect, Component, Debug, Deserialize)]
+#[derive(Copy, Clone, Reflect, Component, Debug, Default, Deserialize)]
 pub struct Laser {
     pub range: f32,
     pub dps: f32,
     pub duration: f32,
     pub cooldown: f32,
+}
+
+impl IsSkill for Laser {
+    fn skill() -> Skill {
+        Skill::Laser
+    }
 }
 
 fn init_laser_state(q_laser: Query<Entity, (With<Laser>, Without<LaserState>)>, mut cmd: Commands) {
