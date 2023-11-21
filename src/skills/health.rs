@@ -34,9 +34,15 @@ impl Plugin for HealthPlugin {
     }
 }
 
-#[derive(Component, Reflect, Clone, Debug, Default, Deserialize)]
+#[derive(Component, Reflect, Clone, Debug, Deserialize)]
 pub struct MaxHealth {
     pub max_hp: u32,
+}
+
+impl Default for MaxHealth {
+    fn default() -> Self {
+        Self { max_hp: 10000 }
+    }
 }
 
 impl IsSkill for MaxHealth {

@@ -148,7 +148,7 @@ pub trait IsSkill {
 pub fn apply_skill_specs<T: Component + Struct + Default + IsSkill>(
     skills_meta: Res<Skills>,
     q_no_skill: Query<(Entity, &SkillSpecs), Without<T>>,
-    mut q_skill: Query<(&SkillSpecs, &mut T, &mut EquippedSkills)>,
+    mut q_skill: Query<(Entity, &mut SkillSpecs, &mut T, &mut EquippedSkills)>,
     mut cmd: Commands,
 ) {
     let skill = T::skill();
@@ -157,11 +157,11 @@ pub fn apply_skill_specs<T: Component + Struct + Default + IsSkill>(
             cmd.entity(entity).insert(T::default());
         }
     }
-    for (specs, mut refl_struct, mut equipped) in &mut q_skill {
+    for (entity, mut specs, mut refl_struct, mut equipped) in &mut q_skill {
         if let Some((level, spec)) = specs.0.get(&skill) {
             for (attr, val) in spec {
-                if let Some(fld_name) = skills_meta.attributes.get(attr) {
-                    if let Some(fld) = refl_struct.field_mut(fld_name) {
+                if let Some(attr_meta) = skills_meta.attributes.get(attr) {
+                    if let Some(fld) = refl_struct.field_mut(&attr_meta.field_name) {
                         match val {
                             Value::F(v) => fld.downcast_mut::<f32>().map(|f| *f = *v),
                             Value::U(v) => fld.downcast_mut::<u32>().map(|f| *f = *v),
@@ -172,7 +172,13 @@ pub fn apply_skill_specs<T: Component + Struct + Default + IsSkill>(
                     }
                 }
             }
+
             equipped.equipped.insert(skill, *level);
+
+            specs.0.remove(&skill);
+            if specs.0.is_empty() {
+                cmd.entity(entity).remove::<SkillSpecs>();
+            }
         }
     }
 }
@@ -219,21 +225,6 @@ pub struct EquippedSkills {
 }
 
 impl EquippedSkills {
-    pub fn new(pre_equipped: &Vec<(Skill, Level)>, pre_selected: &Vec<Skill>) -> Self {
-        let mut equipped = HashMap::from_iter(pre_equipped.into_iter().cloned());
-        let selected = HashSet::from_iter(pre_selected.into_iter().cloned());
-        for skill in &selected {
-            if !equipped.contains_key(skill) {
-                equipped.insert(*skill, Level::default());
-            }
-        }
-        Self { equipped, selected }
-    }
-
-    pub fn get_level(&self, skill: Skill) -> Option<Level> {
-        self.equipped.get(&skill).copied()
-    }
-
     pub fn set_level(&mut self, skill: Skill, level: Level, is_selected: bool) {
         self.equipped.insert(skill, level);
         if is_selected {
@@ -261,20 +252,20 @@ fn init_upgrade_menu(
 ) {
     for (entity, xp_gather_state, max_skills) in &q_xp_gather_state {
         if xp_gather_state.get_gather_level() > xp_gather_state.get_player_level() {
-            if let Ok(equipped_skills) = q_equipped_skills.get(entity) {
+            if let Ok(equipped) = q_equipped_skills.get(entity) {
                 let mut skill_upgrades = vec![];
-                for skill in &equipped_skills.selected {
+                for skill in &equipped.selected {
                     if let Some(levels) = skills.upgrades.get(skill) {
-                        if let Some(level) = equipped_skills.equipped.get(skill) {
+                        if let Some(level) = equipped.equipped.get(skill) {
                             if let Some(next_level) = level.next(levels.len()) {
                                 skill_upgrades.push((*skill, next_level));
                             }
                         }
                     }
                 }
-                if equipped_skills.selected.len() < max_skills.0 as usize {
+                if equipped.selected.len() < max_skills.0 as usize {
                     for skill in skills.upgrades.keys() {
-                        if !equipped_skills.selected.contains(skill) {
+                        if !equipped.selected.contains(skill) {
                             skill_upgrades.push((*skill, Level::default()));
                         }
                     }
@@ -335,7 +326,7 @@ fn apply_upgrade_selection(
 #[derive(Asset, TypePath, Debug, Deserialize)]
 pub struct SkillsAsset {
     pub skills: HashMap<Skill, String>,
-    pub attributes: HashMap<Attribute, String>,
+    pub attributes: HashMap<Attribute, AttributeMeta>,
     pub upgrades: HashMap<Skill, Vec<SkillSpec>>,
 }
 
@@ -374,10 +365,16 @@ impl AssetLoader for SkillsAssetLoader {
     }
 }
 
+#[derive(Clone, Debug, Deserialize)]
+pub struct AttributeMeta {
+    pub field_name: String,
+    pub ui_name: String,
+}
+
 #[derive(Resource, Default)]
 pub struct Skills {
     pub handle: Handle<SkillsAsset>,
-    pub attributes: HashMap<Attribute, String>,
+    pub attributes: HashMap<Attribute, AttributeMeta>,
     pub attributes_inv: HashMap<String, Attribute>,
     pub skills: HashMap<Skill, String>,
     pub upgrades: HashMap<Skill, Vec<SkillSpec>>,
@@ -405,8 +402,10 @@ fn skills_asset_on_load(
                 skills.skills = asset.skills.clone();
                 skills.attributes = asset.attributes.clone();
                 skills.attributes_inv.clear();
-                for (attr, name) in &asset.attributes {
-                    skills.attributes_inv.insert(name.clone(), *attr);
+                for (attr, attr_mata) in &asset.attributes {
+                    skills
+                        .attributes_inv
+                        .insert(attr_mata.field_name.clone(), *attr);
                 }
                 skills.upgrades = asset.upgrades.clone();
 

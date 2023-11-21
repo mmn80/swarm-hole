@@ -609,7 +609,7 @@ fn init_skill_upgrade_ui(
                 let spec = level.index(&levels).unwrap();
                 for (attr, val) in spec {
                     let val_f32 = (val.as_f32() * 10.).round() / 10.;
-                    if let Some(fld_name) = skills.attributes.get(attr) {
+                    if let Some(attr_meta) = skills.attributes.get(attr) {
                         if let Some(prev_level) = level.prev() {
                             if let Some(prev_spec) = prev_level.index(levels) {
                                 if let Some(val_prev) = prev_spec.get(attr) {
@@ -628,7 +628,8 @@ fn init_skill_upgrade_ui(
                                             };
 
                                             str.push_str(&format!(
-                                                "{fld_name} {delta_str} ({val_f32})"
+                                                "{} {delta_str} ({val_f32})",
+                                                attr_meta.ui_name
                                             ));
                                         }
                                     }
@@ -638,7 +639,7 @@ fn init_skill_upgrade_ui(
                             if !str.is_empty() {
                                 str.push_str(", ");
                             }
-                            str.push_str(&format!("{fld_name} {val_f32}"));
+                            str.push_str(&format!("{} {val_f32}", attr_meta.ui_name));
                         }
                     }
                 }

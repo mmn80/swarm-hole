@@ -8,8 +8,8 @@
         mesh_idx: 0,
         material_idx: 0,
         skills: {
-            Health: { MaxHP: U(1) },
-            Melee: { Range: F(1.0), Dps: U(3) },
+            Health: { MaxHP: U(1), },
+            Melee: { Range: F(1.0), Dps: U(3), },
         },
     ),
     (
@@ -21,9 +21,9 @@
         mesh_idx: 1,
         material_idx: 1,
         skills: {
-            Health: { MaxHP: U(10) },
-            Melee: { Range: F(1.5), Dps: U(3) },
-            Laser: { Range: F(10.0), Dps: F(5.0), Duration: F(0.2), Cooldown: F(1.0) },    
+            Health: { MaxHP: U(10), },
+            Melee: { Range: F(1.5), Dps: U(3), },
+            Laser: { Range: F(10.0), Dps: F(5.0), Duration: F(0.2), Cooldown: F(1.0), },    
         },
     ),
 ])
