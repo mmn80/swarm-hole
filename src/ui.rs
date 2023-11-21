@@ -607,12 +607,12 @@ fn init_skill_upgrade_ui(
             if let Some(levels) = skills.upgrades.get(skill) {
                 let mut str = String::new();
                 let spec = level.index(&levels).unwrap();
-                for (attr, val) in &spec.0 {
+                for (attr, val) in spec {
                     let val_f32 = (val.as_f32() * 10.).round() / 10.;
                     if let Some(fld_name) = skills.attributes.get(attr) {
                         if let Some(prev_level) = level.prev() {
                             if let Some(prev_spec) = prev_level.index(levels) {
-                                if let Some(val_prev) = prev_spec.0.get(attr) {
+                                if let Some(val_prev) = prev_spec.get(attr) {
                                     if let Some(delta) = val.delta(*val_prev) {
                                         let delta = delta.as_f32();
                                         let delta_positive = delta.is_sign_positive();

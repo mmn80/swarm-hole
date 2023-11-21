@@ -1,54 +1,48 @@
 (
-    ui_config: [
-        (
-            skill: Health,
-            name: "Max Health"
-        ),
-        (
-            skill: HealthRegen,
-            name: "Health Regeneration"
-        ),
-        (
-            skill: XpGather,
-            name: "XP Gathering"
-        ),
-        (
-            skill: Melee,
-            name: "Melee"
-        ),
-        (
-            skill: Laser,
-            name: "Laser"
-        ),
-    ],
-    skills: (
-        health: Some([
-            ( max_hp: 100, ),
-            ( max_hp: 150, ),
-            ( max_hp: 200, ),
-            ( max_hp: 250, ),
-            ( max_hp: 300, ),
-        ]),
-        health_regen: Some([
-            ( hp_per_sec: 1.0, ),
-            ( hp_per_sec: 2.0, ),
-            ( hp_per_sec: 3.0, ),
-            ( hp_per_sec: 4.0, ),
-            ( hp_per_sec: 5.0, ),
-        ]),
-        xp_gather: Some([
-            ( xp_per_level: 10, range: 10.0, acceleration: 50.0, ),
-            ( xp_per_level: 10, range: 15.0, acceleration: 75.0, ),
-            ( xp_per_level: 10, range: 20.0, acceleration: 100.0, ),
-            ( xp_per_level: 10, range: 25.0, acceleration: 125.0, ),
-            ( xp_per_level: 10, range: 30.0, acceleration: 200.0, ),
-        ]),
-        laser: Some([
-            ( range: 15., dps: 20.0, duration: 0.5, cooldown: 0.5, ),
-            ( range: 15., dps: 30.0, duration: 0.5, cooldown: 0.5, ),
-            ( range: 15., dps: 40.0, duration: 0.5, cooldown: 0.4, ),
-            ( range: 20., dps: 40.0, duration: 0.5, cooldown: 0.3, ),
-            ( range: 25., dps: 40.0, duration: 0.5, cooldown: 0.2, ),
-        ]),
-    )
+    skills: {
+        Health: "Max Health",
+        HealthRegen: "Health Regeneration",
+        XpGather: "XP Gathering",
+        Melee: "Melee",
+        Laser: "Laser",
+    },
+    attributes: {
+        MaxHP: "max hp",
+        HpPerSec: "hp/s",
+        Range: "range",
+        Acceleration: "acc",
+        Dps: "dps",
+        Duration: "duration",
+        Cooldown: "cooldown",
+    },
+    upgrades: {
+        Health: [
+            { MaxHP: U(100) },
+            { MaxHP: U(150) },
+            { MaxHP: U(200) },
+            { MaxHP: U(250) },
+            { MaxHP: U(300) },
+        ],
+        HealthRegen: [
+            { HpPerSec: F(1.0) },
+            { HpPerSec: F(2.0) },
+            { HpPerSec: F(3.0) },
+            { HpPerSec: F(4.0) },
+            { HpPerSec: F(5.0) },
+        ],
+        XpGather: [
+            { Range: F(10.0), Acceleration: F(50.0) },
+            { Range: F(15.0), Acceleration: F(75.0) },
+            { Range: F(20.0), Acceleration: F(100.0) },
+            { Range: F(25.0), Acceleration: F(125.0) },
+            { Range: F(30.0), Acceleration: F(200.0) },
+        ],
+        Laser: [
+            { Range: F(15.), Dps: F(20.0), Duration: F(0.5), Cooldown: F(0.5) },
+            { Range: F(15.), Dps: F(30.0), Duration: F(0.5), Cooldown: F(0.5) },
+            { Range: F(15.), Dps: F(40.0), Duration: F(0.5), Cooldown: F(0.4) },
+            { Range: F(20.), Dps: F(40.0), Duration: F(0.5), Cooldown: F(0.3) },
+            { Range: F(25.), Dps: F(40.0), Duration: F(0.5), Cooldown: F(0.2) },
+        ],
+    }
 )

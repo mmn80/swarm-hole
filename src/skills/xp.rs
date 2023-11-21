@@ -66,9 +66,10 @@ impl XpDrop {
     }
 }
 
+const XP_PER_LEVEL: u32 = 10;
+
 #[derive(Component, Reflect, Clone, Debug, Default, Deserialize)]
 pub struct XpGather {
-    pub xp_per_level: u32,
     pub range: f32,
     pub acceleration: f32,
 }
@@ -138,7 +139,7 @@ fn gather_xp(
             if let Ok((ent, tr_xp, mut lin_vel, xp_drop)) = q_xp_drop.get_mut(*ent) {
                 let mut delta = tr_gatherer.translation - tr_xp.translation;
                 if delta.length() < XpDrop::get_height(xp_drop.0) + 1. {
-                    xp_gather_state.gather(xp_drop.0, xp_gather.xp_per_level);
+                    xp_gather_state.gather(xp_drop.0, XP_PER_LEVEL);
                     cmd.entity(ent).despawn_recursive();
                 } else {
                     lin_vel.y = 0.;

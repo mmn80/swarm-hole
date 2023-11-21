@@ -136,8 +136,7 @@ impl Value {
     }
 }
 
-#[derive(Clone, Reflect, Debug, Deserialize)]
-pub struct SkillSpec(pub HashMap<Attribute, Value>);
+pub type SkillSpec = HashMap<Attribute, Value>;
 
 #[derive(Component, Default)]
 pub struct SkillSpecs(pub HashMap<Skill, (Level, SkillSpec)>);
@@ -160,7 +159,7 @@ pub fn apply_skill_specs<T: Component + Struct + Default + IsSkill>(
     }
     for (specs, mut refl_struct, mut equipped) in &mut q_skill {
         if let Some((level, spec)) = specs.0.get(&skill) {
-            for (attr, val) in &spec.0 {
+            for (attr, val) in spec {
                 if let Some(fld_name) = skills_meta.attributes.get(attr) {
                     if let Some(fld) = refl_struct.field_mut(fld_name) {
                         match val {
