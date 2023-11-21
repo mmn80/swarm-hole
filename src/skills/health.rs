@@ -9,7 +9,11 @@ use crate::{
     player::Player,
 };
 
-use super::xp::{XpDrop, XpDrops};
+use super::{
+    apply_skill_specs,
+    xp::{XpDrop, XpDrops},
+    IsSkill, Skill,
+};
 
 pub struct HealthPlugin;
 
@@ -17,14 +21,27 @@ impl Plugin for HealthPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<TakeDamageEvent>().add_systems(
             Update,
-            (init_health, take_damage, regen_health, die).run_if(in_state(AppState::Run)),
+            (
+                apply_skill_specs::<MaxHealth>,
+                init_health,
+                take_damage,
+                regen_health,
+                die,
+            )
+                .run_if(in_state(AppState::Run)),
         );
     }
 }
 
-#[derive(Component, Reflect, Clone, Debug, Deserialize)]
+#[derive(Component, Reflect, Clone, Debug, Default, Deserialize)]
 pub struct MaxHealth {
     pub max_hp: u32,
+}
+
+impl IsSkill for MaxHealth {
+    fn skill() -> super::Skill {
+        Skill::Health
+    }
 }
 
 #[derive(Component)]

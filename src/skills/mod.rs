@@ -46,6 +46,7 @@ impl Plugin for SkillsPlugin {
             .init_asset_loader::<SkillsAssetLoader>()
             .init_resource::<SkillsAssetHandle>()
             .init_resource::<SkillUpgradeOptions>()
+            .init_resource::<SkillsMeta>()
             .add_systems(Startup, setup_skills_asset_handle)
             .add_systems(Update, hot_reload_equipped_skills)
             .add_systems(Update, init_upgrade_menu.run_if(in_state(AppState::Run)))
@@ -63,6 +64,76 @@ pub enum Skill {
     XpGather,
     Melee,
     Laser,
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Reflect, Debug, Deserialize, Hash)]
+pub enum Attribute {
+    MaxHP,
+    HpPerSec,
+    Range,
+    Acceleration,
+    Dps,
+    Duration,
+    Cooldown,
+}
+
+#[derive(Clone, Reflect, Debug, Deserialize)]
+pub enum Value {
+    F(f32),
+    U(u32),
+    Af(f32),
+    Au(u32),
+    Mf(f32),
+}
+
+#[derive(Clone, Reflect, Debug, Deserialize)]
+pub struct SkillSpec(HashMap<Attribute, Value>);
+
+#[derive(Clone, Reflect, Debug, Deserialize)]
+pub struct SkillUpgrades(Vec<(Skill, Vec<SkillSpec>)>);
+
+#[derive(Component, Clone, Reflect, Debug, Deserialize)]
+pub struct SkillSpecs(HashMap<Skill, SkillSpec>);
+
+pub trait IsSkill {
+    fn skill() -> Skill;
+}
+
+#[derive(Resource, Default)]
+pub struct SkillsMeta {
+    pub attributes: HashMap<Attribute, String>,
+    pub attributes_inv: HashMap<String, Attribute>,
+}
+
+pub fn apply_skill_specs<T: Component + Struct + Default + IsSkill>(
+    skills_meta: Res<SkillsMeta>,
+    q_no_skill: Query<(Entity, &SkillSpecs), Without<T>>,
+    mut q_skill: Query<(&SkillSpecs, &mut T)>,
+    mut cmd: Commands,
+) {
+    let skill = T::skill();
+    for (entity, specs) in &q_no_skill {
+        if specs.0.contains_key(&skill) {
+            cmd.entity(entity).insert(T::default());
+        }
+    }
+    for (specs, mut refl_struct) in &mut q_skill {
+        if let Some(spec) = specs.0.get(&skill) {
+            for (attr, val) in &spec.0 {
+                if let Some(fld_name) = skills_meta.attributes.get(attr) {
+                    if let Some(fld) = refl_struct.field_mut(fld_name) {
+                        match val {
+                            Value::F(v) => fld.downcast_mut::<f32>().map(|f| *f = *v),
+                            Value::U(v) => fld.downcast_mut::<u32>().map(|f| *f = *v),
+                            Value::Af(v) => fld.downcast_mut::<f32>().map(|f| *f += *v),
+                            Value::Au(v) => fld.downcast_mut::<u32>().map(|f| *f += *v),
+                            Value::Mf(v) => fld.downcast_mut::<f32>().map(|f| *f *= *v / 100.),
+                        };
+                    }
+                }
+            }
+        }
+    }
 }
 
 #[derive(Clone, Reflect, Debug, Deserialize)]
@@ -275,8 +346,8 @@ impl Command for UpdateSkillComponents {
 
 #[derive(Component, Clone, Default)]
 pub struct EquippedSkills {
-    pub equipped: HashMap<Skill, Level>,
-    pub selected: HashSet<Skill>,
+    equipped: HashMap<Skill, Level>,
+    selected: HashSet<Skill>,
 }
 
 impl EquippedSkills {
