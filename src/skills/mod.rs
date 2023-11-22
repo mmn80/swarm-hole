@@ -41,10 +41,12 @@ pub struct SkillsPlugin;
 impl Plugin for SkillsPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Skill>()
+            .register_type::<Attribute>()
+            .register_type::<Value>()
             .init_asset::<SkillsAsset>()
             .init_asset_loader::<SkillsAssetLoader>()
-            .init_resource::<SkillUpgradeOptions>()
             .init_resource::<Skills>()
+            .init_resource::<SkillUpgradeOptions>()
             .add_systems(Startup, setup_skills_asset_handle)
             .add_systems(Update, skills_asset_on_load)
             .add_systems(Update, init_upgrade_menu.run_if(in_state(AppState::Run)))
@@ -169,7 +171,14 @@ pub fn apply_skill_specs<T: Component + Struct + Default + IsSkill>(
                             Value::Au(v) => fld.downcast_mut::<u32>().map(|f| *f += *v),
                             Value::Mf(v) => fld.downcast_mut::<f32>().map(|f| *f *= *v / 100.),
                         };
+                    } else {
+                        error!(
+                            "Field {} not found for skill {skill:?}!",
+                            attr_meta.field_name
+                        );
                     }
+                } else {
+                    error!("Attribute {attr:?} not found for skill {skill:?}!");
                 }
             }
 

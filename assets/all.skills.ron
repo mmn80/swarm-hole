@@ -20,7 +20,7 @@
             ui_name: "range",
         ),
         Acceleration: ( 
-            field_name: "acc", 
+            field_name: "acceleration", 
             ui_name: "acc",
         ),
         Dps: ( 
