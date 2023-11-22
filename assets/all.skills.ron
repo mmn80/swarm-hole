@@ -38,23 +38,23 @@
     },
     upgrades: {
         Health: [
-            { MaxHp: U(150) },
+            { MaxHp: AddU(50) },
             { MaxHp: AddU(50) },
             { MaxHp: AddU(50) },
             { MaxHp: AddU(50) },
             { MaxHp: AddU(100) },
         ],
         HealthRegen: [
-            { HpPerSec: F(2.0) },
+            { HpPerSec: AddF(1.0) },
             { HpPerSec: AddF(1.0) },
             { HpPerSec: AddF(1.0) },
             { HpPerSec: AddF(1.0) },
             { HpPerSec: AddF(1.0) },
         ],
         XpGather: [
-            { Range: F(15.0), Acceleration: F(75.0) },
-            { Range: Perc(5.0), Acceleration: Perc(10.0) },
-            { Range: Perc(5.0), Acceleration: Perc(10.0) },
+            { Range: Perc(5.0), Acceleration: Perc(5.0) },
+            { Range: Perc(5.0), Acceleration: Perc(5.0) },
+            { Range: Perc(5.0), Acceleration: Perc(5.0) },
             { Range: Perc(10.0), Acceleration: Perc(10.0) },
             { Range: Perc(10.0), Acceleration: Perc(10.0) },
         ],

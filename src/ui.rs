@@ -633,7 +633,10 @@ fn init_skill_upgrade_ui(
                                             if !str.is_empty() {
                                                 str.push_str(", ");
                                             }
-                                            str.push_str(&format!("{} {delta}", attr_meta.ui_name));
+                                            str.push_str(&format!(
+                                                "{}: {delta}",
+                                                attr_meta.ui_name
+                                            ));
                                         }
                                     }
                                 }
