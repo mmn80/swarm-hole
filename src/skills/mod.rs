@@ -457,14 +457,8 @@ fn skills_asset_on_load(
                             if let Some(spec) = level.index(levels) {
                                 let mut new_spec = HashMap::new();
                                 for (attr, val) in spec {
-                                    match val {
-                                        Value::F(_) => {
-                                            new_spec.insert(*attr, *val);
-                                        }
-                                        Value::U(_) => {
-                                            new_spec.insert(*attr, *val);
-                                        }
-                                        _ => {}
+                                    if matches!(val, Value::F(_) | Value::U(_)) {
+                                        new_spec.insert(*attr, *val);
                                     }
                                 }
                                 if !new_spec.is_empty() {
