@@ -26,7 +26,7 @@ impl Plugin for MainUiPlugin {
             (
                 setup_fps_ui,
                 setup_top_bar_ui,
-                setup_upgrade_ui,
+                setup_upgrade_ui.before(setup_paused_ui),
                 setup_paused_ui,
             ),
         )
@@ -409,7 +409,7 @@ fn setup_paused_ui(mut cmd: Commands) {
                         margin: UiRect::all(Val::Px(50.)),
                         ..default()
                     }),
-                    AppStateText,
+                    AppStateText(AppState::Menu),
                 ));
                 parent.spawn((TextBundle::from_section(
                     "press ENTER to continue",
@@ -431,7 +431,7 @@ fn setup_paused_ui(mut cmd: Commands) {
 struct AppStateRoot;
 
 #[derive(Component)]
-struct AppStateText;
+struct AppStateText(AppState);
 
 const LOSE_STRS: [&str; 10] = [
     "DEAD",
@@ -448,30 +448,46 @@ const LOSE_STRS: [&str; 10] = [
 
 fn update_app_state_ui(
     app_state: Res<State<AppState>>,
-    mut q_run_state_root: Query<&mut Style, With<AppStateRoot>>,
-    mut q_txt_run_state: Query<&mut Text, With<AppStateText>>,
+    mut q_app_state_root: Query<&mut Style, With<AppStateRoot>>,
+    mut q_txt_app_state: Query<(&mut Text, &mut AppStateText)>,
 ) {
-    let Ok(mut style) = q_run_state_root.get_single_mut() else {
+    let Ok(mut style) = q_app_state_root.get_single_mut() else {
         return;
     };
-    let Ok(mut txt_run_state) = q_txt_run_state.get_single_mut() else {
+    let Ok((mut txt_run_state, mut marker)) = q_txt_app_state.get_single_mut() else {
         return;
     };
     let state = *app_state.get();
-    if state == AppState::Paused {
-        style.display = Display::Flex;
-        txt_run_state.sections[0].value = "PAUSED".to_string();
-        txt_run_state.sections[0].style.color = INFINITE_TEMP_COLOR;
-    } else if state == AppState::Won {
-        style.display = Display::Flex;
-        txt_run_state.sections[0].value = "DONE".to_string();
-        txt_run_state.sections[0].style.color = Color::GOLD;
-    } else if state == AppState::Lost {
-        style.display = Display::Flex;
-        txt_run_state.sections[0].value = LOSE_STRS[thread_rng().gen_range(0..10)].to_string();
-        txt_run_state.sections[0].style.color = Color::ORANGE_RED;
-    } else {
-        style.display = Display::None;
+    match state {
+        AppState::Paused => {
+            if marker.0 != AppState::Paused {
+                marker.0 = AppState::Paused;
+                style.display = Display::Flex;
+                txt_run_state.sections[0].value = "PAUSED".to_string();
+                txt_run_state.sections[0].style.color = INFINITE_TEMP_COLOR;
+            }
+        }
+        AppState::Lost => {
+            if marker.0 != AppState::Lost {
+                marker.0 = AppState::Lost;
+                style.display = Display::Flex;
+                txt_run_state.sections[0].value =
+                    LOSE_STRS[thread_rng().gen_range(0..10)].to_string();
+                txt_run_state.sections[0].style.color = Color::ORANGE_RED;
+            }
+        }
+        AppState::Won => {
+            if marker.0 != AppState::Won {
+                marker.0 = AppState::Won;
+                style.display = Display::Flex;
+                txt_run_state.sections[0].value = "DONE".to_string();
+                txt_run_state.sections[0].style.color = Color::GOLD;
+            }
+        }
+        other => {
+            marker.0 = other;
+            style.display = Display::None;
+        }
     }
 }
 
