@@ -455,7 +455,21 @@ fn skills_asset_on_load(
                     for (skill, level) in &equipped.equipped {
                         if let Some(levels) = skills.upgrades.get(skill) {
                             if let Some(spec) = level.index(levels) {
-                                specs.0.insert(*skill, (*level, spec.clone()));
+                                let mut new_spec = HashMap::new();
+                                for (attr, val) in spec {
+                                    match val {
+                                        Value::F(_) => {
+                                            new_spec.insert(*attr, *val);
+                                        }
+                                        Value::U(_) => {
+                                            new_spec.insert(*attr, *val);
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                if !new_spec.is_empty() {
+                                    specs.0.insert(*skill, (*level, new_spec));
+                                }
                             } else {
                                 error!("Hot reload: did not find level {level} upgrades for equipped skill {skill:?}.");
                             }
