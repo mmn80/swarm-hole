@@ -60,10 +60,10 @@
         ],
         Laser: [
             { Range: F(15.), Dps: F(20.0), Duration: F(0.5), Cooldown: F(0.5) },
-            { Range: F(15.), Dps: F(30.0), Duration: F(0.5), Cooldown: F(0.5) },
-            { Range: F(15.), Dps: F(40.0), Duration: F(0.5), Cooldown: F(0.4) },
-            { Range: F(20.), Dps: F(40.0), Duration: F(0.5), Cooldown: F(0.3) },
-            { Range: F(25.), Dps: F(40.0), Duration: F(0.5), Cooldown: F(0.2) },
+            { Range: Perc(5.0), Dps: Perc(5.0), Duration: F(0.5), Cooldown: Perc(-5.0) },
+            { Range: Perc(5.0), Dps: Perc(5.0), Duration: F(0.5), Cooldown: Perc(-5.0) },
+            { Range: Perc(5.0), Dps: Perc(5.0), Duration: F(0.5), Cooldown: Perc(-5.0) },
+            { Range: Perc(5.0), Dps: Perc(5.0), Duration: F(0.5), Cooldown: Perc(-5.0) },
         ],
     }
 )

@@ -61,59 +61,65 @@ impl Plugin for SkillsPlugin {
 pub enum Value {
     F(f32),
     U(u32),
-    Af(f32),
-    Au(u32),
-    Mf(f32),
+    AddF(f32),
+    AddU(u32),
+    Perc(f32),
 }
 
 impl Value {
-    pub fn as_f32(&self) -> f32 {
-        match self {
-            Value::F(v) => *v,
-            Value::U(v) => *v as f32,
-            Value::Af(v) => *v,
-            Value::Au(v) => *v as f32,
-            Value::Mf(v) => *v,
-        }
-    }
-
     pub fn delta(&self, other: Value) -> Option<Value> {
         match self {
             Value::F(v1) => {
                 if let Value::F(v2) = other {
-                    Some(Value::F(v1 - v2))
+                    Some(Value::AddF(v1 - v2))
                 } else {
                     None
                 }
             }
             Value::U(v1) => {
                 if let Value::U(v2) = other {
-                    Some(Value::U(v1 - v2))
+                    Some(Value::AddF((v1 - v2) as f32))
                 } else {
                     None
                 }
             }
-            Value::Af(v1) => {
-                if let Value::Af(v2) = other {
-                    Some(Value::Af(v1 - v2))
-                } else {
-                    None
-                }
-            }
-            Value::Au(v1) => {
-                if let Value::Au(v2) = other {
-                    Some(Value::Au(v1 - v2))
-                } else {
-                    None
-                }
-            }
-            Value::Mf(v1) => {
-                if let Value::Mf(v2) = other {
-                    Some(Value::Mf(v1 - v2))
-                } else {
-                    None
-                }
-            }
+            Value::AddF(v1) => Some(Value::AddF(*v1)),
+            Value::AddU(v1) => Some(Value::AddF(*v1 as f32)),
+            Value::Perc(v1) => Some(Value::Perc(*v1)),
+        }
+    }
+
+    pub fn is_zero(&self) -> bool {
+        match self {
+            Value::F(v) => v.abs() < 0.01,
+            Value::U(v) => *v == 0,
+            Value::AddF(v) => v.abs() < 0.01,
+            Value::AddU(v) => *v == 0,
+            Value::Perc(v) => v.abs() < 0.01,
+        }
+    }
+
+    fn round(n: f32) -> f32 {
+        (n * 10.).round() / 10.
+    }
+
+    fn sign(n: f32) -> &'static str {
+        if n.is_sign_negative() {
+            ""
+        } else {
+            "+"
+        }
+    }
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Value::F(v1) => write!(f, "{}", Value::round(*v1)),
+            Value::U(v1) => write!(f, "{}", v1),
+            Value::AddF(v1) => write!(f, "{}{}", Value::sign(*v1), Value::round(*v1)),
+            Value::AddU(v1) => write!(f, "{}{}", Value::sign(*v1 as f32), v1),
+            Value::Perc(v1) => write!(f, "{}{}%", Value::sign(*v1), Value::round(*v1)),
         }
     }
 }
@@ -234,9 +240,11 @@ pub fn apply_skill_specs<T: Component + Struct + Default + IsSkill>(
                         match val {
                             Value::F(v) => fld.downcast_mut::<f32>().map(|f| *f = *v),
                             Value::U(v) => fld.downcast_mut::<u32>().map(|f| *f = *v),
-                            Value::Af(v) => fld.downcast_mut::<f32>().map(|f| *f += *v),
-                            Value::Au(v) => fld.downcast_mut::<u32>().map(|f| *f += *v),
-                            Value::Mf(v) => fld.downcast_mut::<f32>().map(|f| *f *= *v / 100.),
+                            Value::AddF(v) => fld.downcast_mut::<f32>().map(|f| *f += *v),
+                            Value::AddU(v) => fld.downcast_mut::<u32>().map(|f| *f += *v),
+                            Value::Perc(v) => {
+                                fld.downcast_mut::<f32>().map(|f| *f += *f * *v / 100.)
+                            }
                         };
                     } else {
                         error!(

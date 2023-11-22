@@ -624,29 +624,16 @@ fn init_skill_upgrade_ui(
                 let mut str = String::new();
                 let spec = level.index(&levels).unwrap();
                 for (attr, val) in spec {
-                    let val_f32 = (val.as_f32() * 10.).round() / 10.;
                     if let Some(attr_meta) = skills.attributes.get(attr) {
                         if let Some(prev_level) = level.prev() {
                             if let Some(prev_spec) = prev_level.index(levels) {
                                 if let Some(val_prev) = prev_spec.get(attr) {
                                     if let Some(delta) = val.delta(*val_prev) {
-                                        let delta = delta.as_f32();
-                                        let delta_positive = delta.is_sign_positive();
-                                        let delta = (delta.abs() * 10.).round() / 10.;
-                                        if delta > 0.01 {
+                                        if !delta.is_zero() {
                                             if !str.is_empty() {
                                                 str.push_str(", ");
                                             }
-                                            let delta_str = if delta_positive {
-                                                format!("+{delta}")
-                                            } else {
-                                                format!("-{delta}")
-                                            };
-
-                                            str.push_str(&format!(
-                                                "{} {delta_str} ({val_f32})",
-                                                attr_meta.ui_name
-                                            ));
+                                            str.push_str(&format!("{} {delta}", attr_meta.ui_name));
                                         }
                                     }
                                 }
@@ -655,7 +642,7 @@ fn init_skill_upgrade_ui(
                             if !str.is_empty() {
                                 str.push_str(", ");
                             }
-                            str.push_str(&format!("{} {val_f32}", attr_meta.ui_name));
+                            str.push_str(&format!("{} {val}", attr_meta.ui_name));
                         }
                     }
                 }
