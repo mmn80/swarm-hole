@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::*;
-use serde::Deserialize;
 
 use crate::{app::AppState, npc::Npc, physics::Layer};
 
@@ -17,7 +16,7 @@ impl Plugin for MeleePlugin {
     }
 }
 
-#[derive(Component, Reflect, Clone, Debug, Default, Deserialize)]
+#[derive(Component, Reflect, Default)]
 pub struct Melee {
     pub range: f32,
     pub dps: u32,

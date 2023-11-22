@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::*;
-use serde::Deserialize;
 
 use crate::{
     app::{AppState, RunState},
@@ -34,7 +33,7 @@ impl Plugin for HealthPlugin {
     }
 }
 
-#[derive(Component, Reflect, Clone, Debug, Default, Deserialize)]
+#[derive(Component, Reflect, Default)]
 pub struct MaxHealth {
     pub max_hp: u32,
 }
@@ -59,7 +58,7 @@ fn init_health(
     }
 }
 
-#[derive(Component, Reflect, Clone, Debug, Default, Deserialize)]
+#[derive(Component, Reflect, Default)]
 pub struct HealthRegen {
     pub hp_per_sec: f32,
 }

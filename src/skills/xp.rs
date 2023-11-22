@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::*;
-use serde::Deserialize;
 
 use crate::{app::AppState, physics::Layer};
 
@@ -68,7 +67,7 @@ impl XpDrop {
 
 const XP_PER_LEVEL: u32 = 10;
 
-#[derive(Component, Reflect, Clone, Debug, Default, Deserialize)]
+#[derive(Component, Reflect, Default)]
 pub struct XpGather {
     pub range: f32,
     pub acceleration: f32,
