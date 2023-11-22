@@ -104,7 +104,7 @@ fn die(
     mut cmd: Commands,
 ) {
     for (npc_ent, health, tr_npc, npc, is_player) in &q_npc {
-        if health.0 <= f32::EPSILON {
+        if health.0 < 0.9 {
             if let Some(npc) = npc {
                 run_state.live_npcs -= 1;
 
