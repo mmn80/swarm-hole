@@ -12,7 +12,7 @@ use crate::{
 use super::{
     apply_skill_specs,
     xp::{XpDrop, XpDrops},
-    IsSkill, Skill,
+    EquippedSkills, IsSkill, Skill,
 };
 
 pub struct HealthPlugin;
@@ -34,15 +34,9 @@ impl Plugin for HealthPlugin {
     }
 }
 
-#[derive(Component, Reflect, Clone, Debug, Deserialize)]
+#[derive(Component, Reflect, Clone, Debug, Default, Deserialize)]
 pub struct MaxHealth {
     pub max_hp: u32,
-}
-
-impl Default for MaxHealth {
-    fn default() -> Self {
-        Self { max_hp: 10000 }
-    }
 }
 
 impl IsSkill for MaxHealth {
@@ -54,9 +48,14 @@ impl IsSkill for MaxHealth {
 #[derive(Component)]
 pub struct Health(pub f32);
 
-fn init_health(q_health: Query<(Entity, &MaxHealth), Without<Health>>, mut cmd: Commands) {
-    for (ent, max_health) in &q_health {
-        cmd.entity(ent).insert(Health(max_health.max_hp as f32));
+fn init_health(
+    q_health: Query<(Entity, &MaxHealth, &EquippedSkills), Without<Health>>,
+    mut cmd: Commands,
+) {
+    for (ent, max_health, equipped) in &q_health {
+        if equipped.is_equipped(Skill::Health) {
+            cmd.entity(ent).insert(Health(max_health.max_hp as f32));
+        }
     }
 }
 

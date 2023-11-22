@@ -57,26 +57,6 @@ impl Plugin for SkillsPlugin {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Reflect, Debug, Deserialize, Hash)]
-pub enum Skill {
-    Health,
-    HealthRegen,
-    XpGather,
-    Melee,
-    Laser,
-}
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Reflect, Debug, Deserialize, Hash)]
-pub enum Attribute {
-    MaxHp,
-    HpPerSec,
-    Range,
-    Acceleration,
-    Dps,
-    Duration,
-    Cooldown,
-}
-
 #[derive(Copy, Clone, Reflect, Debug, Deserialize)]
 pub enum Value {
     F(f32),
@@ -138,13 +118,89 @@ impl Value {
     }
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Reflect, Debug, Deserialize, Hash)]
+pub enum Attribute {
+    MaxHp,
+    HpPerSec,
+    Range,
+    Acceleration,
+    Dps,
+    Duration,
+    Cooldown,
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Reflect, Debug, Deserialize, Hash)]
+pub enum Skill {
+    Health,
+    HealthRegen,
+    XpGather,
+    Melee,
+    Laser,
+}
+
+pub trait IsSkill {
+    fn skill() -> Skill;
+}
+
+// skill component initialization
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Debug, Reflect, Deserialize)]
+pub struct Level(u8);
+
+impl Level {
+    pub fn is_first(&self) -> bool {
+        self.0 == 0
+    }
+
+    pub fn next(&self, levels_count: usize) -> Option<Self> {
+        if self.0 as usize >= levels_count - 1 {
+            None
+        } else {
+            Some(Self(self.0 + 1))
+        }
+    }
+
+    pub fn prev(&self) -> Option<Self> {
+        if self.0 == 0 {
+            None
+        } else {
+            Some(Self(self.0 - 1))
+        }
+    }
+
+    pub fn index<'a, T>(&'a self, list: &'a Vec<T>) -> Option<&T> {
+        list.get(self.0 as usize)
+    }
+}
+
+impl fmt::Display for Level {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0 + 1)
+    }
+}
+
 pub type SkillSpec = HashMap<Attribute, Value>;
 
 #[derive(Component, Default)]
 pub struct SkillSpecs(pub HashMap<Skill, (Level, SkillSpec)>);
 
-pub trait IsSkill {
-    fn skill() -> Skill;
+#[derive(Component, Clone, Default)]
+pub struct EquippedSkills {
+    equipped: HashMap<Skill, Level>,
+    selected: HashSet<Skill>,
+}
+
+impl EquippedSkills {
+    pub fn is_equipped(&self, skill: Skill) -> bool {
+        self.equipped.contains_key(&skill)
+    }
+
+    fn set_level(&mut self, skill: Skill, level: Level, is_selected: bool) {
+        self.equipped.insert(skill, level);
+        if is_selected {
+            self.selected.insert(skill);
+        }
+    }
 }
 
 pub fn apply_skill_specs<T: Component + Struct + Default + IsSkill>(
@@ -182,7 +238,7 @@ pub fn apply_skill_specs<T: Component + Struct + Default + IsSkill>(
                 }
             }
 
-            equipped.equipped.insert(skill, *level);
+            equipped.set_level(skill, *level, false);
 
             specs.0.remove(&skill);
             if specs.0.is_empty() {
@@ -192,55 +248,7 @@ pub fn apply_skill_specs<T: Component + Struct + Default + IsSkill>(
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Debug, Reflect, Deserialize)]
-pub struct Level(u8);
-
-impl Level {
-    pub fn is_first(&self) -> bool {
-        self.0 == 0
-    }
-
-    pub fn next(&self, levels_count: usize) -> Option<Self> {
-        if self.0 as usize >= levels_count - 1 {
-            None
-        } else {
-            Some(Self(self.0 + 1))
-        }
-    }
-
-    pub fn prev(&self) -> Option<Self> {
-        if self.0 == 0 {
-            None
-        } else {
-            Some(Self(self.0 - 1))
-        }
-    }
-
-    pub fn index<'a, T>(&'a self, list: &'a Vec<T>) -> Option<&T> {
-        list.get(self.0 as usize)
-    }
-}
-
-impl fmt::Display for Level {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0 + 1)
-    }
-}
-
-#[derive(Component, Clone, Default)]
-pub struct EquippedSkills {
-    equipped: HashMap<Skill, Level>,
-    selected: HashSet<Skill>,
-}
-
-impl EquippedSkills {
-    pub fn set_level(&mut self, skill: Skill, level: Level, is_selected: bool) {
-        self.equipped.insert(skill, level);
-        if is_selected {
-            self.selected.insert(skill);
-        }
-    }
-}
+// skill upgrades
 
 #[derive(Component)]
 pub struct MaxUpgradableSkills(pub u8);
@@ -331,6 +339,8 @@ fn apply_upgrade_selection(
     upgrades.selected = None;
     next_state.set(AppState::Run);
 }
+
+// asset loading
 
 #[derive(Asset, TypePath, Debug, Deserialize)]
 pub struct SkillsAsset {

@@ -8,9 +8,9 @@
         material_idx: 0,
         max_selected_skills: 3,
         default_skills: {
-            Health: { MaxHp: U(100), },
-            HealthRegen: { HpPerSec: F(1.0), },
-            XpGather: { Range: F(10.0), Acceleration: F(50.0), },
+            Health: { MaxHp: U(100) },
+            HealthRegen: { HpPerSec: F(1.0) },
+            XpGather: { Range: F(10.0), Acceleration: F(50.0) },
         },
         selected_skills: [ Laser ],
     ),
