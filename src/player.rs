@@ -202,7 +202,7 @@ impl Command for SpawnPlayer {
             .with_max_time_of_impact(0.11)
             .with_max_hits(1),
             MaxUpgradableSkills(pc.max_selected_skills),
-            EquippedSkills::default(),
+            EquippedSkills::new(&pc.selected_skills),
             specs,
             HotReloadEquippedSkills,
         ));
