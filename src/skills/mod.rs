@@ -15,12 +15,14 @@ use self::{
     health::HealthPlugin,
     laser::LaserPlugin,
     melee::MeleePlugin,
+    swarm::SwarmPlugin,
     xp::{XpGatherState, XpPlugin},
 };
 
 pub mod health;
 pub mod laser;
 pub mod melee;
+pub mod swarm;
 pub mod xp;
 
 pub struct SkillPluginGroup;
@@ -30,6 +32,7 @@ impl PluginGroup for SkillPluginGroup {
         PluginGroupBuilder::start::<Self>()
             .add(SkillsPlugin)
             .add(HealthPlugin)
+            .add(SwarmPlugin)
             .add(XpPlugin)
             .add(LaserPlugin)
             .add(MeleePlugin)
@@ -133,6 +136,7 @@ pub enum Attribute {
     Dps,
     Duration,
     Cooldown,
+    Speed,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Reflect, Debug, Deserialize, Hash)]
@@ -140,6 +144,7 @@ pub enum Skill {
     Health,
     HealthRegen,
     XpGather,
+    Swarm,
     Melee,
     Laser,
 }

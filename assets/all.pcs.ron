@@ -1,12 +1,12 @@
 ([
     (
         name: "Cortez Limonero",
-        speed: 4.0,
+        speed: 5.0,
         width: 0.3,
         height: 2.0,
         mesh_idx: 0,
         material_idx: 0,
-        max_selected_skills: 3,
+        max_selected_skills: 6,
         default_skills: {
             Health: { MaxHp: U(100) },
             HealthRegen: { HpPerSec: F(1.0) },

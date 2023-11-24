@@ -12,7 +12,6 @@ use crate::{
     app::{AppState, RunState},
     debug_ui::{DebugUiCommand, DebugUiEvent},
     physics::{Layer, ALL_LAYERS},
-    player::Player,
     skills::{EquippedSkills, Level, Skill, SkillSpec, SkillSpecs},
 };
 
@@ -32,10 +31,7 @@ impl Plugin for NpcPlugin {
                 },
                 spawn_start_npcs,
             )
-            .add_systems(
-                Update,
-                (spawn_random_npcs, move_npcs).run_if(in_state(AppState::Run)),
-            )
+            .add_systems(Update, spawn_random_npcs.run_if(in_state(AppState::Run)))
             .add_systems(Update, hot_reload_npcs)
             .add_systems(OnEnter(AppState::Cleanup), cleanup_npcs);
     }
@@ -91,7 +87,6 @@ fn setup_npc_handles(
 pub struct NonPlayerCharacter {
     pub name: String,
     pub xp_drop: u32,
-    pub speed: f32,
     pub frequency: f32,
     pub radius: f32,
     pub mesh_idx: usize,
@@ -146,7 +141,6 @@ impl AssetLoader for NonPlayerCharactersAssetLoader {
 #[derive(Component, Reflect, Clone)]
 pub struct Npc {
     pub xp_drop: u32,
-    pub speed: f32,
 }
 
 pub struct SpawnNpc {
@@ -172,7 +166,6 @@ impl Command for SpawnNpc {
                 .spawn((
                     Npc {
                         xp_drop: npc.xp_drop,
-                        speed: npc.speed,
                     },
                     HotReloadNpc(self.npc_index),
                     PbrBundle {
@@ -206,11 +199,11 @@ impl Command for SpawnNpc {
 fn spawn_start_npcs(mut ev_debug_ui: EventWriter<DebugUiEvent>) {
     ev_debug_ui.send(DebugUiEvent {
         command: DebugUiCommand::SpawnNpcs,
-        param: 500,
+        param: 5000,
     });
 }
 
-const NPC_DIST: f32 = 30.0;
+const NPC_DIST: f32 = 20.0;
 
 fn spawn_random_npcs(
     npc_handles: Res<NpcHandles>,
@@ -260,27 +253,6 @@ fn spawn_random_npcs(
     }
 }
 
-fn move_npcs(
-    mut q_npc: Query<(&Npc, &Position, &mut LinearVelocity)>,
-    q_player: Query<&Position, With<Player>>,
-) {
-    let Ok(player_pos) = q_player.get_single() else {
-        for (_, _, mut lin_vel) in &mut q_npc {
-            lin_vel.x = 0.;
-            lin_vel.y = 0.;
-            lin_vel.z = 0.;
-        }
-        return;
-    };
-    for (npc, npc_pos, mut lin_vel) in &mut q_npc {
-        lin_vel.y = 0.;
-        let dir =
-            Vec2::new(player_pos.x - npc_pos.x, player_pos.z - npc_pos.z).normalize() * npc.speed;
-        lin_vel.x = dir.x;
-        lin_vel.z = dir.y;
-    }
-}
-
 #[derive(PartialEq, Copy, Clone)]
 pub struct NpcAssetIndex(usize);
 
@@ -301,7 +273,6 @@ fn hot_reload_npcs(
                 for (entity, mut npc, hot_reload_npc) in &mut q_npcs {
                     if let Some(npc_src) = asset.get_npc_by_index(hot_reload_npc.0) {
                         npc.xp_drop = npc_src.xp_drop;
-                        npc.speed = npc_src.speed;
                         let mut specs = SkillSpecs::default();
                         for (skill, spec) in &npc_src.skills {
                             specs.0.insert(*skill, (Level::default(), spec.clone()));

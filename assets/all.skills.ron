@@ -2,6 +2,7 @@
     skills: {
         Health: "Max Health",
         HealthRegen: "Health Regeneration",
+        Swarm: "Swarm",
         XpGather: "XP Gathering",
         Melee: "Melee",
         Laser: "Laser",
@@ -14,6 +15,10 @@
         HpPerSec: ( 
             field_name: "hp_per_sec", 
             ui_name: "hp/s",
+        ),
+        Speed: ( 
+            field_name: "speed", 
+            ui_name: "speed",
         ),
         Range: ( 
             field_name: "range", 

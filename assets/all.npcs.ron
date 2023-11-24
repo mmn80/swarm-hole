@@ -2,26 +2,26 @@
     (
         name: "Cortez Limonero",
         xp_drop: 1,
-        speed: 2.0,
         radius: 0.5,
         frequency: 1.0,
         mesh_idx: 0,
         material_idx: 0,
         skills: {
             Health: { MaxHp: U(1) },
+            Swarm: { Speed: F(2.0), Range: F(100.0) },
             Melee: { Range: F(1.0), Dps: U(3) },
         },
     ),
     (
         name: "Luz Tomatera",
         xp_drop: 10,
-        speed: 1.5,
         radius: 1.0,
         frequency: 0.1,
         mesh_idx: 1,
         material_idx: 1,
         skills: {
             Health: { MaxHp: U(10) },
+            Swarm: { Speed: F(1.5), Range: F(100.0) },
             Melee: { Range: F(1.5), Dps: U(3) },
             Laser: { Range: F(10.0), Dps: F(5.0), Duration: F(0.2), Cooldown: F(1.0) },    
         },
