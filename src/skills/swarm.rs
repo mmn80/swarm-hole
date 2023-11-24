@@ -31,6 +31,8 @@ impl IsSkill for Swarm {
     }
 }
 
+const ROAM_SPEED: f32 = 0.5;
+
 fn move_swarm(
     mut q_npc: Query<(&Swarm, &Position, &mut LinearVelocity)>,
     q_player: Query<&Position, With<Player>>,
@@ -53,10 +55,10 @@ fn move_swarm(
             } else {
                 let vel = Vec2::new(lin_vel.x, lin_vel.z);
                 let (max_angle, new_vel) = {
-                    if vel.length() > swarm.speed / 2. && vel.length() < 2. * swarm.speed {
+                    if vel.length() > ROAM_SPEED / 2. && vel.length() < 2. * ROAM_SPEED {
                         (PI / 45., vel)
                     } else {
-                        (PI, Vec2::ONE * swarm.speed)
+                        (PI, Vec2::ONE * ROAM_SPEED)
                     }
                 };
                 let alpha = rng.gen_range(-max_angle..max_angle);
