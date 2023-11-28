@@ -1,18 +1,14 @@
-use bevy::prelude::*;
+use bevy::{ecs::system::Command, prelude::*};
 use bevy_xpbd_3d::{math::*, prelude::*, SubstepSchedule, SubstepSet};
 
-use crate::{
-    app::AppState,
-    debug_ui::{DebugUiCommand, DebugUiEvent},
-    player::Player,
-};
+use crate::{app::AppState, player::Player};
 
 pub struct MainPhysicsPlugin;
 
 impl Plugin for MainPhysicsPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_physics)
-            .add_systems(Update, (update_physics_paused, physics_debug_ui))
+            .add_systems(Update, update_physics_paused)
             .add_systems(
                 SubstepSchedule,
                 kinematic_collision
@@ -37,14 +33,12 @@ fn update_physics_paused(mut time: ResMut<Time<Physics>>, app_state: Res<State<A
     }
 }
 
-fn physics_debug_ui(
-    mut ev_debug_ui: EventReader<DebugUiEvent>,
-    mut debug_config: ResMut<PhysicsDebugConfig>,
-) {
-    for ev in ev_debug_ui.read() {
-        if ev.command == DebugUiCommand::TogglePhysicsDebug {
-            debug_config.enabled = !debug_config.enabled;
-        }
+pub struct TogglePhysicsDebug;
+
+impl Command for TogglePhysicsDebug {
+    fn apply(self, world: &mut World) {
+        let mut debug_config = world.resource_mut::<PhysicsDebugConfig>();
+        debug_config.enabled = !debug_config.enabled;
     }
 }
 

@@ -10,7 +10,6 @@ use serde::Deserialize;
 
 use crate::{
     app::{AppState, RunState},
-    debug_ui::{DebugUiCommand, DebugUiEvent},
     physics::{Layer, ALL_LAYERS},
     skills::{EquippedSkills, Level, Skill, SkillSpec, SkillSpecs},
 };
@@ -31,7 +30,6 @@ impl Plugin for NpcPlugin {
                 },
                 spawn_start_npcs,
             )
-            .add_systems(Update, spawn_random_npcs.run_if(in_state(AppState::Run)))
             .add_systems(Update, hot_reload_npcs)
             .add_systems(OnEnter(AppState::Cleanup), cleanup_npcs);
     }
@@ -196,59 +194,65 @@ impl Command for SpawnNpc {
     }
 }
 
-fn spawn_start_npcs(mut ev_debug_ui: EventWriter<DebugUiEvent>) {
-    ev_debug_ui.send(DebugUiEvent {
-        command: DebugUiCommand::SpawnNpcs,
-        param: 5000,
+fn spawn_start_npcs(mut cmd: Commands) {
+    cmd.add(SpawnRandomNpcs {
+        count: 5000,
+        distance: 20.,
     });
 }
 
-const NPC_DIST: f32 = 20.0;
+pub struct SpawnRandomNpcs {
+    pub count: usize,
+    pub distance: f32,
+}
 
-fn spawn_random_npcs(
-    npc_handles: Res<NpcHandles>,
-    npc_assets: Res<Assets<NonPlayerCharactersAsset>>,
-    mut ev_debug_ui: EventReader<DebugUiEvent>,
-    mut cmd: Commands,
-) {
-    for ev in ev_debug_ui.read() {
-        if ev.command == DebugUiCommand::SpawnNpcs {
-            let count = ev.param;
-            info!("spawning {count} NPCs...");
+impl Command for SpawnRandomNpcs {
+    fn apply(self, world: &mut World) {
+        info!("spawning {} NPCs...", self.count);
+        let npcs = {
+            let Some(npc_handles) = world.get_resource::<NpcHandles>() else {
+                error!("NPC handles resource not found!");
+                return;
+            };
+            let Some(npc_assets) = world.get_resource::<Assets<NonPlayerCharactersAsset>>() else {
+                error!("NPC assets not found!");
+                return;
+            };
             let Some(npcs) = npc_assets.get(&npc_handles.config) else {
                 error!("NPC config asset not loaded!");
                 return;
             };
+            npcs.0.clone()
+        };
 
-            let mut rng = thread_rng();
-            let npc_idx = WeightedIndex::new(npcs.0.iter().map(|npc| npc.frequency)).unwrap();
+        let mut rng = thread_rng();
+        let npc_idx = WeightedIndex::new(npcs.iter().map(|npc| npc.frequency)).unwrap();
 
-            let w = ((count as f32).sqrt() / 2.).ceil() as i32;
-            let dist = (NPC_DIST - 4.) / 2.;
-            let mut n = 0;
-            for xi in -w..=w {
-                for zi in -w..=w {
-                    let idx = npc_idx.sample(&mut rng);
-                    let npc = &npcs.0[idx];
-                    let x = xi as f32 * NPC_DIST + rng.gen_range(-dist..dist);
-                    let z = zi as f32 * NPC_DIST + rng.gen_range(-dist..dist);
+        let w = ((self.count as f32).sqrt() / 2.).ceil() as i32;
+        let dist = (self.distance - 4.) / 2.;
+        let mut n = 0;
+        for xi in -w..=w {
+            for zi in -w..=w {
+                let idx = npc_idx.sample(&mut rng);
+                let npc = &npcs[idx];
+                let x = xi as f32 * self.distance + rng.gen_range(-dist..dist);
+                let z = zi as f32 * self.distance + rng.gen_range(-dist..dist);
 
-                    cmd.add(SpawnNpc {
-                        character: npc.clone(),
-                        npc_index: NpcAssetIndex(idx),
-                        location: Vec2::new(x, z),
-                    });
-
-                    n += 1;
-                    if n == count {
-                        break;
-                    }
+                SpawnNpc {
+                    character: npc.clone(),
+                    npc_index: NpcAssetIndex(idx),
+                    location: Vec2::new(x, z),
                 }
-                if n == count {
+                .apply(world);
+
+                n += 1;
+                if n == self.count {
                     break;
                 }
             }
-            break;
+            if n == self.count {
+                break;
+            }
         }
     }
 }
