@@ -94,7 +94,10 @@ impl DebugUiCommandConfig {
 struct DebugUiText;
 
 #[derive(Component)]
-struct DebugHelpText;
+struct DebugHelpCommandText;
+
+#[derive(Component)]
+struct DebugHelpDescriptionText;
 
 fn setup_debug_ui(mut cmd: Commands) {
     cmd.spawn(NodeBundle {
@@ -103,6 +106,7 @@ fn setup_debug_ui(mut cmd: Commands) {
             height: Val::Percent(100.0),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
+            flex_direction: FlexDirection::Row,
             ..default()
         },
         ..default()
@@ -119,11 +123,26 @@ fn setup_debug_ui(mut cmd: Commands) {
             .with_text_alignment(TextAlignment::Left)
             .with_style(Style {
                 display: Display::None,
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
+                margin: UiRect::right(Val::Px(20.)),
                 ..default()
             }),
-            DebugHelpText,
+            DebugHelpCommandText,
+        ));
+
+        parent.spawn((
+            TextBundle::from_section(
+                "",
+                TextStyle {
+                    font_size: 20.0,
+                    ..default()
+                },
+            )
+            .with_text_alignment(TextAlignment::Left)
+            .with_style(Style {
+                display: Display::None,
+                ..default()
+            }),
+            DebugHelpDescriptionText,
         ));
     });
 
@@ -292,31 +311,53 @@ pub struct ToggleDebugHelp;
 
 impl Command for ToggleDebugHelp {
     fn apply(self, world: &mut World) {
-        let commands = {
+        let (commands, help) = {
             let debug_ui = world.resource::<DebugUi>();
-            debug_ui
+            let commands = debug_ui
                 .commands
                 .iter()
                 .map(|cmd| {
                     format!(
-                        "{}{} - {}\n",
+                        "{}{}\n",
                         cmd.key_string,
                         if cmd.has_param { "(n)" } else { "" },
-                        cmd.help
                     )
                 })
                 .collect::<Vec<_>>()
-                .concat()
+                .concat();
+            let help = debug_ui
+                .commands
+                .iter()
+                .map(|cmd| format!("- {}\n", cmd.help))
+                .collect::<Vec<_>>()
+                .concat();
+            (commands, help)
         };
-        let mut q_text = world.query_filtered::<(&mut Text, &mut Style), With<DebugHelpText>>();
-        let Ok((mut text, mut style)) = q_text.get_single_mut(world) else {
-            return;
-        };
-        if style.display == Display::None {
-            text.sections[0].value = commands;
-            style.display = Display::Flex;
-        } else {
-            style.display = Display::None;
+
+        {
+            let mut q_text =
+                world.query_filtered::<(&mut Text, &mut Style), With<DebugHelpCommandText>>();
+            if let Ok((mut text, mut style)) = q_text.get_single_mut(world) {
+                if style.display == Display::None {
+                    text.sections[0].value = commands;
+                    style.display = Display::Flex;
+                } else {
+                    style.display = Display::None;
+                }
+            }
+        }
+
+        {
+            let mut q_text =
+                world.query_filtered::<(&mut Text, &mut Style), With<DebugHelpDescriptionText>>();
+            if let Ok((mut text, mut style)) = q_text.get_single_mut(world) {
+                if style.display == Display::None {
+                    text.sections[0].value = help;
+                    style.display = Display::Flex;
+                } else {
+                    style.display = Display::None;
+                }
+            }
         }
     }
 }
