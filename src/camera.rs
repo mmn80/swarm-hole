@@ -2,8 +2,10 @@ use bevy::{
     core_pipeline::bloom::BloomSettings,
     input::mouse::{MouseMotion, MouseWheel},
     prelude::*,
+    transform::TransformSystem,
     window::PrimaryWindow,
 };
+use bevy_xpbd_3d::PhysicsSet;
 
 use crate::app::is_running;
 
@@ -14,7 +16,13 @@ impl Plugin for MainCameraPlugin {
         app.register_type::<MainCamera>()
             .add_event::<MainCameraFocusEvent>()
             .add_systems(Startup, spawn_camera)
-            .add_systems(Update, main_camera.run_if(is_running));
+            .add_systems(
+                Update,
+                main_camera
+                    .after(PhysicsSet::Sync)
+                    .before(TransformSystem::TransformPropagate)
+                    .run_if(is_running),
+            );
     }
 }
 
