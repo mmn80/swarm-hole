@@ -87,23 +87,20 @@ fn main_camera(
     q_window: Query<&Window, With<PrimaryWindow>>,
     mut q_camera: Query<(&mut MainCamera, &mut Transform, &GlobalTransform, &Camera)>,
 ) {
-    let orbit_button = MouseButton::Right;
+    let scroll: f32 = ev_scroll.read().map(|ev| ev.y).sum();
+    let new_focus = { ev_focus.read().last().map(|ev| ev.focus) };
 
-    let mut mouse_move = Vec2::ZERO;
-    for ev in ev_motion.read() {
-        if mouse.pressed(orbit_button) {
-            mouse_move += ev.delta;
-        }
+    let mut delta = ev_motion.read().map(|ev| ev.delta).sum();
+    if !mouse.pressed(MouseButton::Right) {
+        delta = Vec2::ZERO;
     }
-
-    let mut scroll = 0.0;
-    for ev in ev_scroll.read() {
-        scroll += ev.y;
-    }
-
-    let (cursor_pos, window) = {
+    let (cursor_pos, yaw, pitch) = {
         let win = q_window.single();
-        (win.cursor_position(), Vec2::new(win.width(), win.height()))
+        (
+            win.cursor_position(),
+            Quat::from_rotation_y(-delta.x / win.width() * TWO_PI),
+            Quat::from_rotation_x(-delta.y / win.height() * TWO_PI),
+        )
     };
 
     for (mut main_camera, mut camera_tr, camera_gtr, camera) in &mut q_camera {
@@ -112,22 +109,18 @@ fn main_camera(
         }
 
         let mut any = false;
-        if mouse_move.length_squared() > f32::EPSILON {
+        if delta.length_squared() > f32::EPSILON {
             any = true;
-            let delta_x = { mouse_move.x / window.x * TWO_PI };
-            let delta_y = mouse_move.y / window.y * TWO_PI;
-            let yaw = Quat::from_rotation_y(-delta_x);
-            let pitch = Quat::from_rotation_x(-delta_y);
-            camera_tr.rotation = yaw * camera_tr.rotation; // rotate around global y axis
-            camera_tr.rotation = camera_tr.rotation * pitch; // rotate around local x axis
+            camera_tr.rotation = yaw * camera_tr.rotation;
+            camera_tr.rotation = camera_tr.rotation * pitch;
         } else if scroll.abs() > 0.0 {
             any = true;
             main_camera.radius -= scroll * main_camera.radius * 0.2;
             main_camera.radius = f32::max(main_camera.radius, 0.05);
         }
-        for focus_ev in ev_focus.read() {
+        if let Some(new_focus) = new_focus {
             any = true;
-            main_camera.focus = focus_ev.focus;
+            main_camera.focus = new_focus;
         }
 
         if any {
