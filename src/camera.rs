@@ -30,7 +30,6 @@ impl Plugin for MainCameraPlugin {
 pub struct MainCamera {
     pub focus: Vec3,
     pub radius: f32,
-    pub upside_down: bool,
     #[reflect(ignore)]
     pub mouse_ray: Option<Ray>,
 }
@@ -42,7 +41,6 @@ impl Default for MainCamera {
         MainCamera {
             focus: Vec3::Y,
             radius: 5.0,
-            upside_down: false,
             mouse_ray: None,
         }
     }
@@ -78,62 +76,46 @@ fn spawn_camera(mut cmd: Commands) {
     ));
 }
 
+const TWO_PI: f32 = std::f32::consts::PI * 2.0;
+
 /// zoom with scroll wheel, orbit with right mouse click
 fn main_camera(
     mouse: Res<Input<MouseButton>>,
     mut ev_motion: EventReader<MouseMotion>,
     mut ev_scroll: EventReader<MouseWheel>,
-    mut ev_cursor: EventReader<CursorMoved>,
     mut ev_focus: EventReader<MainCameraFocusEvent>,
     q_window: Query<&Window, With<PrimaryWindow>>,
     mut q_camera: Query<(&mut MainCamera, &mut Transform, &GlobalTransform, &Camera)>,
 ) {
     let orbit_button = MouseButton::Right;
 
-    let mut rotation_move = Vec2::ZERO;
-    let mut scroll = 0.0;
-    let mut orbit_button_changed = false;
-
-    if mouse.pressed(orbit_button) {
-        for ev in ev_motion.read() {
-            rotation_move += ev.delta;
+    let mut mouse_move = Vec2::ZERO;
+    for ev in ev_motion.read() {
+        if mouse.pressed(orbit_button) {
+            mouse_move += ev.delta;
         }
     }
+
+    let mut scroll = 0.0;
     for ev in ev_scroll.read() {
         scroll += ev.y;
     }
-    if mouse.just_released(orbit_button) || mouse.just_pressed(orbit_button) {
-        orbit_button_changed = true;
-    }
 
-    let cursor_pos = ev_cursor.read().last().map(|p| p.position);
+    let (cursor_pos, window) = {
+        let win = q_window.single();
+        (win.cursor_position(), Vec2::new(win.width(), win.height()))
+    };
 
     for (mut main_camera, mut camera_tr, camera_gtr, camera) in &mut q_camera {
         if let Some(pos) = cursor_pos {
             main_camera.mouse_ray = camera.viewport_to_world(camera_gtr, pos);
         }
 
-        if orbit_button_changed {
-            let up = camera_tr.rotation * Vec3::Y;
-            main_camera.upside_down = up.y <= 0.0;
-        }
-
         let mut any = false;
-        if rotation_move.length_squared() > 0.0 {
+        if mouse_move.length_squared() > f32::EPSILON {
             any = true;
-            let window = {
-                let window = q_window.single();
-                Vec2::new(window.width(), window.height())
-            };
-            let delta_x = {
-                let delta = rotation_move.x / window.x * std::f32::consts::PI * 2.0;
-                if main_camera.upside_down {
-                    -delta
-                } else {
-                    delta
-                }
-            };
-            let delta_y = rotation_move.y / window.y * std::f32::consts::PI;
+            let delta_x = { mouse_move.x / window.x * TWO_PI };
+            let delta_y = mouse_move.y / window.y * TWO_PI;
             let yaw = Quat::from_rotation_y(-delta_x);
             let pitch = Quat::from_rotation_x(-delta_y);
             camera_tr.rotation = yaw * camera_tr.rotation; // rotate around global y axis
