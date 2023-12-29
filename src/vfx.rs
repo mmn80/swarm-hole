@@ -53,6 +53,7 @@ fn setup_vfx(mut vfx: ResMut<Vfx>, mut effects: ResMut<Assets<EffectAsset>>, mut
             .update(update_drag)
             .render(OrientModifier {
                 mode: OrientMode::ParallelCameraDepthPlane,
+                rotation: None,
             })
             .render(SetSizeModifier {
                 size: Vec2::splat(0.05).into(),
@@ -61,7 +62,7 @@ fn setup_vfx(mut vfx: ResMut<Vfx>, mut effects: ResMut<Assets<EffectAsset>>, mut
     );
 
     cmd.spawn(ParticleEffectBundle::new(vfx.damage_particles.clone()).with_spawner(spawner))
-        .insert(Name::new("damage_particles"));
+        .insert((EffectProperties::default(), Name::new("damage_particles")));
 }
 
 #[derive(Event)]
@@ -73,11 +74,7 @@ pub struct DamageParticlesEvent {
 
 fn update_vfx(
     mut ev_damage_particles: EventReader<DamageParticlesEvent>,
-    mut effect: Query<(
-        &mut CompiledParticleEffect,
-        &mut EffectSpawner,
-        &mut Transform,
-    )>,
+    mut effect: Query<(&mut EffectProperties, &mut EffectSpawner, &mut Transform)>,
 ) {
     let Ok((mut effect, mut spawner, mut tr_effect)) = effect.get_single_mut() else {
         return;
@@ -85,11 +82,11 @@ fn update_vfx(
     for ev in ev_damage_particles.read() {
         tr_effect.translation = ev.position;
 
-        effect.set_property("spawn_color", Vec4::from(ev.color.as_rgba_f32()).into());
+        effect.set("spawn_color", Vec4::from(ev.color.as_rgba_f32()).into());
 
         let mut normal = ev.normal;
         normal.y = 0.;
-        effect.set_property("normal", normal.normalize().into());
+        effect.set("normal", normal.normalize().into());
 
         spawner.reset();
     }
