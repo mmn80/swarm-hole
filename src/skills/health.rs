@@ -114,13 +114,7 @@ fn die(
                         XpDrop(npc.xp_drop),
                         PbrBundle {
                             transform: Transform::from_translation(Vec3::new(p.x, h + 0.02, p.z)),
-                            mesh: meshes.add(
-                                Mesh::try_from(shape::Icosphere {
-                                    radius: h,
-                                    subdivisions: 4,
-                                })
-                                .unwrap(),
-                            ),
+                            mesh: meshes.add(Sphere::new(h).mesh().ico(4).unwrap()),
                             material: (if XpDrop::is_big(npc.xp_drop) {
                                 xp_drops.xp_drop_big.clone()
                             } else {

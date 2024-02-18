@@ -113,7 +113,7 @@ fn setup_top_bar_ui(mut cmd: Commands) {
                             },
                         ),
                     ])
-                    .with_text_alignment(TextAlignment::Left)
+                    .with_text_justify(JustifyText::Left)
                     .with_style(Style {
                         justify_content: JustifyContent::FlexStart,
                         align_items: AlignItems::FlexStart,
@@ -139,7 +139,7 @@ fn setup_top_bar_ui(mut cmd: Commands) {
                             },
                         ),
                     ])
-                    .with_text_alignment(TextAlignment::Left)
+                    .with_text_justify(JustifyText::Left)
                     .with_style(Style {
                         justify_content: JustifyContent::FlexStart,
                         align_items: AlignItems::FlexStart,
@@ -193,7 +193,7 @@ fn setup_top_bar_ui(mut cmd: Commands) {
                             },
                         ),
                     ])
-                    .with_text_alignment(TextAlignment::Left)
+                    .with_text_justify(JustifyText::Left)
                     .with_style(Style {
                         justify_content: JustifyContent::FlexStart,
                         align_items: AlignItems::FlexStart,
@@ -219,7 +219,7 @@ fn setup_top_bar_ui(mut cmd: Commands) {
                             },
                         ),
                     ])
-                    .with_text_alignment(TextAlignment::Left)
+                    .with_text_justify(JustifyText::Left)
                     .with_style(Style {
                         justify_content: JustifyContent::FlexStart,
                         align_items: AlignItems::FlexStart,
@@ -355,7 +355,7 @@ fn update_fps(diagnostics: Res<DiagnosticsStore>, mut q_fps_txt: Query<&mut Text
         return;
     };
     let mut fps = 0.0;
-    if let Some(fps_diagnostic) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
+    if let Some(fps_diagnostic) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS) {
         if let Some(fps_smoothed) = fps_diagnostic.smoothed() {
             fps = fps_smoothed;
         }
@@ -404,7 +404,7 @@ fn setup_paused_ui(mut cmd: Commands) {
                             ..default()
                         },
                     )
-                    .with_text_alignment(TextAlignment::Center)
+                    .with_text_justify(JustifyText::Center)
                     .with_style(Style {
                         margin: UiRect::all(Val::Px(50.)),
                         ..default()
@@ -418,7 +418,7 @@ fn setup_paused_ui(mut cmd: Commands) {
                         ..default()
                     },
                 )
-                .with_text_alignment(TextAlignment::Center)
+                .with_text_justify(JustifyText::Center)
                 .with_style(Style {
                     margin: UiRect::all(Val::Px(50.)),
                     ..default()
@@ -517,7 +517,7 @@ fn setup_upgrade_ui(mut cmd: Commands) {
     });
 }
 
-fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_, '_, '_>, index: usize) {
+fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_>, index: usize) {
     if index > 0 {
         parent.spawn(NodeBundle {
             style: Style {
@@ -563,7 +563,7 @@ fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_, '_, '_>, index: usize)
                         },
                     ),
                 ])
-                .with_text_alignment(TextAlignment::Center)
+                .with_text_justify(JustifyText::Center)
                 .with_style(Style {
                     margin: UiRect::new(Val::Px(40.), Val::Px(40.), Val::Px(40.), Val::Px(10.)),
                     ..default()
@@ -580,7 +580,7 @@ fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_, '_, '_>, index: usize)
                         ..default()
                     },
                 )
-                .with_text_alignment(TextAlignment::Center)
+                .with_text_justify(JustifyText::Center)
                 .with_style(Style {
                     margin: UiRect::new(Val::Px(40.), Val::Px(40.), Val::Px(10.), Val::Px(40.)),
                     ..default()

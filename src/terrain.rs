@@ -49,11 +49,7 @@ fn setup_terrain(
             .spawn((
                 PbrBundle {
                     transform: Transform::from_xyz(0.0, -ground_size.y / 2., 0.0),
-                    mesh: meshes.add(Mesh::from(shape::Box::new(
-                        ground_size.x,
-                        ground_size.y,
-                        ground_size.z,
-                    ))),
+                    mesh: meshes.add(Cuboid::new(ground_size.x, ground_size.y, ground_size.z)),
                     material,
                     ..default()
                 },

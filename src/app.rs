@@ -55,7 +55,7 @@ fn start_run(mut run_state: ResMut<RunState>) {
 }
 
 fn update_app_state(
-    keyboard: Res<Input<KeyCode>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
     app_state: Res<State<AppState>>,
     mut next_state: ResMut<NextState<AppState>>,

@@ -31,7 +31,7 @@ pub struct MainCamera {
     pub focus: Vec3,
     pub radius: f32,
     #[reflect(ignore)]
-    pub mouse_ray: Option<Ray>,
+    pub mouse_ray: Option<Ray3d>,
 }
 
 const START_DIST: f32 = 75.0;
@@ -80,7 +80,7 @@ const TWO_PI: f32 = std::f32::consts::PI * 2.0;
 
 /// zoom with scroll wheel, orbit with right mouse click
 fn main_camera(
-    mouse: Res<Input<MouseButton>>,
+    mouse: Res<ButtonInput<MouseButton>>,
     mut ev_motion: EventReader<MouseMotion>,
     mut ev_scroll: EventReader<MouseWheel>,
     mut ev_focus: EventReader<MainCameraFocusEvent>,

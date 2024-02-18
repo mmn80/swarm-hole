@@ -50,20 +50,8 @@ fn setup_npc_handles(
 ) {
     npc_handles.config = asset_server.load("all.npcs.ron");
     npc_handles.meshes = vec![
-        meshes.add(
-            Mesh::try_from(shape::Icosphere {
-                radius: 0.5,
-                subdivisions: 5,
-            })
-            .unwrap(),
-        ),
-        meshes.add(
-            Mesh::try_from(shape::Icosphere {
-                radius: 1.,
-                subdivisions: 8,
-            })
-            .unwrap(),
-        ),
+        meshes.add(Sphere::new(0.5).mesh().ico(5).unwrap()),
+        meshes.add(Sphere::new(1.).mesh().ico(8).unwrap()),
     ];
     npc_handles.materials = vec![
         materials.add(StandardMaterial {

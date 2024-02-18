@@ -62,14 +62,15 @@ fn setup_player_handles(
 
     let (height, width) = (2., 0.3);
     let cap_h = height - 2. * width;
-    pc_handles.meshes = vec![meshes.add(Mesh::from(shape::Capsule {
-        radius: width,
-        rings: 0,
-        depth: cap_h,
-        latitudes: 16,
-        longitudes: 32,
-        uv_profile: shape::CapsuleUvProfile::Aspect,
-    }))];
+    pc_handles.meshes = vec![meshes.add(
+        Capsule3d::new(width, cap_h)
+            .mesh()
+            .rings(0)
+            .latitudes(16)
+            .longitudes(32)
+            .uv_profile(bevy::render::mesh::CapsuleUvProfile::Aspect)
+            .build(),
+    )];
     pc_handles.materials = vec![materials.add(StandardMaterial {
         base_color: Color::BLACK,
         metallic: 0.0,
@@ -212,7 +213,7 @@ impl Command for SpawnPlayer {
 const PLAYER_ACC_STEPS: f32 = 10.;
 
 fn move_player(
-    keyboard: Res<Input<KeyCode>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     debug_ui: Res<DebugUi>,
     mut q_player: Query<(&Transform, &Player, &mut LinearVelocity, &ShapeHits)>,
     mut ev_refocus: EventWriter<MainCameraFocusEvent>,

@@ -120,7 +120,7 @@ fn setup_debug_ui(mut cmd: Commands) {
                     ..default()
                 },
             )
-            .with_text_alignment(TextAlignment::Left)
+            .with_text_justify(JustifyText::Left)
             .with_style(Style {
                 display: Display::None,
                 margin: UiRect::right(Val::Px(20.)),
@@ -137,7 +137,7 @@ fn setup_debug_ui(mut cmd: Commands) {
                     ..default()
                 },
             )
-            .with_text_alignment(TextAlignment::Left)
+            .with_text_justify(JustifyText::Left)
             .with_style(Style {
                 display: Display::None,
                 ..default()
@@ -165,7 +165,7 @@ fn setup_debug_ui(mut cmd: Commands) {
                     ..default()
                 },
             )
-            .with_text_alignment(TextAlignment::Center)
+            .with_text_justify(JustifyText::Center)
             .with_style(Style {
                 display: Display::None,
                 justify_content: JustifyContent::Center,
@@ -189,7 +189,7 @@ fn setup_debug_ui(mut cmd: Commands) {
 }
 
 fn process_debug_commands(
-    keyboard: Res<Input<KeyCode>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     time: Res<Time<Real>>,
     mut debug_ui: ResMut<DebugUi>,
     ev_char: EventReader<ReceivedCharacter>,

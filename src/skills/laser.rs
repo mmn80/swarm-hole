@@ -51,13 +51,11 @@ fn setup_assets(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     handles.laser_mesh = meshes.add(
-        Mesh::try_from(shape::Cylinder {
-            radius: 0.05,
-            height: 1.,
-            resolution: 8,
-            segments: 1,
-        })
-        .unwrap(),
+        Cylinder::new(0.05, 1.)
+            .mesh()
+            .resolution(8)
+            .segments(1)
+            .build(),
     );
     handles.player_laser_material = materials.add(StandardMaterial {
         base_color: PLAYER_LASER_COLOR,
