@@ -121,10 +121,10 @@ fn laser_target_npc(
         let pos = tr_player.translation;
         if let Some((hit_ent, _)) = q_space
             .shape_intersections(
-                &Collider::ball(laser_config.range),
+                &Collider::sphere(laser_config.range),
                 pos,
                 Quat::default(),
-                SpatialQueryFilter::new().with_masks([Layer::NPC]),
+                SpatialQueryFilter::from_mask([Layer::NPC]),
             )
             .iter()
             .filter_map(|ent| q_npc.get(*ent).ok().map(|tr| (ent, tr.translation)))

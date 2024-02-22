@@ -63,7 +63,7 @@ fn update_app_state(
     debug_ui: Res<DebugUi>,
     mut exit: EventWriter<AppExit>,
 ) {
-    let enter = keyboard.just_pressed(KeyCode::Return) && !debug_ui.has_focus();
+    let enter = keyboard.just_pressed(KeyCode::Enter) && !debug_ui.has_focus();
     let esc = keyboard.just_pressed(KeyCode::Escape) && !debug_ui.has_focus();
     match *app_state.get() {
         AppState::Cleanup => {

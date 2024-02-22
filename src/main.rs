@@ -45,6 +45,7 @@ fn main() {
                 })
                 .set(RenderPlugin {
                     render_creation: wgpu_settings.into(),
+                    synchronous_pipeline_compilation: false,
                 }),
             FrameTimeDiagnosticsPlugin,
         ))
@@ -53,7 +54,7 @@ fn main() {
             PhysicsDebugPlugin::default(),
             HanabiPlugin,
         ))
-        .add_state::<AppState>()
+        .init_state::<AppState>()
         .add_plugins((
             MainMenuPlugin,
             MainPhysicsPlugin,

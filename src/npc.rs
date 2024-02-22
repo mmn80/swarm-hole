@@ -165,7 +165,7 @@ impl Command for SpawnNpc {
                         ..default()
                     },
                     RigidBody::Kinematic,
-                    Collider::ball(npc.radius),
+                    Collider::sphere(npc.radius),
                     CollisionLayers::new([Layer::NPC], ALL_LAYERS),
                     EquippedSkills::default(),
                     specs,

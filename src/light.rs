@@ -11,7 +11,7 @@ impl Plugin for MainLightsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(AmbientLight {
             color: Color::WHITE,
-            brightness: 0.05,
+            brightness: 80.,
         })
         .insert_resource(DirectionalLightShadowMap { size: 4096 })
         .add_systems(Startup, spawn_main_lights)
@@ -25,7 +25,7 @@ impl Plugin for MainLightsPlugin {
 fn spawn_main_lights(mut cmd: Commands) {
     cmd.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
-            illuminance: 20000.0,
+            illuminance: light_consts::lux::AMBIENT_DAYLIGHT,
             shadows_enabled: true,
             ..default()
         },

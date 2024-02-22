@@ -219,7 +219,7 @@ fn process_debug_commands(
                 }
             }
 
-            if keyboard.just_released(KeyCode::Grave) {
+            if keyboard.just_released(KeyCode::Backquote) {
                 debug_ui.state = DebugUiCommandParseState::ReadingCommand("".to_string());
             }
         }
@@ -261,7 +261,7 @@ fn process_debug_commands(
         DebugUiCommandParseState::ReadingParam(command, key_string, buffer) => {
             if keyboard.just_released(KeyCode::Escape) {
                 debug_ui.state = DebugUiCommandParseState::Inactive;
-            } else if keyboard.just_released(KeyCode::Return) {
+            } else if keyboard.just_released(KeyCode::Enter) {
                 if let Ok(param) = buffer.parse::<i32>() {
                     to_send_cmd = Some(*command);
                     to_send_param = param;
@@ -300,8 +300,10 @@ fn process_debug_commands(
 fn append_chars(buffer: &String, mut ev_char: EventReader<'_, '_, ReceivedCharacter>) -> String {
     let mut new_buffer = buffer.clone();
     for ev in ev_char.read() {
-        if !ev.char.is_control() {
-            new_buffer.push(ev.char);
+        for char in ev.char.chars() {
+            if !char.is_control() {
+                new_buffer.push(char);
+            }
         }
     }
     new_buffer

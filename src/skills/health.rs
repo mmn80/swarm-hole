@@ -123,7 +123,7 @@ fn die(
                             ..default()
                         },
                         RigidBody::Kinematic,
-                        Collider::ball(h),
+                        Collider::sphere(h),
                         CollisionLayers::new([Layer::Building], [Layer::Building, Layer::Player]),
                     ))
                     .id();

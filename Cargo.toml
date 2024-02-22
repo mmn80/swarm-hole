@@ -12,9 +12,9 @@ rand_distr = "0.4"
 serde = { version = "1", features = ["derive"] }
 ron = "0.8"
 bevy = { version = "0.13", features = ["dynamic_linking", "file_watcher"] }
-bevy_xpbd_3d = { version = "0.3", features = ["simd"] }
+bevy_xpbd_3d = { version = "0.4", features = ["simd"] }
 polyanya = "0.4"
-bevy_hanabi = { version = "0.9", default-features = false, features = ["3d"] }
+bevy_hanabi = { version = "0.10", default-features = false, features = ["3d"] }
 
 [profile.dev]
 opt-level = 3

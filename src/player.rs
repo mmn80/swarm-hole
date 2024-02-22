@@ -198,7 +198,7 @@ impl Command for SpawnPlayer {
                 Collider::capsule(cap_h - 0.1, pc.width - 0.05),
                 Vector::ZERO,
                 Quaternion::default(),
-                Vector::NEG_Y,
+                Direction3d::NEG_Y,
             )
             .with_max_time_of_impact(0.11)
             .with_max_hits(1),
@@ -229,19 +229,19 @@ fn move_player(
         let mut vel = Vec2::new(linear_velocity.x, linear_velocity.z);
         if !debug_ui.has_focus() {
             let mut changed = false;
-            if keyboard.pressed(KeyCode::W) || keyboard.pressed(KeyCode::Up) {
+            if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::ArrowUp) {
                 vel.y -= acc;
                 changed = true;
             }
-            if keyboard.pressed(KeyCode::A) || keyboard.pressed(KeyCode::Left) {
+            if keyboard.pressed(KeyCode::KeyA) || keyboard.pressed(KeyCode::ArrowLeft) {
                 vel.x -= acc;
                 changed = true;
             }
-            if keyboard.pressed(KeyCode::S) || keyboard.pressed(KeyCode::Down) {
+            if keyboard.pressed(KeyCode::KeyS) || keyboard.pressed(KeyCode::ArrowDown) {
                 vel.y += acc;
                 changed = true;
             }
-            if keyboard.pressed(KeyCode::D) || keyboard.pressed(KeyCode::Right) {
+            if keyboard.pressed(KeyCode::KeyD) || keyboard.pressed(KeyCode::ArrowRight) {
                 vel.x += acc;
                 changed = true;
             }

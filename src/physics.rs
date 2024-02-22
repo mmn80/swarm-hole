@@ -18,8 +18,8 @@ impl Plugin for MainPhysicsPlugin {
     }
 }
 
-fn setup_physics(mut debug_config: ResMut<PhysicsDebugConfig>) {
-    debug_config.enabled = false;
+fn setup_physics(mut config_store: ResMut<GizmoConfigStore>) {
+    config_store.config_mut::<PhysicsGizmos>().0.enabled = false;
 }
 
 fn update_physics_paused(mut time: ResMut<Time<Physics>>, app_state: Res<State<AppState>>) {
@@ -37,8 +37,9 @@ pub struct TogglePhysicsDebug;
 
 impl Command for TogglePhysicsDebug {
     fn apply(self, world: &mut World) {
-        let mut debug_config = world.resource_mut::<PhysicsDebugConfig>();
-        debug_config.enabled = !debug_config.enabled;
+        let mut config_store = world.resource_mut::<GizmoConfigStore>();
+        let config = config_store.config_mut::<PhysicsGizmos>().0;
+        config.enabled = !config.enabled;
     }
 }
 

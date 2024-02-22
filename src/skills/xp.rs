@@ -128,10 +128,10 @@ fn gather_xp(
     for (tr_gatherer, xp_gather, mut xp_gather_state) in &mut q_xp_gather {
         for ent in q_space
             .shape_intersections(
-                &Collider::ball(xp_gather.range),
+                &Collider::sphere(xp_gather.range),
                 tr_gatherer.translation,
                 Quat::default(),
-                SpatialQueryFilter::new().with_masks([Layer::Building]),
+                SpatialQueryFilter::from_mask([Layer::Building]),
             )
             .iter()
         {

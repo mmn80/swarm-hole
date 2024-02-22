@@ -37,10 +37,10 @@ fn update_melee(
     for (melee, tr_npc) in &q_melee {
         let pos = tr_npc.translation;
         for player_ent in q_space.shape_intersections(
-            &Collider::ball(melee.range),
+            &Collider::sphere(melee.range),
             pos,
             Quat::default(),
-            SpatialQueryFilter::new().with_masks([Layer::Player]),
+            SpatialQueryFilter::from_mask([Layer::Player]),
         ) {
             ev_take_damage.send(TakeDamageEvent {
                 target: player_ent,
