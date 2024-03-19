@@ -25,7 +25,10 @@ use swarm_hole::{
 
 fn main() {
     let mut wgpu_settings = WgpuSettings {
-        backends: Some(Backends::VULKAN),
+        // Remove this if you don't need it.
+        // Leaving this as default gives errors on my AMD Radeon RX 5700 where wgpu thinks it's on Vulkan but Bevy thinks it's DX12.
+        // Forcing Vulkan used to fix it before but I'm now getting perhaps unrelated fatal Vulkan validation errors and forcing DX12 seems to work.
+        backends: Some(Backends::DX12),
         ..Default::default()
     };
     wgpu_settings
