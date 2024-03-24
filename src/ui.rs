@@ -68,6 +68,7 @@ fn setup_top_bar_ui(mut cmd: Commands) {
     cmd.spawn((
         NodeBundle {
             style: Style {
+                position_type: PositionType::Absolute,
                 width: Val::Percent(100.0),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
@@ -369,6 +370,7 @@ fn setup_paused_ui(mut cmd: Commands) {
     cmd.spawn((
         NodeBundle {
             style: Style {
+                position_type: PositionType::Absolute,
                 display: Display::None,
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
@@ -497,6 +499,7 @@ fn setup_upgrade_ui(mut cmd: Commands) {
     cmd.spawn((
         NodeBundle {
             style: Style {
+                position_type: PositionType::Absolute,
                 display: Display::None,
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),

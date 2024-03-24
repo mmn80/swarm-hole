@@ -119,6 +119,7 @@ fn setup_menu(mut cmd: Commands) {
     cmd.spawn((
         NodeBundle {
             style: Style {
+                position_type: PositionType::Absolute,
                 width: Val::Percent(100.),
                 height: Val::Percent(100.),
                 justify_content: JustifyContent::Center,

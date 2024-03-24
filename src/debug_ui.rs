@@ -102,6 +102,7 @@ struct DebugHelpDescriptionText;
 fn setup_debug_ui(mut cmd: Commands) {
     cmd.spawn(NodeBundle {
         style: Style {
+            position_type: PositionType::Absolute,
             width: Val::Percent(100.0),
             height: Val::Percent(100.0),
             align_items: AlignItems::Center,
