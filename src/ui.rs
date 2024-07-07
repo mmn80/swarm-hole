@@ -1,4 +1,5 @@
 use bevy::{
+    color::palettes::css::{AQUAMARINE, GOLD, ORANGE_RED, YELLOW},
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     prelude::*,
 };
@@ -20,8 +21,8 @@ impl Plugin for MainUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             OnTransition {
-                from: AppState::Menu,
-                to: AppState::Run,
+                exited: AppState::Menu,
+                entered: AppState::Run,
             },
             (
                 setup_fps_ui,
@@ -50,14 +51,14 @@ impl Plugin for MainUiPlugin {
     }
 }
 
-pub const INFINITE_TEMP_COLOR: Color = Color::rgb_linear(
+pub const INFINITE_TEMP_COLOR: Color = Color::linear_rgb(
     148. / u8::MAX as f32,
     177. / u8::MAX as f32,
     255. / u8::MAX as f32,
 );
-pub const BUTTON_NORMAL_COLOR: Color = Color::rgb(0.15, 0.15, 0.15);
-pub const BUTTON_HOVERED_COLOR: Color = Color::rgb(0.25, 0.25, 0.25);
-pub const BUTTON_PRESSED_COLOR: Color = Color::rgb(0.35, 0.75, 0.35);
+pub const BUTTON_NORMAL_COLOR: Color = Color::srgb(0.15, 0.15, 0.15);
+pub const BUTTON_HOVERED_COLOR: Color = Color::srgb(0.25, 0.25, 0.25);
+pub const BUTTON_PRESSED_COLOR: Color = Color::srgb(0.35, 0.75, 0.35);
 
 #[derive(Component)]
 struct MainUi;
@@ -272,12 +273,12 @@ fn update_player_ui(
     };
     txt_hp.sections[1].style.color = if health.0 < 50. {
         let sec = time.elapsed_seconds();
-        Color::Rgba {
+        Color::Srgba(Srgba {
             red: (4. * sec).sin() / 4.0 + 1.0,
             green: 0.25,
             blue: 0.,
             alpha: 1.0,
-        }
+        })
     } else {
         Color::default()
     };
@@ -332,7 +333,7 @@ fn setup_fps_ui(mut cmd: Commands) {
             "",
             TextStyle {
                 font_size: 40.0,
-                color: Color::YELLOW,
+                color: YELLOW.into(),
                 ..default()
             },
         )
@@ -393,7 +394,7 @@ fn setup_paused_ui(mut cmd: Commands) {
                     flex_direction: FlexDirection::Column,
                     ..default()
                 },
-                background_color: BackgroundColor::from(Color::rgba(0.15, 0.15, 0.15, 0.8)),
+                background_color: BackgroundColor::from(Color::srgba(0.15, 0.15, 0.15, 0.8)),
                 ..default()
             },))
             .with_children(|parent| {
@@ -475,7 +476,7 @@ fn update_app_state_ui(
                 style.display = Display::Flex;
                 txt_run_state.sections[0].value =
                     LOSE_STRS[thread_rng().gen_range(0..10)].to_string();
-                txt_run_state.sections[0].style.color = Color::ORANGE_RED;
+                txt_run_state.sections[0].style.color = ORANGE_RED.into();
             }
         }
         AppState::Won => {
@@ -483,7 +484,7 @@ fn update_app_state_ui(
                 marker.0 = AppState::Won;
                 style.display = Display::Flex;
                 txt_run_state.sections[0].value = "DONE".to_string();
-                txt_run_state.sections[0].style.color = Color::GOLD;
+                txt_run_state.sections[0].style.color = GOLD.into();
             }
         }
         other => {
@@ -553,7 +554,7 @@ fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_>, index: usize) {
                         format!("Upgrade {index}"),
                         TextStyle {
                             font_size: 30.0,
-                            color: Color::AQUAMARINE,
+                            color: AQUAMARINE.into(),
                             ..default()
                         },
                     ),

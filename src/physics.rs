@@ -1,4 +1,4 @@
-use bevy::{ecs::system::Command, prelude::*};
+use bevy::{ecs::world::Command, prelude::*};
 use bevy_xpbd_3d::{math::*, prelude::*, SubstepSchedule, SubstepSet};
 
 use crate::{app::AppState, player::Player};

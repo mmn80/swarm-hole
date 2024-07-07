@@ -33,14 +33,14 @@ pub struct XpDrops {
 
 fn setup_xp_drops(mut xp_drops: ResMut<XpDrops>, mut materials: ResMut<Assets<StandardMaterial>>) {
     xp_drops.xp_drop_small = materials.add(StandardMaterial {
-        base_color: Color::rgb(1.0, 4.0, 1.0),
+        base_color: Color::srgb(1.0, 4.0, 1.0),
         metallic: 0.8,
         perceptual_roughness: 0.4,
         reflectance: 0.9,
         ..default()
     });
     xp_drops.xp_drop_big = materials.add(StandardMaterial {
-        base_color: Color::rgb(4.0, 1.0, 1.0),
+        base_color: Color::srgb(4.0, 1.0, 1.0),
         metallic: 0.8,
         perceptual_roughness: 0.4,
         reflectance: 0.9,

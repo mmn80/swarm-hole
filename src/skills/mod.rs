@@ -4,10 +4,11 @@ use bevy::{
     app::PluginGroupBuilder,
     asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
     prelude::*,
-    utils::{thiserror, thiserror::Error, BoxedFuture, HashMap, HashSet},
+    utils::{HashMap, HashSet},
 };
 use rand::prelude::*;
 use serde::Deserialize;
+use thiserror::Error;
 
 use crate::app::AppState;
 
@@ -391,18 +392,16 @@ impl AssetLoader for SkillsAssetLoader {
     type Asset = SkillsAsset;
     type Settings = ();
     type Error = SkillsAssetLoaderError;
-    fn load<'a>(
+    async fn load<'a>(
         &'a self,
-        reader: &'a mut Reader,
+        reader: &'a mut Reader<'_>,
         _settings: &'a (),
-        _load_context: &'a mut LoadContext,
-    ) -> BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
-        Box::pin(async move {
-            let mut bytes = Vec::new();
-            reader.read_to_end(&mut bytes).await?;
-            let custom_asset = ron::de::from_bytes::<SkillsAsset>(&bytes)?;
-            Ok(custom_asset)
-        })
+        _load_context: &'a mut LoadContext<'_>,
+    ) -> Result<Self::Asset, Self::Error> {
+        let mut bytes = Vec::new();
+        reader.read_to_end(&mut bytes).await?;
+        let custom_asset = ron::de::from_bytes::<SkillsAsset>(&bytes)?;
+        Ok(custom_asset)
     }
 
     fn extensions(&self) -> &[&str] {
@@ -442,7 +441,7 @@ fn skills_asset_on_load(
     for ev in skills_asset_events.read() {
         let h = skills.handle.clone();
         if ev.is_loaded_with_dependencies(&h) {
-            if let Some(asset) = skills_assets.get(h) {
+            if let Some(asset) = skills_assets.get(&h) {
                 // hot reload skills meta
                 skills.skills = asset.skills.clone();
                 skills.attributes = asset.attributes.clone();

@@ -1,11 +1,12 @@
 use bevy::{
     asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
-    ecs::system::Command,
+    ecs::world::Command,
     prelude::*,
-    utils::{thiserror, thiserror::Error, BoxedFuture, HashMap},
+    utils::HashMap,
 };
 use bevy_xpbd_3d::{math::*, prelude::*, PhysicsSchedule, PhysicsStepSet};
 use serde::Deserialize;
+use thiserror::Error;
 
 use crate::{
     app::AppState,
@@ -30,8 +31,8 @@ impl Plugin for PlayerPlugin {
             .add_systems(Startup, setup_player_handles)
             .add_systems(
                 OnTransition {
-                    from: AppState::Menu,
-                    to: AppState::Run,
+                    exited: AppState::Menu,
+                    entered: AppState::Run,
                 },
                 spawn_main_player,
             )
@@ -111,18 +112,16 @@ impl AssetLoader for PlayerCharactersAssetLoader {
     type Asset = PlayerCharactersAsset;
     type Settings = ();
     type Error = PlayerCharactersAssetLoaderError;
-    fn load<'a>(
+    async fn load<'a>(
         &'a self,
-        reader: &'a mut Reader,
+        reader: &'a mut Reader<'_>,
         _settings: &'a (),
-        _load_context: &'a mut LoadContext,
-    ) -> BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
-        Box::pin(async move {
-            let mut bytes = Vec::new();
-            reader.read_to_end(&mut bytes).await?;
-            let custom_asset = ron::de::from_bytes::<PlayerCharactersAsset>(&bytes)?;
-            Ok(custom_asset)
-        })
+        _load_context: &'a mut LoadContext<'_>,
+    ) -> Result<Self::Asset, Self::Error> {
+        let mut bytes = Vec::new();
+        reader.read_to_end(&mut bytes).await?;
+        let custom_asset = ron::de::from_bytes::<PlayerCharactersAsset>(&bytes)?;
+        Ok(custom_asset)
     }
 
     fn extensions(&self) -> &[&str] {
@@ -198,7 +197,7 @@ impl Command for SpawnPlayer {
                 Collider::capsule(cap_h - 0.1, pc.width - 0.05),
                 Vector::ZERO,
                 Quaternion::default(),
-                Direction3d::NEG_Y,
+                Dir3::NEG_Y,
             )
             .with_max_time_of_impact(0.11)
             .with_max_hits(1),

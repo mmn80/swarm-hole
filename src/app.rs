@@ -35,8 +35,8 @@ impl Plugin for MainMenuPlugin {
             )
             .add_systems(
                 OnTransition {
-                    from: AppState::Menu,
-                    to: AppState::Run,
+                    exited: AppState::Menu,
+                    entered: AppState::Run,
                 },
                 start_run,
             );
@@ -83,7 +83,7 @@ fn update_app_state(
         }
         AppState::Menu => {
             if esc {
-                exit.send(AppExit);
+                exit.send(AppExit::Success);
             } else if enter {
                 next_state.set(AppState::Run);
             }

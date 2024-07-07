@@ -10,9 +10,10 @@ publish = false
 rand = "0.8"
 serde = { version = "1", features = ["derive"] }
 ron = "0.8"
-bevy = { version = "0.13", features = ["dynamic_linking", "file_watcher"] }
-bevy_xpbd_3d = { version = "0.4", features = ["simd"] }
-bevy_hanabi = { version = "0.10", default-features = false, features = ["3d"] }
+thiserror = "1.0"
+bevy = { version = "0.14", features = ["dynamic_linking", "file_watcher"] }
+bevy_xpbd_3d = { version = "0.5", features = ["simd"] }
+bevy_hanabi = { version = "0.11", default-features = false, features = ["3d"] }
 
 [profile.dev]
 opt-level = 3

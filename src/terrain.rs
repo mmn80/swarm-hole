@@ -14,8 +14,8 @@ impl Plugin for TerrainPlugin {
             .init_resource::<Terrain>()
             .add_systems(
                 OnTransition {
-                    from: AppState::Menu,
-                    to: AppState::Run,
+                    exited: AppState::Menu,
+                    entered: AppState::Run,
                 },
                 setup_terrain,
             )
@@ -37,7 +37,7 @@ fn setup_terrain(
 ) {
     let ground_size = Vec3::new(1000.0, 1.0, 1000.0);
     let material = materials.add(StandardMaterial {
-        base_color: Color::SILVER,
+        base_color: bevy::color::palettes::css::SILVER.into(),
         metallic: 0.0,
         perceptual_roughness: 0.8,
         reflectance: 0.2,

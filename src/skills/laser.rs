@@ -42,8 +42,8 @@ pub struct LaserHandles {
     pub npc_laser_material: Handle<StandardMaterial>,
 }
 
-const PLAYER_LASER_COLOR: Color = Color::rgb(5.0, 5.0, 0.0);
-const NPC_LASER_COLOR: Color = Color::rgb(5.0, 2.0, 0.0);
+const PLAYER_LASER_COLOR: Color = Color::srgb(5.0, 5.0, 0.0);
+const NPC_LASER_COLOR: Color = Color::srgb(5.0, 2.0, 0.0);
 
 fn setup_assets(
     mut handles: ResMut<LaserHandles>,
@@ -59,7 +59,7 @@ fn setup_assets(
     );
     handles.player_laser_material = materials.add(StandardMaterial {
         base_color: PLAYER_LASER_COLOR,
-        emissive: PLAYER_LASER_COLOR,
+        emissive: PLAYER_LASER_COLOR.into(),
         perceptual_roughness: 1.0,
         metallic: 0.,
         reflectance: 0.,
@@ -67,7 +67,7 @@ fn setup_assets(
     });
     handles.npc_laser_material = materials.add(StandardMaterial {
         base_color: NPC_LASER_COLOR,
-        emissive: NPC_LASER_COLOR,
+        emissive: NPC_LASER_COLOR.into(),
         perceptual_roughness: 1.0,
         metallic: 0.,
         reflectance: 0.,

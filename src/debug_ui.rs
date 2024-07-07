@@ -1,4 +1,9 @@
-use bevy::{app::AppExit, ecs::system::Command, prelude::*};
+use bevy::{
+    app::AppExit,
+    ecs::world::Command,
+    input::keyboard::{Key, KeyboardInput},
+    prelude::*,
+};
 
 pub struct DebugUiPlugin;
 
@@ -193,7 +198,7 @@ fn process_debug_commands(
     keyboard: Res<ButtonInput<KeyCode>>,
     time: Res<Time<Real>>,
     mut debug_ui: ResMut<DebugUi>,
-    ev_char: EventReader<ReceivedCharacter>,
+    ev_char: EventReader<KeyboardInput>,
     mut q_text: Query<(&mut Text, &mut Style, &mut Outline), With<DebugUiText>>,
     mut time_since_hidden: Local<Option<f32>>,
     mut cmd: Commands,
@@ -298,13 +303,21 @@ fn process_debug_commands(
     }
 }
 
-fn append_chars(buffer: &String, mut ev_char: EventReader<'_, '_, ReceivedCharacter>) -> String {
+fn append_chars(buffer: &String, mut ev_char: EventReader<'_, '_, KeyboardInput>) -> String {
     let mut new_buffer = buffer.clone();
     for ev in ev_char.read() {
-        for char in ev.char.chars() {
-            if !char.is_control() {
-                new_buffer.push(char);
+        if !ev.state.is_pressed() {
+            continue;
+        }
+        match &ev.logical_key {
+            Key::Character(char) => {
+                for char in char.chars() {
+                    if !char.is_control() {
+                        new_buffer.push(char);
+                    }
+                }
             }
+            _ => {}
         }
     }
     new_buffer
@@ -369,6 +382,6 @@ pub struct QuitGame;
 
 impl Command for QuitGame {
     fn apply(self, world: &mut World) {
-        world.send_event(AppExit);
+        world.send_event(AppExit::Success);
     }
 }

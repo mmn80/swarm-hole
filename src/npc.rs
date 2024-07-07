@@ -1,12 +1,13 @@
 use bevy::{
     asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
-    ecs::system::Command,
+    ecs::world::Command,
     prelude::*,
-    utils::{thiserror, thiserror::Error, BoxedFuture, HashMap},
+    utils::HashMap,
 };
 use bevy_xpbd_3d::prelude::*;
 use rand::{distributions::WeightedIndex, prelude::*};
 use serde::Deserialize;
+use thiserror::Error;
 
 use crate::{
     app::{AppState, RunState},
@@ -25,8 +26,8 @@ impl Plugin for NpcPlugin {
             .add_systems(Startup, setup_npc_handles)
             .add_systems(
                 OnTransition {
-                    from: AppState::Menu,
-                    to: AppState::Run,
+                    exited: AppState::Menu,
+                    entered: AppState::Run,
                 },
                 spawn_start_npcs,
             )
@@ -55,13 +56,13 @@ fn setup_npc_handles(
     ];
     npc_handles.materials = vec![
         materials.add(StandardMaterial {
-            base_color: Color::LIME_GREEN,
+            base_color: bevy::color::palettes::css::LIMEGREEN.into(),
             metallic: 0.8,
             perceptual_roughness: 0.3,
             ..default()
         }),
         materials.add(StandardMaterial {
-            base_color: Color::TOMATO,
+            base_color: bevy::color::palettes::css::TOMATO.into(),
             metallic: 0.8,
             perceptual_roughness: 0.3,
             ..default()
@@ -105,18 +106,16 @@ impl AssetLoader for NonPlayerCharactersAssetLoader {
     type Asset = NonPlayerCharactersAsset;
     type Settings = ();
     type Error = NonPlayerCharactersAssetLoaderError;
-    fn load<'a>(
+    async fn load<'a>(
         &'a self,
-        reader: &'a mut Reader,
+        reader: &'a mut Reader<'_>,
         _settings: &'a (),
-        _load_context: &'a mut LoadContext,
-    ) -> BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
-        Box::pin(async move {
-            let mut bytes = Vec::new();
-            reader.read_to_end(&mut bytes).await?;
-            let custom_asset = ron::de::from_bytes::<NonPlayerCharactersAsset>(&bytes)?;
-            Ok(custom_asset)
-        })
+        _load_context: &'a mut LoadContext<'_>,
+    ) -> Result<Self::Asset, Self::Error> {
+        let mut bytes = Vec::new();
+        reader.read_to_end(&mut bytes).await?;
+        let custom_asset = ron::de::from_bytes::<NonPlayerCharactersAsset>(&bytes)?;
+        Ok(custom_asset)
     }
 
     fn extensions(&self) -> &[&str] {
@@ -261,7 +260,7 @@ fn hot_reload_npcs(
     for ev in skills_asset_events.read() {
         let h = npc_handles.config.clone();
         if ev.is_loaded_with_dependencies(&h) {
-            if let Some(asset) = npcs_assets.get(h) {
+            if let Some(asset) = npcs_assets.get(&h) {
                 for (entity, mut npc, hot_reload_npc) in &mut q_npcs {
                     if let Some(npc_src) = asset.get_npc_by_index(hot_reload_npc.0) {
                         npc.xp_drop = npc_src.xp_drop;
