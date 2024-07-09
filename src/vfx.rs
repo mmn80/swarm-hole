@@ -29,9 +29,11 @@ fn setup_vfx(mut vfx: ResMut<Vfx>, mut effects: ResMut<Assets<EffectAsset>>, mut
     let init_lifetime = SetAttributeModifier::new(Attribute::LIFETIME, lifetime);
     let drag = writer.lit(2.).expr();
     let update_drag = LinearDragModifier::new(drag);
-    let color = writer.prop("spawn_color").expr();
+    let spawn_color = writer.add_property("spawn_color", Vec4::splat(1.0).into());
+    let color = writer.prop(spawn_color).expr();
     let init_color = SetAttributeModifier::new(Attribute::HDR_COLOR, color);
-    let normal = writer.prop("normal");
+    let normal = writer.add_property("normal", Vec3::ZERO.into());
+    let normal = writer.prop(normal);
     let pos = writer.lit(Vec3::ZERO);
     let init_pos = SetAttributeModifier::new(Attribute::POSITION, pos.expr());
     let tangent = writer.lit(Vec3::Y).cross(normal.clone());
@@ -41,10 +43,8 @@ fn setup_vfx(mut vfx: ResMut<Vfx>, mut effects: ResMut<Assets<EffectAsset>>, mut
     let init_vel = SetAttributeModifier::new(Attribute::VELOCITY, velocity.expr());
 
     vfx.damage_particles = effects.add(
-        EffectAsset::new(32768, spawner, writer.finish())
+        EffectAsset::new(vec![32768], spawner, writer.finish())
             .with_name("damage_particles")
-            .with_property("spawn_color", Vec4::splat(1.0).into())
-            .with_property("normal", Vec3::ZERO.into())
             .init(init_pos)
             .init(init_vel)
             .init(init_age)
@@ -57,11 +57,10 @@ fn setup_vfx(mut vfx: ResMut<Vfx>, mut effects: ResMut<Assets<EffectAsset>>, mut
             })
             .render(SetSizeModifier {
                 size: Vec2::splat(0.05).into(),
-                screen_space_size: false,
             }),
     );
 
-    cmd.spawn(ParticleEffectBundle::new(vfx.damage_particles.clone()).with_spawner(spawner))
+    cmd.spawn(ParticleEffectBundle::new(vfx.damage_particles.clone()))
         .insert((EffectProperties::default(), Name::new("damage_particles")));
 }
 
@@ -82,7 +81,10 @@ fn update_vfx(
     for ev in ev_damage_particles.read() {
         tr_effect.translation = ev.position;
 
-        effect.set("spawn_color", Vec4::from(ev.color.as_rgba_f32()).into());
+        effect.set(
+            "spawn_color",
+            Vec4::from(ev.color.to_linear().to_f32_array()).into(),
+        );
 
         let mut normal = ev.normal;
         normal.y = 0.;
