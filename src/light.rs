@@ -23,13 +23,13 @@ impl Plugin for MainLightsPlugin {
 }
 
 fn spawn_main_lights(mut cmd: Commands) {
-    cmd.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
+    cmd.spawn((
+        DirectionalLight {
             illuminance: light_consts::lux::AMBIENT_DAYLIGHT,
             shadows_enabled: true,
             ..default()
         },
-        cascade_shadow_config: CascadeShadowConfigBuilder {
+        CascadeShadowConfigBuilder {
             num_cascades: 4,
             minimum_distance: 0.1,
             maximum_distance: 200.0,
@@ -37,13 +37,12 @@ fn spawn_main_lights(mut cmd: Commands) {
             overlap_proportion: 0.2,
         }
         .build(),
-        transform: Transform {
+        Transform {
             translation: Vec3::new(0.0, 2.0, 0.0),
             rotation: Quat::from_rotation_x(-std::f32::consts::FRAC_PI_4),
             ..default()
         },
-        ..default()
-    });
+    ));
 }
 
 fn animate_light_direction(
@@ -51,6 +50,6 @@ fn animate_light_direction(
     mut q_light: Query<&mut Transform, With<DirectionalLight>>,
 ) {
     for mut tr in &mut q_light {
-        tr.rotate(Quat::from_rotation_y(time.delta_seconds() * 0.1));
+        tr.rotate(Quat::from_rotation_y(time.delta_secs() * 0.1));
     }
 }

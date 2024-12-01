@@ -1,5 +1,5 @@
 use bevy::{
-    core_pipeline::bloom::BloomSettings,
+    core_pipeline::bloom::Bloom,
     input::mouse::{MouseMotion, MouseWheel},
     prelude::*,
     transform::TransformSystem,
@@ -60,15 +60,13 @@ fn spawn_camera(mut cmd: Commands) {
     let translation = Vec3::new(0., START_DIST, START_DIST / 2.);
     let radius = translation.length();
     cmd.spawn((
-        Camera3dBundle {
-            transform: Transform::from_translation(translation).looking_at(Vec3::Y, Vec3::Y),
-            camera: Camera {
-                hdr: true,
-                ..default()
-            },
+        Camera3d::default(),
+        Transform::from_translation(translation).looking_at(Vec3::Y, Vec3::Y),
+        Camera {
+            hdr: true,
             ..default()
         },
-        BloomSettings::NATURAL,
+        Bloom::NATURAL,
         MainCamera {
             radius,
             ..default()
@@ -105,7 +103,7 @@ fn main_camera(
 
     for (mut main_camera, mut camera_tr, camera_gtr, camera) in &mut q_camera {
         if let Some(pos) = cursor_pos {
-            main_camera.mouse_ray = camera.viewport_to_world(camera_gtr, pos);
+            main_camera.mouse_ray = camera.viewport_to_world(camera_gtr, pos).ok();
         }
 
         let mut any = false;

@@ -67,175 +67,178 @@ struct MainUi;
 
 fn setup_top_bar_ui(mut cmd: Commands) {
     cmd.spawn((
-        NodeBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-                width: Val::Percent(100.0),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
+        Node {
+            position_type: PositionType::Absolute,
+            width: Val::Percent(100.0),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
             ..default()
         },
         MainUi,
     ))
     .with_children(|parent| {
-        parent.spawn(NodeBundle {
-            style: Style {
-                align_items: AlignItems::Stretch,
-                ..default()
-            },
+        parent.spawn(Node {
+            align_items: AlignItems::Stretch,
             ..default()
         });
 
         parent
-            .spawn(NodeBundle {
-                style: Style {
-                    justify_content: JustifyContent::FlexStart,
-                    flex_direction: FlexDirection::Column,
-                    ..default()
-                },
+            .spawn(Node {
+                justify_content: JustifyContent::FlexStart,
+                flex_direction: FlexDirection::Column,
                 ..default()
             })
             .with_children(|parent| {
-                parent.spawn((
-                    TextBundle::from_sections([
-                        TextSection::new(
-                            "HP:  ",
-                            TextStyle {
+                parent
+                    .spawn((
+                        Text::new(""),
+                        Node {
+                            justify_content: JustifyContent::FlexStart,
+                            align_items: AlignItems::FlexStart,
+                            ..default()
+                        },
+                        TextLayout {
+                            justify: JustifyText::Left,
+                            ..default()
+                        },
+                        HpText,
+                    ))
+                    .with_children(|parent| {
+                        parent.spawn((
+                            TextSpan::new("HP:  "),
+                            TextFont {
                                 font_size: 30.0,
                                 ..default()
                             },
-                        ),
-                        TextSection::new(
-                            "-",
-                            TextStyle {
+                        ));
+                        parent.spawn((
+                            TextSpan::new("-"),
+                            TextFont {
                                 font_size: 30.0,
                                 ..default()
                             },
-                        ),
-                    ])
-                    .with_text_justify(JustifyText::Left)
-                    .with_style(Style {
-                        justify_content: JustifyContent::FlexStart,
-                        align_items: AlignItems::FlexStart,
-                        ..default()
-                    }),
-                    HpText,
-                ));
+                        ));
+                    });
 
-                parent.spawn((
-                    TextBundle::from_sections([
-                        TextSection::new(
-                            "NPC: ",
-                            TextStyle {
+                parent
+                    .spawn((
+                        Text::new(""),
+                        Node {
+                            justify_content: JustifyContent::FlexStart,
+                            align_items: AlignItems::FlexStart,
+                            ..default()
+                        },
+                        TextLayout {
+                            justify: JustifyText::Left,
+                            ..default()
+                        },
+                        NpcsText,
+                    ))
+                    .with_children(|parent| {
+                        parent.spawn((
+                            TextSpan::new("NPC:  "),
+                            TextFont {
                                 font_size: 30.0,
                                 ..default()
                             },
-                        ),
-                        TextSection::new(
-                            "-",
-                            TextStyle {
+                        ));
+                        parent.spawn((
+                            TextSpan::new("-"),
+                            TextFont {
                                 font_size: 30.0,
                                 ..default()
                             },
-                        ),
-                    ])
-                    .with_text_justify(JustifyText::Left)
-                    .with_style(Style {
-                        justify_content: JustifyContent::FlexStart,
-                        align_items: AlignItems::FlexStart,
-                        ..default()
-                    }),
-                    NpcsText,
-                ));
+                        ));
+                    });
             });
 
         parent.spawn((
-            TextBundle::from_section(
-                "00:00",
-                TextStyle {
-                    font_size: 60.0,
-                    ..default()
-                },
-            )
-            .with_style(Style {
+            Text::new("00:00"),
+            Node {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 margin: UiRect::horizontal(Val::Px(60.)),
                 ..default()
-            }),
+            },
+            TextFont {
+                font_size: 60.0,
+                ..default()
+            },
             TimeText,
         ));
 
         parent
-            .spawn(NodeBundle {
-                style: Style {
-                    justify_content: JustifyContent::FlexStart,
-                    flex_direction: FlexDirection::Column,
-                    ..default()
-                },
+            .spawn(Node {
+                justify_content: JustifyContent::FlexStart,
+                flex_direction: FlexDirection::Column,
                 ..default()
             })
             .with_children(|parent| {
-                parent.spawn((
-                    TextBundle::from_sections([
-                        TextSection::new(
-                            "LVL: ",
-                            TextStyle {
+                parent
+                    .spawn((
+                        Text::new(""),
+                        Node {
+                            justify_content: JustifyContent::FlexStart,
+                            align_items: AlignItems::FlexStart,
+                            ..default()
+                        },
+                        TextLayout {
+                            justify: JustifyText::Left,
+                            ..default()
+                        },
+                        LevelText,
+                    ))
+                    .with_children(|parent| {
+                        parent.spawn((
+                            TextSpan::new("LVL:  "),
+                            TextFont {
                                 font_size: 30.0,
                                 ..default()
                             },
-                        ),
-                        TextSection::new(
-                            "-",
-                            TextStyle {
+                        ));
+                        parent.spawn((
+                            TextSpan::new("-"),
+                            TextFont {
                                 font_size: 30.0,
                                 ..default()
                             },
-                        ),
-                    ])
-                    .with_text_justify(JustifyText::Left)
-                    .with_style(Style {
-                        justify_content: JustifyContent::FlexStart,
-                        align_items: AlignItems::FlexStart,
-                        ..default()
-                    }),
-                    LevelText,
-                ));
+                        ));
+                    });
 
-                parent.spawn((
-                    TextBundle::from_sections([
-                        TextSection::new(
-                            "XP:  ",
-                            TextStyle {
+                parent
+                    .spawn((
+                        Text::new(""),
+                        Node {
+                            justify_content: JustifyContent::FlexStart,
+                            align_items: AlignItems::FlexStart,
+                            ..default()
+                        },
+                        TextLayout {
+                            justify: JustifyText::Left,
+                            ..default()
+                        },
+                        XpText,
+                    ))
+                    .with_children(|parent| {
+                        parent.spawn((
+                            TextSpan::new("XP:  "),
+                            TextFont {
                                 font_size: 30.0,
                                 ..default()
                             },
-                        ),
-                        TextSection::new(
-                            "-",
-                            TextStyle {
+                        ));
+                        parent.spawn((
+                            TextSpan::new("-"),
+                            TextFont {
                                 font_size: 30.0,
                                 ..default()
                             },
-                        ),
-                    ])
-                    .with_text_justify(JustifyText::Left)
-                    .with_style(Style {
-                        justify_content: JustifyContent::FlexStart,
-                        align_items: AlignItems::FlexStart,
-                        ..default()
-                    }),
-                    XpText,
-                ));
+                        ));
+                    });
             });
 
-        parent.spawn(NodeBundle {
-            style: Style {
-                align_items: AlignItems::Stretch,
-                ..default()
-            },
+        parent.spawn(Node {
+            align_items: AlignItems::Stretch,
             ..default()
         });
     });
@@ -253,26 +256,27 @@ struct LevelText;
 fn update_player_ui(
     time: Res<Time>,
     q_player: Query<(&XpGatherState, &Health, &MaxHealth), With<Player>>,
-    mut q_hp_txt: Query<&mut Text, (With<HpText>, Without<XpText>)>,
-    mut q_xp_txt: Query<&mut Text, (With<XpText>, Without<HpText>)>,
-    mut q_level_txt: Query<&mut Text, (With<LevelText>, Without<HpText>, Without<XpText>)>,
+    q_hp_txt: Query<Entity, With<HpText>>,
+    q_xp_txt: Query<Entity, With<XpText>>,
+    q_level_txt: Query<Entity, With<LevelText>>,
+    mut writer: TextUiWriter,
 ) {
-    let Ok(mut txt_hp) = q_hp_txt.get_single_mut() else {
+    let Ok(txt_hp) = q_hp_txt.get_single() else {
         return;
     };
-    let Ok(mut txt_xp) = q_xp_txt.get_single_mut() else {
+    let Ok(txt_xp) = q_xp_txt.get_single() else {
         return;
     };
-    let Ok(mut txt_level) = q_level_txt.get_single_mut() else {
+    let Ok(txt_level) = q_level_txt.get_single() else {
         return;
     };
     let Ok((xp_gather_state, health, max_health)) = q_player.get_single() else {
-        txt_hp.sections[1].value = "-".to_string();
-        txt_xp.sections[1].value = "-".to_string();
+        *writer.text(txt_hp, 1) = "-".to_string();
+        *writer.text(txt_xp, 1) = "-".to_string();
         return;
     };
-    txt_hp.sections[1].style.color = if health.0 < 50. {
-        let sec = time.elapsed_seconds();
+    *writer.color(txt_hp, 1) = TextColor(if health.0 < 50. {
+        let sec = time.elapsed_secs();
         Color::Srgba(Srgba {
             red: (4. * sec).sin() / 4.0 + 1.0,
             green: 0.25,
@@ -281,17 +285,17 @@ fn update_player_ui(
         })
     } else {
         Color::default()
-    };
+    });
     {
         let (hp, max_hp) = (health.0 as u32, max_health.max_hp);
         if hp < max_hp {
-            txt_hp.sections[1].value = format!("{}/{}", hp, max_hp);
+            *writer.text(txt_hp, 1) = format!("{}/{}", hp, max_hp);
         } else {
-            txt_hp.sections[1].value = format!("{}", hp);
+            *writer.text(txt_hp, 1) = format!("{}", hp);
         }
     }
-    txt_xp.sections[1].value = format!("{}", xp_gather_state.xp);
-    txt_level.sections[1].value = format!("{}", xp_gather_state.get_gather_level());
+    *writer.text(txt_xp, 1) = format!("{}", xp_gather_state.xp);
+    *writer.text(txt_level, 1) = format!("{}", xp_gather_state.get_gather_level());
 }
 
 #[derive(Component)]
@@ -305,23 +309,27 @@ fn update_run_time_ui(run_state: Res<RunState>, mut q_txt_time: Query<&mut Text,
         let all_sec = run_state.run_time.as_secs_f32();
         let min = (all_sec / 60.) as u32;
         let sec = all_sec as u32 - min * 60;
-        txt_time.sections[0].value = format!("{min:02}:{sec:02}");
+        txt_time.0 = format!("{min:02}:{sec:02}");
     } else {
-        txt_time.sections[0].value = "00:00".to_string();
+        txt_time.0 = "00:00".to_string();
     }
 }
 
 #[derive(Component)]
 struct NpcsText;
 
-fn update_npcs_ui(run_state: Res<RunState>, mut q_txt: Query<&mut Text, With<NpcsText>>) {
-    let Ok(mut txt_npcs) = q_txt.get_single_mut() else {
+fn update_npcs_ui(
+    run_state: Res<RunState>,
+    q_txt: Query<Entity, With<NpcsText>>,
+    mut writer: TextUiWriter,
+) {
+    let Ok(txt_npcs) = q_txt.get_single() else {
         return;
     };
     if run_state.live_npcs == 0 {
-        txt_npcs.sections[1].value = "-".to_string();
+        *writer.text(txt_npcs, 1) = "-".to_string();
     } else {
-        txt_npcs.sections[1].value = format!("{:02}", run_state.live_npcs);
+        *writer.text(txt_npcs, 1) = format!("{:02}", run_state.live_npcs);
     }
 }
 
@@ -329,21 +337,19 @@ fn update_npcs_ui(run_state: Res<RunState>, mut q_txt: Query<&mut Text, With<Npc
 
 fn setup_fps_ui(mut cmd: Commands) {
     cmd.spawn((
-        TextBundle::from_section(
-            "",
-            TextStyle {
-                font_size: 40.0,
-                color: YELLOW.into(),
-                ..default()
-            },
-        )
-        .with_style(Style {
+        Text::new(""),
+        Node {
             align_self: AlignSelf::FlexEnd,
             position_type: PositionType::Absolute,
             top: Val::Px(10.0),
             right: Val::Px(10.0),
             ..default()
-        }),
+        },
+        TextFont {
+            font_size: 40.0,
+            ..default()
+        },
+        TextColor(YELLOW.into()),
         FpsText,
         MainUi,
     ));
@@ -362,24 +368,21 @@ fn update_fps(diagnostics: Res<DiagnosticsStore>, mut q_fps_txt: Query<&mut Text
             fps = fps_smoothed;
         }
     }
-    txt_fps.sections[0].value = format!("{fps:.0}");
+    txt_fps.0 = format!("{fps:.0}");
 }
 
 // paused & game over panel
 
 fn setup_paused_ui(mut cmd: Commands) {
     cmd.spawn((
-        NodeBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-                display: Display::None,
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                flex_direction: FlexDirection::Column,
-                ..default()
-            },
+        Node {
+            position_type: PositionType::Absolute,
+            display: Display::None,
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            flex_direction: FlexDirection::Column,
             ..default()
         },
         AppStateRoot,
@@ -387,45 +390,48 @@ fn setup_paused_ui(mut cmd: Commands) {
     ))
     .with_children(|parent| {
         parent
-            .spawn((NodeBundle {
-                style: Style {
+            .spawn((
+                Node {
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
                     flex_direction: FlexDirection::Column,
                     ..default()
                 },
-                background_color: BackgroundColor::from(Color::srgba(0.15, 0.15, 0.15, 0.8)),
-                ..default()
-            },))
+                BackgroundColor(Color::srgba(0.15, 0.15, 0.15, 0.8)),
+            ))
             .with_children(|parent| {
                 parent.spawn((
-                    TextBundle::from_section(
-                        "PAUSED",
-                        TextStyle {
-                            font_size: 100.0,
-                            color: INFINITE_TEMP_COLOR,
-                            ..default()
-                        },
-                    )
-                    .with_text_justify(JustifyText::Center)
-                    .with_style(Style {
+                    Text::new("PAUSED"),
+                    Node {
                         margin: UiRect::all(Val::Px(50.)),
                         ..default()
-                    }),
+                    },
+                    TextFont {
+                        font_size: 100.0,
+                        ..default()
+                    },
+                    TextColor(INFINITE_TEMP_COLOR),
+                    TextLayout {
+                        justify: JustifyText::Center,
+                        ..default()
+                    },
                     AppStateText(AppState::Menu),
                 ));
-                parent.spawn((TextBundle::from_section(
-                    "press ENTER to continue",
-                    TextStyle {
+                parent.spawn((
+                    Text::new("press ENTER to continue"),
+                    Node {
+                        margin: UiRect::all(Val::Px(50.)),
+                        ..default()
+                    },
+                    TextFont {
                         font_size: 30.0,
                         ..default()
                     },
-                )
-                .with_text_justify(JustifyText::Center)
-                .with_style(Style {
-                    margin: UiRect::all(Val::Px(50.)),
-                    ..default()
-                }),));
+                    TextLayout {
+                        justify: JustifyText::Center,
+                        ..default()
+                    },
+                ));
             });
     });
 }
@@ -451,13 +457,15 @@ const LOSE_STRS: [&str; 10] = [
 
 fn update_app_state_ui(
     app_state: Res<State<AppState>>,
-    mut q_app_state_root: Query<&mut Style, With<AppStateRoot>>,
-    mut q_txt_app_state: Query<(&mut Text, &mut AppStateText)>,
+    mut q_app_state_root: Query<&mut Node, With<AppStateRoot>>,
+    mut q_txt_app_state: Query<(&mut Text, &mut TextColor, &mut AppStateText)>,
 ) {
-    let Ok(mut style) = q_app_state_root.get_single_mut() else {
+    let Ok(mut node) = q_app_state_root.get_single_mut() else {
         return;
     };
-    let Ok((mut txt_run_state, mut marker)) = q_txt_app_state.get_single_mut() else {
+    let Ok((mut txt_run_state, mut txt_run_state_color, mut marker)) =
+        q_txt_app_state.get_single_mut()
+    else {
         return;
     };
     let state = *app_state.get();
@@ -465,31 +473,30 @@ fn update_app_state_ui(
         AppState::Paused => {
             if marker.0 != AppState::Paused {
                 marker.0 = AppState::Paused;
-                style.display = Display::Flex;
-                txt_run_state.sections[0].value = "PAUSED".to_string();
-                txt_run_state.sections[0].style.color = INFINITE_TEMP_COLOR;
+                node.display = Display::Flex;
+                txt_run_state.0 = "PAUSED".to_string();
+                txt_run_state_color.0 = INFINITE_TEMP_COLOR;
             }
         }
         AppState::Lost => {
             if marker.0 != AppState::Lost {
                 marker.0 = AppState::Lost;
-                style.display = Display::Flex;
-                txt_run_state.sections[0].value =
-                    LOSE_STRS[thread_rng().gen_range(0..10)].to_string();
-                txt_run_state.sections[0].style.color = ORANGE_RED.into();
+                node.display = Display::Flex;
+                txt_run_state.0 = LOSE_STRS[thread_rng().gen_range(0..10)].to_string();
+                txt_run_state_color.0 = ORANGE_RED.into();
             }
         }
         AppState::Won => {
             if marker.0 != AppState::Won {
                 marker.0 = AppState::Won;
-                style.display = Display::Flex;
-                txt_run_state.sections[0].value = "DONE".to_string();
-                txt_run_state.sections[0].style.color = GOLD.into();
+                node.display = Display::Flex;
+                txt_run_state.0 = "DONE".to_string();
+                txt_run_state_color.0 = GOLD.into();
             }
         }
         other => {
             marker.0 = other;
-            style.display = Display::None;
+            node.display = Display::None;
         }
     }
 }
@@ -498,17 +505,14 @@ fn update_app_state_ui(
 
 fn setup_upgrade_ui(mut cmd: Commands) {
     cmd.spawn((
-        NodeBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-                display: Display::None,
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                flex_direction: FlexDirection::Column,
-                ..default()
-            },
+        Node {
+            position_type: PositionType::Absolute,
+            display: Display::None,
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            flex_direction: FlexDirection::Column,
             ..default()
         },
         SkillUpgradeRoot,
@@ -523,72 +527,73 @@ fn setup_upgrade_ui(mut cmd: Commands) {
 
 fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_>, index: usize) {
     if index > 0 {
-        parent.spawn(NodeBundle {
-            style: Style {
-                height: Val::Px(50.),
-                ..default()
-            },
+        parent.spawn(Node {
+            height: Val::Px(50.),
             ..default()
         });
     }
 
     parent
         .spawn((
-            ButtonBundle {
-                style: Style {
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    min_width: Val::Px(600.),
-                    flex_direction: FlexDirection::Column,
-                    ..default()
-                },
-                background_color: BUTTON_NORMAL_COLOR.into(),
+            Button,
+            Node {
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                min_width: Val::Px(600.),
+                flex_direction: FlexDirection::Column,
                 ..default()
             },
+            BackgroundColor(BUTTON_NORMAL_COLOR),
             SkillUpgradeButton(index),
         ))
         .with_children(|parent| {
-            parent.spawn((
-                TextBundle::from_sections([
-                    TextSection::new(
-                        format!("Upgrade {index}"),
-                        TextStyle {
-                            font_size: 30.0,
-                            color: AQUAMARINE.into(),
-                            ..default()
-                        },
-                    ),
-                    TextSection::new(
-                        format!("Level"),
-                        TextStyle {
-                            font_size: 30.0,
-                            color: INFINITE_TEMP_COLOR,
-                            ..default()
-                        },
-                    ),
-                ])
-                .with_text_justify(JustifyText::Center)
-                .with_style(Style {
-                    margin: UiRect::new(Val::Px(40.), Val::Px(40.), Val::Px(40.), Val::Px(10.)),
-                    ..default()
-                }),
-                SkillUpgradeText(index),
-            ));
-
-            parent.spawn((
-                TextBundle::from_section(
-                    format!("upgrade details for {index}"),
-                    TextStyle {
-                        font_size: 20.0,
-                        color: INFINITE_TEMP_COLOR,
+            parent
+                .spawn((
+                    Text::new(""),
+                    Node {
+                        margin: UiRect::new(Val::Px(40.), Val::Px(40.), Val::Px(40.), Val::Px(10.)),
                         ..default()
                     },
-                )
-                .with_text_justify(JustifyText::Center)
-                .with_style(Style {
+                    TextLayout {
+                        justify: JustifyText::Center,
+                        ..default()
+                    },
+                    SkillUpgradeText(index),
+                ))
+                .with_children(|parent| {
+                    parent.spawn((
+                        TextSpan::new(format!("Upgrade {index}")),
+                        TextFont {
+                            font_size: 30.0,
+                            ..default()
+                        },
+                        TextColor(AQUAMARINE.into()),
+                    ));
+                    parent.spawn((
+                        TextSpan::new("Level"),
+                        TextFont {
+                            font_size: 30.0,
+                            ..default()
+                        },
+                        TextColor(INFINITE_TEMP_COLOR),
+                    ));
+                });
+
+            parent.spawn((
+                Text(format!("upgrade details for {index}")),
+                Node {
                     margin: UiRect::new(Val::Px(40.), Val::Px(40.), Val::Px(10.), Val::Px(40.)),
                     ..default()
-                }),
+                },
+                TextLayout {
+                    justify: JustifyText::Center,
+                    ..default()
+                },
+                TextFont {
+                    font_size: 20.0,
+                    ..default()
+                },
+                TextColor(INFINITE_TEMP_COLOR),
                 SkillUpgradeDetailsText(index),
             ));
         });
@@ -609,16 +614,17 @@ struct SkillUpgradeDetailsText(usize);
 fn init_skill_upgrade_ui(
     upgrade_options: Res<SkillUpgradeOptions>,
     skills: Res<Skills>,
-    mut q_root: Query<&mut Style, With<SkillUpgradeRoot>>,
-    mut q_buttons: Query<(&mut Style, &SkillUpgradeButton), Without<SkillUpgradeRoot>>,
-    mut q_texts: Query<(&mut Text, &SkillUpgradeText)>,
+    mut q_root: Query<&mut Node, With<SkillUpgradeRoot>>,
+    mut q_buttons: Query<(&mut Node, &SkillUpgradeButton), Without<SkillUpgradeRoot>>,
+    q_texts: Query<(Entity, &SkillUpgradeText)>,
     mut q_detail_texts: Query<(&mut Text, &SkillUpgradeDetailsText), Without<SkillUpgradeText>>,
+    mut writer: TextUiWriter,
 ) {
-    for (mut text, marker) in &mut q_texts {
+    for (text, marker) in &q_texts {
         if let Some((skill, level)) = upgrade_options.skills.get(marker.0) {
             if let Some(skill_name) = skills.skills.get(skill) {
-                text.sections[0].value = skill_name.to_string();
-                text.sections[1].value = format!(" Level {level}");
+                *writer.text(text, 0) = skill_name.to_string();
+                *writer.text(text, 1) = format!(" Level {level}");
             }
         }
     }
@@ -653,25 +659,25 @@ fn init_skill_upgrade_ui(
                         }
                     }
                 }
-                text.sections[0].value = format!("{str}");
+                text.0 = format!("{str}");
             }
         }
     }
-    for (mut style, button) in &mut q_buttons {
+    for (mut node, button) in &mut q_buttons {
         if button.0 >= upgrade_options.skills.len() {
-            style.display = Display::None;
+            node.display = Display::None;
         } else {
-            style.display = Display::Flex;
+            node.display = Display::Flex;
         }
     }
-    for mut style in &mut q_root {
-        style.display = Display::Flex;
+    for mut node in &mut q_root {
+        node.display = Display::Flex;
     }
 }
 
 fn update_skill_upgrade_ui(
     mut upgrade_options: ResMut<SkillUpgradeOptions>,
-    mut q_root: Query<&mut Style, With<SkillUpgradeRoot>>,
+    mut q_root: Query<&mut Node, With<SkillUpgradeRoot>>,
     mut q_interaction: Query<
         (&Interaction, &mut BackgroundColor, &SkillUpgradeButton),
         (Changed<Interaction>, With<Button>),
@@ -682,8 +688,8 @@ fn update_skill_upgrade_ui(
             Interaction::Pressed => {
                 *color = BUTTON_PRESSED_COLOR.into();
                 upgrade_options.selected = upgrade_options.skills.get(*idx).copied();
-                for mut style in &mut q_root {
-                    style.display = Display::None;
+                for mut node in &mut q_root {
+                    node.display = Display::None;
                 }
             }
             Interaction::Hovered => {

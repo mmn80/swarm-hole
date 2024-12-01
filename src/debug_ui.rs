@@ -105,74 +105,63 @@ struct DebugHelpCommandText;
 struct DebugHelpDescriptionText;
 
 fn setup_debug_ui(mut cmd: Commands) {
-    cmd.spawn(NodeBundle {
-        style: Style {
-            position_type: PositionType::Absolute,
-            width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            flex_direction: FlexDirection::Row,
-            ..default()
-        },
+    cmd.spawn(Node {
+        position_type: PositionType::Absolute,
+        width: Val::Percent(100.0),
+        height: Val::Percent(100.0),
+        align_items: AlignItems::Center,
+        justify_content: JustifyContent::Center,
+        flex_direction: FlexDirection::Row,
         ..default()
     })
     .with_children(|parent| {
         parent.spawn((
-            TextBundle::from_section(
-                "",
-                TextStyle {
-                    font_size: 20.0,
-                    ..default()
-                },
-            )
-            .with_text_justify(JustifyText::Left)
-            .with_style(Style {
+            Text::new(""),
+            Node {
                 display: Display::None,
                 margin: UiRect::right(Val::Px(20.)),
                 ..default()
-            }),
+            },
+            TextFont {
+                font_size: 20.0,
+                ..default()
+            },
+            TextLayout {
+                justify: JustifyText::Left,
+                ..default()
+            },
             DebugHelpCommandText,
         ));
 
         parent.spawn((
-            TextBundle::from_section(
-                "",
-                TextStyle {
-                    font_size: 20.0,
-                    ..default()
-                },
-            )
-            .with_text_justify(JustifyText::Left)
-            .with_style(Style {
+            Text::new(""),
+            Node {
                 display: Display::None,
                 ..default()
-            }),
+            },
+            TextFont {
+                font_size: 20.0,
+                ..default()
+            },
+            TextLayout {
+                justify: JustifyText::Left,
+                ..default()
+            },
             DebugHelpDescriptionText,
         ));
     });
 
-    cmd.spawn(NodeBundle {
-        style: Style {
-            width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
-            align_items: AlignItems::FlexEnd,
-            justify_content: JustifyContent::Center,
-            ..default()
-        },
+    cmd.spawn(Node {
+        width: Val::Percent(100.0),
+        height: Val::Percent(100.0),
+        align_items: AlignItems::FlexEnd,
+        justify_content: JustifyContent::Center,
         ..default()
     })
     .with_children(|parent| {
         parent.spawn((
-            TextBundle::from_section(
-                "",
-                TextStyle {
-                    font_size: 30.0,
-                    ..default()
-                },
-            )
-            .with_text_justify(JustifyText::Center)
-            .with_style(Style {
+            Text::new(""),
+            Node {
                 display: Display::None,
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
@@ -183,7 +172,15 @@ fn setup_debug_ui(mut cmd: Commands) {
                     bottom: Val::Percent(2.),
                 },
                 ..default()
-            }),
+            },
+            TextFont {
+                font_size: 20.0,
+                ..default()
+            },
+            TextLayout {
+                justify: JustifyText::Center,
+                ..default()
+            },
             Outline {
                 width: Val::Px(0.),
                 offset: Val::Px(6.),
@@ -199,11 +196,11 @@ fn process_debug_commands(
     time: Res<Time<Real>>,
     mut debug_ui: ResMut<DebugUi>,
     ev_char: EventReader<KeyboardInput>,
-    mut q_text: Query<(&mut Text, &mut Style, &mut Outline), With<DebugUiText>>,
+    mut q_text: Query<(&mut Text, &mut Node, &mut Outline), With<DebugUiText>>,
     mut time_since_hidden: Local<Option<f32>>,
     mut cmd: Commands,
 ) {
-    let Ok((mut text, mut style, mut outline)) = q_text.get_single_mut() else {
+    let Ok((mut text, mut node, mut outline)) = q_text.get_single_mut() else {
         return;
     };
 
@@ -212,13 +209,13 @@ fn process_debug_commands(
 
     match &debug_ui.state {
         DebugUiCommandParseState::Inactive => {
-            if style.display != Display::None {
+            if node.display != Display::None {
                 if time_since_hidden.is_none() {
-                    *time_since_hidden = Some(time.elapsed_seconds());
+                    *time_since_hidden = Some(time.elapsed_secs());
                 } else {
                     let time_sec = time_since_hidden.unwrap();
-                    if (time.elapsed_seconds() - time_sec).abs() > 1. {
-                        style.display = Display::None;
+                    if (time.elapsed_secs() - time_sec).abs() > 1. {
+                        node.display = Display::None;
                         outline.width = Val::Px(0.);
                         *time_since_hidden = None;
                     }
@@ -231,13 +228,13 @@ fn process_debug_commands(
         }
 
         DebugUiCommandParseState::ReadingCommand(buffer) => {
-            style.display = Display::Flex;
+            node.display = Display::Flex;
             outline.width = Val::Px(2.);
             if keyboard.just_pressed(KeyCode::Escape) {
                 debug_ui.state = DebugUiCommandParseState::Inactive;
             } else if !ev_char.is_empty() {
                 let new_buffer = append_chars(buffer, ev_char);
-                text.sections[0].value = format!(":{new_buffer}");
+                text.0 = format!(":{new_buffer}");
 
                 if let Some((command, has_param)) = debug_ui
                     .commands
@@ -260,7 +257,7 @@ fn process_debug_commands(
                     debug_ui.state = DebugUiCommandParseState::ReadingCommand(new_buffer);
                 }
             } else {
-                text.sections[0].value = format!(":{buffer}");
+                text.0 = format!(":{buffer}");
             }
         }
 
@@ -278,8 +275,8 @@ fn process_debug_commands(
                 }
             } else if !ev_char.is_empty() {
                 let new_buffer = append_chars(buffer, ev_char);
-                style.display = Display::Flex;
-                text.sections[0].value = format!(":{key_string}({new_buffer})");
+                node.display = Display::Flex;
+                text.0 = format!(":{key_string}({new_buffer})");
 
                 debug_ui.state = DebugUiCommandParseState::ReadingParam(
                     *command,
@@ -292,13 +289,13 @@ fn process_debug_commands(
 
     if let Some(command) = to_send_cmd {
         match command {
-            DebugUiCommand::SpawnRandomNpcs => cmd.add(crate::npc::SpawnRandomNpcs {
+            DebugUiCommand::SpawnRandomNpcs => cmd.queue(crate::npc::SpawnRandomNpcs {
                 count: to_send_param as usize,
                 distance: 20.,
             }),
-            DebugUiCommand::TogglePhysicsDebug => cmd.add(crate::physics::TogglePhysicsDebug),
-            DebugUiCommand::ToggleDebugHelp => cmd.add(ToggleDebugHelp),
-            DebugUiCommand::QuitGame => cmd.add(QuitGame),
+            DebugUiCommand::TogglePhysicsDebug => cmd.queue(crate::physics::TogglePhysicsDebug),
+            DebugUiCommand::ToggleDebugHelp => cmd.queue(ToggleDebugHelp),
+            DebugUiCommand::QuitGame => cmd.queue(QuitGame),
         }
     }
 }
@@ -352,26 +349,26 @@ impl Command for ToggleDebugHelp {
 
         {
             let mut q_text =
-                world.query_filtered::<(&mut Text, &mut Style), With<DebugHelpCommandText>>();
-            if let Ok((mut text, mut style)) = q_text.get_single_mut(world) {
-                if style.display == Display::None {
-                    text.sections[0].value = commands;
-                    style.display = Display::Flex;
+                world.query_filtered::<(&mut Text, &mut Node), With<DebugHelpCommandText>>();
+            if let Ok((mut text, mut node)) = q_text.get_single_mut(world) {
+                if node.display == Display::None {
+                    text.0 = commands;
+                    node.display = Display::Flex;
                 } else {
-                    style.display = Display::None;
+                    node.display = Display::None;
                 }
             }
         }
 
         {
             let mut q_text =
-                world.query_filtered::<(&mut Text, &mut Style), With<DebugHelpDescriptionText>>();
-            if let Ok((mut text, mut style)) = q_text.get_single_mut(world) {
-                if style.display == Display::None {
-                    text.sections[0].value = help;
-                    style.display = Display::Flex;
+                world.query_filtered::<(&mut Text, &mut Node), With<DebugHelpDescriptionText>>();
+            if let Ok((mut text, mut node)) = q_text.get_single_mut(world) {
+                if node.display == Display::None {
+                    text.0 = help;
+                    node.display = Display::Flex;
                 } else {
-                    style.display = Display::None;
+                    node.display = Display::None;
                 }
             }
         }

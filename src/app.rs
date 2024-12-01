@@ -117,40 +117,37 @@ struct MainMenuUi;
 
 fn setup_menu(mut cmd: Commands) {
     cmd.spawn((
-        NodeBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                ..default()
-            },
+        Node {
+            position_type: PositionType::Absolute,
+            width: Val::Percent(100.),
+            height: Val::Percent(100.),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
             ..default()
         },
         MainMenuUi,
     ))
     .with_children(|parent| {
         parent
-            .spawn(ButtonBundle {
-                style: Style {
+            .spawn((
+                Button,
+                Node {
                     width: Val::Px(200.),
                     height: Val::Px(90.),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
                     ..default()
                 },
-                background_color: BUTTON_NORMAL_COLOR.into(),
-                ..default()
-            })
+                BackgroundColor(BUTTON_NORMAL_COLOR.into()),
+            ))
             .with_children(|parent| {
-                parent.spawn(TextBundle::from_section(
-                    "RUN",
-                    TextStyle {
+                parent.spawn((
+                    Text("RUN".to_string()),
+                    TextFont {
                         font_size: 60.0,
-                        color: INFINITE_TEMP_COLOR,
                         ..default()
                     },
+                    TextColor(INFINITE_TEMP_COLOR),
                 ));
             });
     });
