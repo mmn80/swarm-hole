@@ -106,11 +106,11 @@ impl AssetLoader for NonPlayerCharactersAssetLoader {
     type Asset = NonPlayerCharactersAsset;
     type Settings = ();
     type Error = NonPlayerCharactersAssetLoaderError;
-    async fn load<'a>(
-        &'a self,
-        reader: &'a mut Reader<'_>,
-        _settings: &'a (),
-        _load_context: &'a mut LoadContext<'_>,
+    async fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &Self::Settings,
+        _load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let mut bytes = Vec::new();
         reader.read_to_end(&mut bytes).await?;
@@ -153,16 +153,9 @@ impl Command for SpawnNpc {
                         xp_drop: npc.xp_drop,
                     },
                     HotReloadNpc(self.npc_index),
-                    PbrBundle {
-                        transform: Transform::from_xyz(
-                            self.location.x,
-                            npc.radius + 0.02,
-                            self.location.y,
-                        ),
-                        mesh: npc_handles.meshes.get(npc.mesh_idx).unwrap().clone(),
-                        material: npc_handles.materials.get(npc.material_idx).unwrap().clone(),
-                        ..default()
-                    },
+                    Mesh3d(npc_handles.meshes.get(npc.mesh_idx).unwrap().clone()),
+                    MeshMaterial3d(npc_handles.materials.get(npc.material_idx).unwrap().clone()),
+                    Transform::from_xyz(self.location.x, npc.radius + 0.02, self.location.y),
                     RigidBody::Kinematic,
                     Collider::sphere(npc.radius),
                     CollisionLayers::new([Layer::NPC], ALL_LAYERS),
@@ -182,7 +175,7 @@ impl Command for SpawnNpc {
 }
 
 fn spawn_start_npcs(mut cmd: Commands) {
-    cmd.add(SpawnRandomNpcs {
+    cmd.queue(SpawnRandomNpcs {
         count: 5000,
         distance: 20.,
     });

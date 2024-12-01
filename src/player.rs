@@ -112,11 +112,11 @@ impl AssetLoader for PlayerCharactersAssetLoader {
     type Asset = PlayerCharactersAsset;
     type Settings = ();
     type Error = PlayerCharactersAssetLoaderError;
-    async fn load<'a>(
-        &'a self,
-        reader: &'a mut Reader<'_>,
-        _settings: &'a (),
-        _load_context: &'a mut LoadContext<'_>,
+    async fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &Self::Settings,
+        _load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let mut bytes = Vec::new();
         reader.read_to_end(&mut bytes).await?;
@@ -138,7 +138,7 @@ fn spawn_main_player(
         error!("PC config asset not loaded!");
         return;
     };
-    cmd.add(SpawnPlayer {
+    cmd.queue(SpawnPlayer {
         character: pcs.0.get(0).unwrap().clone(),
         location: Vec2::ZERO,
     });
@@ -180,16 +180,9 @@ impl Command for SpawnPlayer {
         world.spawn((
             Name::new(format!("Player {}", pc.name)),
             Player { speed: pc.speed },
-            PbrBundle {
-                transform: Transform::from_xyz(
-                    self.location.x,
-                    pc.height / 2. + 0.2,
-                    self.location.y,
-                ),
-                mesh: pc_handles.meshes.get(pc.mesh_idx).unwrap().clone(),
-                material: pc_handles.materials.get(pc.material_idx).unwrap().clone(),
-                ..default()
-            },
+            Mesh3d(pc_handles.meshes.get(pc.mesh_idx).unwrap().clone()),
+            MeshMaterial3d(pc_handles.materials.get(pc.material_idx).unwrap().clone()),
+            Transform::from_xyz(self.location.x, pc.height / 2. + 0.2, self.location.y),
             RigidBody::Kinematic,
             Collider::capsule(cap_h, pc.width),
             CollisionLayers::new([Layer::Player], ALL_LAYERS),

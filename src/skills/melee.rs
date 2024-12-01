@@ -44,7 +44,7 @@ fn update_melee(
         ) {
             ev_take_damage.send(TakeDamageEvent {
                 target: player_ent,
-                damage: time.delta_seconds() * melee.dps as f32,
+                damage: time.delta_secs() * melee.dps as f32,
             });
         }
     }

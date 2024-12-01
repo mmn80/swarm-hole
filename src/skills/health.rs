@@ -71,8 +71,8 @@ impl IsSkill for HealthRegen {
 
 fn regen_health(time: Res<Time>, mut q_regen: Query<(&mut Health, &MaxHealth, &HealthRegen)>) {
     for (mut health, max_health, health_regen) in &mut q_regen {
-        health.0 = (health.0 + health_regen.hp_per_sec * time.delta_seconds())
-            .min(max_health.max_hp as f32);
+        health.0 =
+            (health.0 + health_regen.hp_per_sec * time.delta_secs()).min(max_health.max_hp as f32);
     }
 }
 
@@ -112,16 +112,13 @@ fn die(
                 let id = cmd
                     .spawn((
                         XpDrop(npc.xp_drop),
-                        PbrBundle {
-                            transform: Transform::from_translation(Vec3::new(p.x, h + 0.02, p.z)),
-                            mesh: meshes.add(Sphere::new(h).mesh().ico(4).unwrap()),
-                            material: (if XpDrop::is_big(npc.xp_drop) {
-                                xp_drops.xp_drop_big.clone()
-                            } else {
-                                xp_drops.xp_drop_small.clone()
-                            }),
-                            ..default()
-                        },
+                        Mesh3d(meshes.add(Sphere::new(h).mesh().ico(4).unwrap())),
+                        MeshMaterial3d(if XpDrop::is_big(npc.xp_drop) {
+                            xp_drops.xp_drop_big.clone()
+                        } else {
+                            xp_drops.xp_drop_small.clone()
+                        }),
+                        Transform::from_translation(Vec3::new(p.x, h + 0.02, p.z)),
                         RigidBody::Kinematic,
                         Collider::sphere(h),
                         CollisionLayers::new([Layer::Building], [Layer::Building, Layer::Player]),

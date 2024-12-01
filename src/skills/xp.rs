@@ -145,7 +145,7 @@ fn gather_xp(
                     let old_speed = lin_vel.length();
                     delta.y = 0.;
                     delta = delta.normalize()
-                        * (old_speed + time.delta_seconds() * xp_gather.acceleration);
+                        * (old_speed + time.delta_secs() * xp_gather.acceleration);
                     lin_vel.x = delta.x;
                     lin_vel.z = delta.z;
                 }
@@ -159,7 +159,7 @@ fn slow_xp_drops(time: Res<Time>, mut q_npc: Query<&mut LinearVelocity, With<XpD
         let speed = lin_vel.length();
         if speed > f32::EPSILON {
             let dir = lin_vel.normalize_or_zero();
-            lin_vel.0 = (speed - time.delta_seconds() * 5.).max(0.) * dir;
+            lin_vel.0 = (speed - time.delta_secs() * 5.).max(0.) * dir;
         }
     }
 }

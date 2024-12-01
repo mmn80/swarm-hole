@@ -1,5 +1,5 @@
 use bevy::{
-    core_pipeline::bloom::BloomSettings,
+    core_pipeline::bloom::Bloom,
     pbr::{NotShadowCaster, NotShadowReceiver},
     prelude::*,
 };
@@ -113,8 +113,7 @@ fn laser_target_npc(
     q_npc: Query<&Transform, With<Npc>>,
 ) {
     for (mut laser, laser_config, tr_player) in &mut q_laser {
-        if laser.target.is_some()
-            || time.elapsed_seconds() - laser.time_ended < laser_config.cooldown
+        if laser.target.is_some() || time.elapsed_secs() - laser.time_ended < laser_config.cooldown
         {
             continue;
         }
@@ -146,8 +145,7 @@ fn laser_target_player(
     q_player: Query<(Entity, &Transform), With<Player>>,
 ) {
     for (mut laser, laser_config, tr_src) in &mut q_laser {
-        if laser.target.is_some()
-            || time.elapsed_seconds() - laser.time_ended < laser_config.cooldown
+        if laser.target.is_some() || time.elapsed_secs() - laser.time_ended < laser_config.cooldown
         {
             continue;
         }
@@ -198,27 +196,25 @@ fn laser_shoot_ray(
                     LaserRay {
                         source,
                         target,
-                        time_started: time.elapsed_seconds(),
+                        time_started: time.elapsed_secs(),
                         dead: false,
                         vfx_started: false,
                     },
-                    SpatialBundle::default(),
+                    Transform::default(),
+                    Visibility::default(),
                 ))
                 .with_children(|parent| {
                     parent.spawn((
                         LaserRayMesh,
-                        PbrBundle {
-                            transform: Transform::IDENTITY,
-                            mesh: weapons.laser_mesh.clone(),
-                            material: if is_player {
-                                weapons.player_laser_material.clone()
-                            } else {
-                                weapons.npc_laser_material.clone()
-                            },
-                            visibility: Visibility::Hidden,
-                            ..default()
-                        },
-                        BloomSettings {
+                        Mesh3d(weapons.laser_mesh.clone()),
+                        MeshMaterial3d(if is_player {
+                            weapons.player_laser_material.clone()
+                        } else {
+                            weapons.npc_laser_material.clone()
+                        }),
+                        Transform::IDENTITY,
+                        Visibility::Hidden,
+                        Bloom {
                             intensity: 0.9,
                             ..default()
                         },
@@ -278,7 +274,7 @@ fn laser_ray_update(
             ray.dead = true;
             continue;
         };
-        if time.elapsed_seconds() - ray.time_started > duration {
+        if time.elapsed_secs() - ray.time_started > duration {
             ray.dead = true;
             continue;
         }
@@ -303,7 +299,7 @@ fn laser_ray_update(
 
         ev_take_damage.send(TakeDamageEvent {
             target: ray.target,
-            damage: time.delta_seconds() * dps,
+            damage: time.delta_secs() * dps,
         });
     }
 }
@@ -320,7 +316,7 @@ fn laser_ray_despawn(
             if let Ok(mut laser) = q_laser.get_mut(ray.source) {
                 laser.ray = None;
                 laser.target = None;
-                laser.time_ended = time.elapsed_seconds();
+                laser.time_ended = time.elapsed_secs();
             }
         }
     }

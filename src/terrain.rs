@@ -47,12 +47,9 @@ fn setup_terrain(
     terrain.ground = Some({
         let id = cmd
             .spawn((
-                PbrBundle {
-                    transform: Transform::from_xyz(0.0, -ground_size.y / 2., 0.0),
-                    mesh: meshes.add(Cuboid::new(ground_size.x, ground_size.y, ground_size.z)),
-                    material,
-                    ..default()
-                },
+                Mesh3d(meshes.add(Cuboid::new(ground_size.x, ground_size.y, ground_size.z))),
+                MeshMaterial3d(material),
+                Transform::from_xyz(0.0, -ground_size.y / 2., 0.0),
                 RigidBody::Static,
                 Collider::cuboid(ground_size.x, ground_size.y, ground_size.z),
                 CollisionLayers::new([Layer::Ground], ALL_LAYERS),

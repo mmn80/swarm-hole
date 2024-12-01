@@ -2,7 +2,7 @@ use std::fmt;
 
 use bevy::{
     app::PluginGroupBuilder,
-    asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
+    asset::{io::Reader, AssetLoader, LoadContext},
     prelude::*,
     utils::{HashMap, HashSet},
 };
@@ -180,7 +180,7 @@ impl Level {
         }
     }
 
-    pub fn index<'a, T>(&'a self, list: &'a Vec<T>) -> Option<&T> {
+    pub fn index<'a, T>(&'a self, list: &'a Vec<T>) -> Option<&'a T> {
         list.get(self.0 as usize)
     }
 }
@@ -244,12 +244,12 @@ pub fn apply_skill_specs<T: Component + Struct + Default + IsSkill>(
                 if let Some(attr_meta) = skills_meta.attributes.get(attr) {
                     if let Some(fld) = refl_struct.field_mut(&attr_meta.field_name) {
                         match val {
-                            Value::F(v) => fld.downcast_mut::<f32>().map(|f| *f = *v),
-                            Value::U(v) => fld.downcast_mut::<u32>().map(|f| *f = *v),
-                            Value::AddF(v) => fld.downcast_mut::<f32>().map(|f| *f += *v),
-                            Value::AddU(v) => fld.downcast_mut::<u32>().map(|f| *f += *v),
+                            Value::F(v) => fld.try_downcast_mut::<f32>().map(|f| *f = *v),
+                            Value::U(v) => fld.try_downcast_mut::<u32>().map(|f| *f = *v),
+                            Value::AddF(v) => fld.try_downcast_mut::<f32>().map(|f| *f += *v),
+                            Value::AddU(v) => fld.try_downcast_mut::<u32>().map(|f| *f += *v),
                             Value::Perc(v) => {
-                                fld.downcast_mut::<f32>().map(|f| *f += *f * *v / 100.)
+                                fld.try_downcast_mut::<f32>().map(|f| *f += *f * *v / 100.)
                             }
                         };
                     } else {
@@ -392,11 +392,11 @@ impl AssetLoader for SkillsAssetLoader {
     type Asset = SkillsAsset;
     type Settings = ();
     type Error = SkillsAssetLoaderError;
-    async fn load<'a>(
-        &'a self,
-        reader: &'a mut Reader<'_>,
-        _settings: &'a (),
-        _load_context: &'a mut LoadContext<'_>,
+    async fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &Self::Settings,
+        _load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let mut bytes = Vec::new();
         reader.read_to_end(&mut bytes).await?;
