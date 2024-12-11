@@ -43,7 +43,7 @@ fn setup_vfx(mut vfx: ResMut<Vfx>, mut effects: ResMut<Assets<EffectAsset>>, mut
     let init_vel = SetAttributeModifier::new(Attribute::VELOCITY, velocity.expr());
 
     vfx.damage_particles = effects.add(
-        EffectAsset::new(vec![32768], spawner, writer.finish())
+        EffectAsset::new(32768, spawner, writer.finish())
             .with_name("damage_particles")
             .init(init_pos)
             .init(init_vel)
@@ -56,7 +56,7 @@ fn setup_vfx(mut vfx: ResMut<Vfx>, mut effects: ResMut<Assets<EffectAsset>>, mut
                 rotation: None,
             })
             .render(SetSizeModifier {
-                size: Vec2::splat(0.05).into(),
+                size: CpuValue::Single((Vec2::splat(0.05), 0.).into()),
             }),
     );
 
@@ -73,9 +73,13 @@ pub struct DamageParticlesEvent {
 
 fn update_vfx(
     mut ev_damage_particles: EventReader<DamageParticlesEvent>,
-    mut effect: Query<(&mut EffectProperties, &mut EffectSpawner, &mut Transform)>,
+    mut effect: Query<(
+        &mut EffectProperties,
+        &mut EffectInitializers,
+        &mut Transform,
+    )>,
 ) {
-    let Ok((mut effect, mut spawner, mut tr_effect)) = effect.get_single_mut() else {
+    let Ok((mut effect, mut initializers, mut tr_effect)) = effect.get_single_mut() else {
         return;
     };
     for ev in ev_damage_particles.read() {
@@ -90,6 +94,6 @@ fn update_vfx(
         normal.y = 0.;
         effect.set("normal", normal.normalize().into());
 
-        spawner.reset();
+        initializers.reset();
     }
 }
