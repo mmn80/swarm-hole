@@ -1,5 +1,5 @@
+use avian3d::prelude::*;
 use bevy::prelude::*;
-use bevy_xpbd_3d::prelude::*;
 
 use crate::{app::AppState, physics::Layer};
 
@@ -131,7 +131,7 @@ fn gather_xp(
                 &Collider::sphere(xp_gather.range),
                 tr_gatherer.translation,
                 Quat::default(),
-                SpatialQueryFilter::from_mask([Layer::Building]),
+                &SpatialQueryFilter::from_mask([Layer::Building]),
             )
             .iter()
         {

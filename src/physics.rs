@@ -1,5 +1,5 @@
+use avian3d::{dynamics::solver::schedule::SubstepSolverSet, math::*, prelude::*};
 use bevy::{ecs::world::Command, prelude::*};
-use bevy_xpbd_3d::{math::*, prelude::*, SubstepSchedule, SubstepSet};
 
 use crate::{app::AppState, player::Player};
 
@@ -12,7 +12,7 @@ impl Plugin for MainPhysicsPlugin {
             .add_systems(
                 SubstepSchedule,
                 kinematic_collision
-                    .in_set(SubstepSet::SolveUserConstraints)
+                    .in_set(SubstepSolverSet::SolveUserConstraints)
                     .run_if(in_state(AppState::Run)),
             );
     }
@@ -43,15 +43,15 @@ impl Command for TogglePhysicsDebug {
     }
 }
 
-#[derive(PhysicsLayer)]
+#[derive(Default, PhysicsLayer)]
 pub enum Layer {
+    #[default]
+    Default,
     Player,
     NPC,
     Building,
     Ground,
 }
-
-pub const ALL_LAYERS: [Layer; 4] = [Layer::Player, Layer::NPC, Layer::Building, Layer::Ground];
 
 fn kinematic_collision(
     collisions: Res<Collisions>,
@@ -63,7 +63,7 @@ fn kinematic_collision(
         .ok()
         .map_or(Vec3::ZERO, |p| p.translation);
     for contacts in collisions.iter() {
-        if !contacts.during_current_substep {
+        if !contacts.during_current_frame {
             continue;
         }
         if let Ok([(rb1, mut position1, rotation1), (rb2, mut position2, _)]) =

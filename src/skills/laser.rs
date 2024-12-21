@@ -1,9 +1,9 @@
+use avian3d::prelude::*;
 use bevy::{
     core_pipeline::bloom::Bloom,
     pbr::{NotShadowCaster, NotShadowReceiver},
     prelude::*,
 };
-use bevy_xpbd_3d::prelude::*;
 
 use crate::{app::AppState, npc::Npc, physics::Layer, player::Player, vfx::DamageParticlesEvent};
 
@@ -123,7 +123,7 @@ fn laser_target_npc(
                 &Collider::sphere(laser_config.range),
                 pos,
                 Quat::default(),
-                SpatialQueryFilter::from_mask([Layer::NPC]),
+                &SpatialQueryFilter::from_mask([Layer::NPC]),
             )
             .iter()
             .filter_map(|ent| q_npc.get(*ent).ok().map(|tr| (ent, tr.translation)))

@@ -1,3 +1,4 @@
+use avian3d::prelude::*;
 use bevy::{
     diagnostic::FrameTimeDiagnosticsPlugin,
     prelude::*,
@@ -7,7 +8,6 @@ use bevy::{
     },
 };
 use bevy_hanabi::prelude::*;
-use bevy_xpbd_3d::prelude::*;
 
 use swarm_hole::{
     app::{AppState, MainMenuPlugin},
@@ -32,7 +32,6 @@ fn main() {
         .features
         .set(WgpuFeatures::VERTEX_WRITABLE_STORAGE, true);
     App::new()
-        .insert_resource(Msaa::Sample4)
         .insert_resource(ClearColor(INFINITE_TEMP_COLOR))
         .add_plugins((
             DefaultPlugins

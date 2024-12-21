@@ -1,10 +1,10 @@
+use avian3d::{math::*, prelude::*};
 use bevy::{
-    asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
+    asset::{io::Reader, AssetLoader, LoadContext},
     ecs::world::Command,
     prelude::*,
     utils::HashMap,
 };
-use bevy_xpbd_3d::{math::*, prelude::*, PhysicsSchedule, PhysicsStepSet};
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -12,7 +12,7 @@ use crate::{
     app::AppState,
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
-    physics::{Layer, ALL_LAYERS},
+    physics::Layer,
     skills::{
         EquippedSkills, HotReloadEquippedSkills, Level, MaxUpgradableSkills, Skill, SkillSpec,
         SkillSpecs, Skills,
@@ -36,12 +36,7 @@ impl Plugin for PlayerPlugin {
                 },
                 spawn_main_player,
             )
-            .add_systems(
-                PhysicsSchedule,
-                move_player
-                    .before(PhysicsStepSet::BroadPhase)
-                    .run_if(in_state(AppState::Run)),
-            )
+            .add_systems(FixedUpdate, move_player.run_if(in_state(AppState::Run)))
             .add_systems(OnEnter(AppState::Cleanup), cleanup_players);
     }
 }
@@ -184,15 +179,15 @@ impl Command for SpawnPlayer {
             MeshMaterial3d(pc_handles.materials.get(pc.material_idx).unwrap().clone()),
             Transform::from_xyz(self.location.x, pc.height / 2. + 0.2, self.location.y),
             RigidBody::Kinematic,
-            Collider::capsule(cap_h, pc.width),
-            CollisionLayers::new([Layer::Player], ALL_LAYERS),
+            Collider::capsule(pc.width, cap_h),
+            CollisionLayers::new([Layer::Player], LayerMask::ALL),
             ShapeCaster::new(
-                Collider::capsule(cap_h - 0.1, pc.width - 0.05),
+                Collider::capsule(pc.width - 0.05, cap_h - 0.1),
                 Vector::ZERO,
                 Quaternion::default(),
                 Dir3::NEG_Y,
             )
-            .with_max_time_of_impact(0.11)
+            .with_max_distance(0.11)
             .with_max_hits(1),
             MaxUpgradableSkills(pc.max_selected_skills),
             EquippedSkills::new(&pc.selected_skills),

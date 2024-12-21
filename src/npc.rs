@@ -1,17 +1,17 @@
+use avian3d::prelude::*;
 use bevy::{
-    asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
+    asset::{io::Reader, AssetLoader, LoadContext},
     ecs::world::Command,
     prelude::*,
     utils::HashMap,
 };
-use bevy_xpbd_3d::prelude::*;
 use rand::{distributions::WeightedIndex, prelude::*};
 use serde::Deserialize;
 use thiserror::Error;
 
 use crate::{
     app::{AppState, RunState},
-    physics::{Layer, ALL_LAYERS},
+    physics::Layer,
     skills::{EquippedSkills, Level, Skill, SkillSpec, SkillSpecs},
 };
 
@@ -158,7 +158,7 @@ impl Command for SpawnNpc {
                     Transform::from_xyz(self.location.x, npc.radius + 0.02, self.location.y),
                     RigidBody::Kinematic,
                     Collider::sphere(npc.radius),
-                    CollisionLayers::new([Layer::NPC], ALL_LAYERS),
+                    CollisionLayers::new([Layer::NPC], LayerMask::ALL),
                     EquippedSkills::default(),
                     specs,
                 ))

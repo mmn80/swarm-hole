@@ -1,10 +1,7 @@
+use avian3d::prelude::*;
 use bevy::prelude::*;
-use bevy_xpbd_3d::prelude::*;
 
-use crate::{
-    app::AppState,
-    physics::{Layer, ALL_LAYERS},
-};
+use crate::{app::AppState, physics::Layer};
 
 pub struct TerrainPlugin;
 
@@ -52,7 +49,7 @@ fn setup_terrain(
                 Transform::from_xyz(0.0, -ground_size.y / 2., 0.0),
                 RigidBody::Static,
                 Collider::cuboid(ground_size.x, ground_size.y, ground_size.z),
-                CollisionLayers::new([Layer::Ground], ALL_LAYERS),
+                CollisionLayers::new([Layer::Ground], LayerMask::ALL),
             ))
             .id();
         cmd.entity(id)

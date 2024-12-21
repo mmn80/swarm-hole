@@ -1,5 +1,5 @@
+use avian3d::prelude::*;
 use bevy::prelude::*;
-use bevy_xpbd_3d::prelude::*;
 
 use crate::{app::AppState, npc::Npc, physics::Layer};
 
@@ -40,7 +40,7 @@ fn update_melee(
             &Collider::sphere(melee.range),
             pos,
             Quat::default(),
-            SpatialQueryFilter::from_mask([Layer::Player]),
+            &SpatialQueryFilter::from_mask([Layer::Player]),
         ) {
             ev_take_damage.send(TakeDamageEvent {
                 target: player_ent,

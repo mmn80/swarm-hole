@@ -5,7 +5,6 @@ use bevy::{
     transform::TransformSystem,
     window::PrimaryWindow,
 };
-use bevy_xpbd_3d::PhysicsSet;
 
 use crate::app::is_running;
 
@@ -17,9 +16,8 @@ impl Plugin for MainCameraPlugin {
             .add_event::<MainCameraFocusEvent>()
             .add_systems(Startup, spawn_camera)
             .add_systems(
-                Update,
+                PostUpdate,
                 main_camera
-                    .after(PhysicsSet::Sync)
                     .before(TransformSystem::TransformPropagate)
                     .run_if(is_running),
             );
@@ -61,6 +59,7 @@ fn spawn_camera(mut cmd: Commands) {
     let radius = translation.length();
     cmd.spawn((
         Camera3d::default(),
+        Msaa::Sample4,
         Transform::from_translation(translation).looking_at(Vec3::Y, Vec3::Y),
         Camera {
             hdr: true,
