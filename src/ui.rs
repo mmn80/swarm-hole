@@ -91,7 +91,7 @@ fn setup_top_bar_ui(mut cmd: Commands) {
             .with_children(|parent| {
                 parent
                     .spawn((
-                        Text::new(""),
+                        Text::new("HP:  "),
                         Node {
                             justify_content: JustifyContent::FlexStart,
                             align_items: AlignItems::FlexStart,
@@ -101,16 +101,13 @@ fn setup_top_bar_ui(mut cmd: Commands) {
                             justify: JustifyText::Left,
                             ..default()
                         },
+                        TextFont {
+                            font_size: 30.0,
+                            ..default()
+                        },
                         HpText,
                     ))
                     .with_children(|parent| {
-                        parent.spawn((
-                            TextSpan::new("HP:  "),
-                            TextFont {
-                                font_size: 30.0,
-                                ..default()
-                            },
-                        ));
                         parent.spawn((
                             TextSpan::new("-"),
                             TextFont {
@@ -122,7 +119,7 @@ fn setup_top_bar_ui(mut cmd: Commands) {
 
                 parent
                     .spawn((
-                        Text::new(""),
+                        Text::new("NPC: "),
                         Node {
                             justify_content: JustifyContent::FlexStart,
                             align_items: AlignItems::FlexStart,
@@ -132,16 +129,13 @@ fn setup_top_bar_ui(mut cmd: Commands) {
                             justify: JustifyText::Left,
                             ..default()
                         },
+                        TextFont {
+                            font_size: 30.0,
+                            ..default()
+                        },
                         NpcsText,
                     ))
                     .with_children(|parent| {
-                        parent.spawn((
-                            TextSpan::new("NPC:  "),
-                            TextFont {
-                                font_size: 30.0,
-                                ..default()
-                            },
-                        ));
                         parent.spawn((
                             TextSpan::new("-"),
                             TextFont {
@@ -176,7 +170,7 @@ fn setup_top_bar_ui(mut cmd: Commands) {
             .with_children(|parent| {
                 parent
                     .spawn((
-                        Text::new(""),
+                        Text::new("LVL: "),
                         Node {
                             justify_content: JustifyContent::FlexStart,
                             align_items: AlignItems::FlexStart,
@@ -186,16 +180,13 @@ fn setup_top_bar_ui(mut cmd: Commands) {
                             justify: JustifyText::Left,
                             ..default()
                         },
+                        TextFont {
+                            font_size: 30.0,
+                            ..default()
+                        },
                         LevelText,
                     ))
                     .with_children(|parent| {
-                        parent.spawn((
-                            TextSpan::new("LVL:  "),
-                            TextFont {
-                                font_size: 30.0,
-                                ..default()
-                            },
-                        ));
                         parent.spawn((
                             TextSpan::new("-"),
                             TextFont {
@@ -207,7 +198,7 @@ fn setup_top_bar_ui(mut cmd: Commands) {
 
                 parent
                     .spawn((
-                        Text::new(""),
+                        Text::new("XP:  "),
                         Node {
                             justify_content: JustifyContent::FlexStart,
                             align_items: AlignItems::FlexStart,
@@ -217,16 +208,13 @@ fn setup_top_bar_ui(mut cmd: Commands) {
                             justify: JustifyText::Left,
                             ..default()
                         },
+                        TextFont {
+                            font_size: 30.0,
+                            ..default()
+                        },
                         XpText,
                     ))
                     .with_children(|parent| {
-                        parent.spawn((
-                            TextSpan::new("XP:  "),
-                            TextFont {
-                                font_size: 30.0,
-                                ..default()
-                            },
-                        ));
                         parent.spawn((
                             TextSpan::new("-"),
                             TextFont {
@@ -337,7 +325,7 @@ fn update_npcs_ui(
 
 fn setup_fps_ui(mut cmd: Commands) {
     cmd.spawn((
-        Text::new(""),
+        Text::default(),
         Node {
             align_self: AlignSelf::FlexEnd,
             position_type: PositionType::Absolute,
@@ -549,7 +537,7 @@ fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_>, index: usize) {
         .with_children(|parent| {
             parent
                 .spawn((
-                    Text::new(""),
+                    Text::new(format!("Upgrade {index}")),
                     Node {
                         margin: UiRect::new(Val::Px(40.), Val::Px(40.), Val::Px(40.), Val::Px(10.)),
                         ..default()
@@ -558,19 +546,16 @@ fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_>, index: usize) {
                         justify: JustifyText::Center,
                         ..default()
                     },
+                    TextFont {
+                        font_size: 30.0,
+                        ..default()
+                    },
+                    TextColor(AQUAMARINE.into()),
                     SkillUpgradeText(index),
                 ))
                 .with_children(|parent| {
                     parent.spawn((
-                        TextSpan::new(format!("Upgrade {index}")),
-                        TextFont {
-                            font_size: 30.0,
-                            ..default()
-                        },
-                        TextColor(AQUAMARINE.into()),
-                    ));
-                    parent.spawn((
-                        TextSpan::new("Level"),
+                        TextSpan::default(),
                         TextFont {
                             font_size: 30.0,
                             ..default()
@@ -617,7 +602,7 @@ fn init_skill_upgrade_ui(
     mut q_root: Query<&mut Node, With<SkillUpgradeRoot>>,
     mut q_buttons: Query<(&mut Node, &SkillUpgradeButton), Without<SkillUpgradeRoot>>,
     q_texts: Query<(Entity, &SkillUpgradeText)>,
-    mut q_detail_texts: Query<(&mut Text, &SkillUpgradeDetailsText), Without<SkillUpgradeText>>,
+    q_detail_texts: Query<(Entity, &SkillUpgradeDetailsText), Without<SkillUpgradeText>>,
     mut writer: TextUiWriter,
 ) {
     for (text, marker) in &q_texts {
@@ -628,7 +613,7 @@ fn init_skill_upgrade_ui(
             }
         }
     }
-    for (mut text, marker) in &mut q_detail_texts {
+    for (text, marker) in &q_detail_texts {
         if let Some((skill, level)) = upgrade_options.skills.get(marker.0) {
             if let Some(levels) = skills.upgrades.get(skill) {
                 let mut str = String::new();
@@ -659,7 +644,7 @@ fn init_skill_upgrade_ui(
                         }
                     }
                 }
-                text.0 = format!("{str}");
+                *writer.text(text, 0) = format!("{str}");
             }
         }
     }
