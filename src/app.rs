@@ -42,7 +42,6 @@ impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<RunState>()
             .add_systems(OnEnter(AppState::Menu), setup_menu)
-            .add_systems(OnExit(AppState::Menu), cleanup_menu)
             .add_systems(
                 Update,
                 (
@@ -131,6 +130,7 @@ fn setup_menu(mut cmd: Commands) {
             ..default()
         },
         MainMenuUi,
+        StateScoped(AppState::Menu),
     ))
     .with_children(|parent| {
         parent
@@ -179,11 +179,5 @@ fn update_menu(
                 *color = BUTTON_NORMAL_COLOR.into();
             }
         }
-    }
-}
-
-fn cleanup_menu(mut cmd: Commands, q_main_menu: Query<Entity, With<MainMenuUi>>) {
-    for entity in &q_main_menu {
-        cmd.entity(entity).despawn_recursive();
     }
 }

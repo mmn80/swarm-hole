@@ -1,7 +1,10 @@
+use std::f32::consts::PI;
+
 use avian3d::prelude::*;
 use bevy::{
     asset::{io::Reader, AssetLoader, LoadContext},
     ecs::world::Command,
+    math::prelude::*,
     prelude::*,
     utils::HashMap,
 };
@@ -176,8 +179,8 @@ impl Command for SpawnNpc {
 
 fn spawn_start_npcs(mut cmd: Commands) {
     cmd.queue(SpawnRandomNpcs {
-        count: 5000,
-        distance: 20.,
+        count: 200,
+        distance: 10.,
     });
 }
 
@@ -205,34 +208,26 @@ impl Command for SpawnRandomNpcs {
             npcs.0.clone()
         };
 
+        let unit_area = self.distance.powi(2);
+        let radius = (unit_area * self.count as f32 / PI).sqrt();
+        let circle = Circle::new(radius);
+        let samples = circle
+            .interior_dist()
+            .sample_iter(thread_rng())
+            .take(self.count)
+            .collect::<Vec<_>>();
+
         let mut rng = thread_rng();
         let npc_idx = WeightedIndex::new(npcs.iter().map(|npc| npc.frequency)).unwrap();
-
-        let w = ((self.count as f32).sqrt() / 2.).ceil() as i32;
-        let dist = (self.distance - 4.) / 2.;
-        let mut n = 0;
-        for xi in -w..=w {
-            for zi in -w..=w {
-                let idx = npc_idx.sample(&mut rng);
-                let npc = &npcs[idx];
-                let x = xi as f32 * self.distance + rng.gen_range(-dist..dist);
-                let z = zi as f32 * self.distance + rng.gen_range(-dist..dist);
-
-                SpawnNpc {
-                    character: npc.clone(),
-                    npc_index: NpcAssetIndex(idx),
-                    location: Vec2::new(x, z),
-                }
-                .apply(world);
-
-                n += 1;
-                if n == self.count {
-                    break;
-                }
+        for pt in samples {
+            let idx = npc_idx.sample(&mut rng);
+            let npc = &npcs[idx];
+            SpawnNpc {
+                character: npc.clone(),
+                npc_index: NpcAssetIndex(idx),
+                location: pt,
             }
-            if n == self.count {
-                break;
-            }
+            .apply(world);
         }
     }
 }
