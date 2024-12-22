@@ -6,7 +6,7 @@ use bevy::{
     window::PrimaryWindow,
 };
 
-use crate::app::is_running;
+use crate::app::InGame;
 
 pub struct MainCameraPlugin;
 
@@ -19,7 +19,7 @@ impl Plugin for MainCameraPlugin {
                 PostUpdate,
                 main_camera
                     .before(TransformSystem::TransformPropagate)
-                    .run_if(is_running),
+                    .run_if(in_state(InGame)),
             );
     }
 }

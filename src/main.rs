@@ -10,7 +10,7 @@ use bevy::{
 use bevy_hanabi::prelude::*;
 
 use swarm_hole::{
-    app::{AppState, MainMenuPlugin},
+    app::{AppState, InGame, MainMenuPlugin},
     camera::MainCameraPlugin,
     debug_ui::DebugUiPlugin,
     light::MainLightsPlugin,
@@ -54,6 +54,7 @@ fn main() {
             HanabiPlugin,
         ))
         .init_state::<AppState>()
+        .add_computed_state::<InGame>()
         .add_plugins((
             MainMenuPlugin,
             MainPhysicsPlugin,

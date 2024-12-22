@@ -6,7 +6,7 @@ use bevy::{
 use rand::prelude::*;
 
 use crate::{
-    app::{is_running, AppState, RunState},
+    app::{AppState, InGame, RunState},
     player::Player,
     skills::{
         health::{Health, MaxHealth},
@@ -41,7 +41,7 @@ impl Plugin for MainUiPlugin {
                 update_app_state_ui,
                 update_npcs_ui,
             )
-                .run_if(is_running),
+                .run_if(in_state(InGame)),
         )
         .add_systems(OnEnter(AppState::Upgrade), init_skill_upgrade_ui)
         .add_systems(

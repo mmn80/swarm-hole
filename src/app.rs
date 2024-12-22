@@ -19,6 +19,24 @@ pub enum AppState {
     Cleanup,
 }
 
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct InGame;
+
+impl ComputedStates for InGame {
+    type SourceStates = AppState;
+
+    fn compute(sources: AppState) -> Option<InGame> {
+        match sources {
+            AppState::Run
+            | AppState::Paused
+            | AppState::Upgrade
+            | AppState::Lost
+            | AppState::Won => Some(InGame),
+            _ => None,
+        }
+    }
+}
+
 pub struct MainMenuPlugin;
 
 impl Plugin for MainMenuPlugin {
@@ -101,15 +119,6 @@ fn update_app_state(
             }
         }
     }
-}
-
-pub fn is_running(app_state: Res<State<AppState>>) -> bool {
-    let state = *app_state.get();
-    return state == AppState::Run
-        || state == AppState::Paused
-        || state == AppState::Upgrade
-        || state == AppState::Lost
-        || state == AppState::Won;
 }
 
 #[derive(Component)]
