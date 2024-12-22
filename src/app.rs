@@ -139,6 +139,7 @@ fn setup_menu(mut cmd: Commands) {
                     ..default()
                 },
                 BackgroundColor(BUTTON_NORMAL_COLOR.into()),
+                BorderRadius::all(Val::Px(20.0)),
             ))
             .with_children(|parent| {
                 parent.spawn((

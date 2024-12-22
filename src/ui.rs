@@ -386,6 +386,7 @@ fn setup_paused_ui(mut cmd: Commands) {
                     ..default()
                 },
                 BackgroundColor(Color::srgba(0.15, 0.15, 0.15, 0.8)),
+                BorderRadius::all(Val::Px(50.0)),
             ))
             .with_children(|parent| {
                 parent.spawn((
@@ -532,6 +533,7 @@ fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_>, index: usize) {
                 ..default()
             },
             BackgroundColor(BUTTON_NORMAL_COLOR),
+            BorderRadius::all(Val::Px(20.0)),
             SkillUpgradeButton(index),
         ))
         .with_children(|parent| {
