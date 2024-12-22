@@ -5,7 +5,13 @@ use bevy::{
     prelude::*,
 };
 
-use crate::{app::AppState, npc::Npc, physics::Layer, player::Player, vfx::DamageParticlesEvent};
+use crate::{
+    app::{AppState, InGame},
+    npc::Npc,
+    physics::Layer,
+    player::Player,
+    vfx::DamageParticlesEvent,
+};
 
 use super::{apply_skill_specs, health::TakeDamageEvent, IsSkill, Skill};
 
@@ -29,8 +35,7 @@ impl Plugin for LaserPlugin {
                         .chain(),
                 )
                     .run_if(in_state(AppState::Run)),
-            )
-            .add_systems(OnEnter(AppState::Cleanup), cleanup_laser_rays);
+            );
     }
 }
 
@@ -192,6 +197,7 @@ fn laser_shoot_ray(
                     },
                     Transform::default(),
                     Visibility::default(),
+                    StateScoped(InGame),
                 ))
                 .with_children(|parent| {
                     parent.spawn((
@@ -309,11 +315,5 @@ fn laser_ray_despawn(
                 laser.time_ended = time.elapsed_secs();
             }
         }
-    }
-}
-
-fn cleanup_laser_rays(q_rays: Query<Entity, With<LaserRay>>, mut cmd: Commands) {
-    for entity in &q_rays {
-        cmd.entity(entity).despawn_recursive();
     }
 }

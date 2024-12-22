@@ -16,7 +16,6 @@ pub enum AppState {
     Upgrade,
     Lost,
     Won,
-    Cleanup,
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
@@ -84,19 +83,16 @@ fn update_app_state(
     let enter = keyboard.just_pressed(KeyCode::Enter) && !debug_ui.has_focus();
     let esc = keyboard.just_pressed(KeyCode::Escape) && !debug_ui.has_focus();
     match *app_state.get() {
-        AppState::Cleanup => {
-            next_state.set(AppState::Menu);
-        }
         AppState::Lost | AppState::Won => {
             if enter || esc {
-                next_state.set(AppState::Cleanup);
+                next_state.set(AppState::Menu);
             }
         }
         AppState::Paused => {
             if enter {
                 next_state.set(AppState::Run);
             } else if esc {
-                next_state.set(AppState::Cleanup);
+                next_state.set(AppState::Menu);
             }
         }
         AppState::Menu => {

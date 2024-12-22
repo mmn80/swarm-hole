@@ -2,7 +2,7 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 
 use crate::{
-    app::{AppState, RunState},
+    app::{AppState, InGame, RunState},
     npc::Npc,
     physics::Layer,
     player::Player,
@@ -123,6 +123,7 @@ fn die(
                         RigidBody::Kinematic,
                         Collider::sphere(h),
                         CollisionLayers::new([Layer::Building], [Layer::Building, Layer::Player]),
+                        StateScoped(InGame),
                     ))
                     .id();
                 cmd.entity(id)

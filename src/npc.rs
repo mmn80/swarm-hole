@@ -10,7 +10,7 @@ use serde::Deserialize;
 use thiserror::Error;
 
 use crate::{
-    app::{AppState, RunState},
+    app::{AppState, InGame, RunState},
     physics::Layer,
     skills::{EquippedSkills, Level, Skill, SkillSpec, SkillSpecs},
 };
@@ -31,8 +31,7 @@ impl Plugin for NpcPlugin {
                 },
                 spawn_start_npcs,
             )
-            .add_systems(Update, hot_reload_npcs)
-            .add_systems(OnEnter(AppState::Cleanup), cleanup_npcs);
+            .add_systems(Update, hot_reload_npcs);
     }
 }
 
@@ -161,6 +160,7 @@ impl Command for SpawnNpc {
                     CollisionLayers::new([Layer::NPC], LayerMask::ALL),
                     EquippedSkills::default(),
                     specs,
+                    StateScoped(InGame),
                 ))
                 .id();
             world
@@ -266,11 +266,5 @@ fn hot_reload_npcs(
                 }
             }
         }
-    }
-}
-
-fn cleanup_npcs(q_npc: Query<Entity, With<Npc>>, mut cmd: Commands) {
-    for entity in &q_npc {
-        cmd.entity(entity).despawn_recursive();
     }
 }

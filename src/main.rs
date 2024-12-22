@@ -55,6 +55,8 @@ fn main() {
         ))
         .init_state::<AppState>()
         .add_computed_state::<InGame>()
+        .enable_state_scoped_entities::<AppState>()
+        .enable_state_scoped_entities::<InGame>()
         .add_plugins((
             MainMenuPlugin,
             MainPhysicsPlugin,

@@ -9,7 +9,7 @@ use serde::Deserialize;
 use thiserror::Error;
 
 use crate::{
-    app::AppState,
+    app::{AppState, InGame},
     camera::MainCameraFocusEvent,
     debug_ui::DebugUi,
     physics::Layer,
@@ -36,8 +36,7 @@ impl Plugin for PlayerPlugin {
                 },
                 spawn_main_player,
             )
-            .add_systems(FixedUpdate, move_player.run_if(in_state(AppState::Run)))
-            .add_systems(OnEnter(AppState::Cleanup), cleanup_players);
+            .add_systems(FixedUpdate, move_player.run_if(in_state(AppState::Run)));
     }
 }
 
@@ -193,6 +192,7 @@ impl Command for SpawnPlayer {
             EquippedSkills::new(&pc.selected_skills),
             specs,
             HotReloadEquippedSkills,
+            StateScoped(InGame),
         ));
     }
 }
@@ -248,11 +248,5 @@ fn move_player(
         ev_refocus.send(MainCameraFocusEvent {
             focus: player_tr.translation,
         });
-    }
-}
-
-fn cleanup_players(q_player: Query<Entity, With<Player>>, mut cmd: Commands) {
-    for entity in &q_player {
-        cmd.entity(entity).despawn_recursive();
     }
 }

@@ -31,7 +31,6 @@ impl Plugin for MainUiPlugin {
                 setup_paused_ui,
             ),
         )
-        .add_systems(OnEnter(AppState::Cleanup), cleanup_ui)
         .add_systems(
             Update,
             (
@@ -75,6 +74,7 @@ fn setup_top_bar_ui(mut cmd: Commands) {
             ..default()
         },
         MainUi,
+        StateScoped(InGame),
     ))
     .with_children(|parent| {
         parent.spawn(Node {
@@ -340,6 +340,7 @@ fn setup_fps_ui(mut cmd: Commands) {
         TextColor(YELLOW.into()),
         FpsText,
         MainUi,
+        StateScoped(InGame),
     ));
 }
 
@@ -375,6 +376,7 @@ fn setup_paused_ui(mut cmd: Commands) {
         },
         AppStateRoot,
         MainUi,
+        StateScoped(InGame),
     ))
     .with_children(|parent| {
         parent
@@ -506,6 +508,7 @@ fn setup_upgrade_ui(mut cmd: Commands) {
         },
         SkillUpgradeRoot,
         MainUi,
+        StateScoped(InGame),
     ))
     .with_children(|parent| {
         add_skill_upgrade_button(parent, 0);
@@ -686,13 +689,5 @@ fn update_skill_upgrade_ui(
                 *color = BUTTON_NORMAL_COLOR.into();
             }
         }
-    }
-}
-
-// cleanup main UI
-
-fn cleanup_ui(q_main_ui: Query<Entity, With<MainUi>>, mut cmd: Commands) {
-    for entity in &q_main_ui {
-        cmd.entity(entity).despawn_recursive();
     }
 }

@@ -20,8 +20,7 @@ impl Plugin for XpPlugin {
                     slow_xp_drops,
                 )
                     .run_if(in_state(AppState::Run)),
-            )
-            .add_systems(OnEnter(AppState::Cleanup), cleanup_xp_drops);
+            );
     }
 }
 
@@ -161,11 +160,5 @@ fn slow_xp_drops(time: Res<Time>, mut q_npc: Query<&mut LinearVelocity, With<XpD
             let dir = lin_vel.normalize_or_zero();
             lin_vel.0 = (speed - time.delta_secs() * 5.).max(0.) * dir;
         }
-    }
-}
-
-fn cleanup_xp_drops(q_npc: Query<Entity, With<XpDrop>>, mut cmd: Commands) {
-    for entity in &q_npc {
-        cmd.entity(entity).despawn_recursive();
     }
 }

@@ -1,7 +1,10 @@
 use avian3d::prelude::*;
 use bevy::prelude::*;
 
-use crate::{app::AppState, physics::Layer};
+use crate::{
+    app::{AppState, InGame},
+    physics::Layer,
+};
 
 pub struct TerrainPlugin;
 
@@ -16,7 +19,7 @@ impl Plugin for TerrainPlugin {
                 },
                 setup_terrain,
             )
-            .add_systems(OnEnter(AppState::Cleanup), cleanup_terrain);
+            .add_systems(OnExit(InGame), cleanup_terrain);
     }
 }
 
@@ -50,6 +53,7 @@ fn setup_terrain(
                 RigidBody::Static,
                 Collider::cuboid(ground_size.x, ground_size.y, ground_size.z),
                 CollisionLayers::new([Layer::Ground], LayerMask::ALL),
+                StateScoped(InGame),
             ))
             .id();
         cmd.entity(id)
@@ -77,9 +81,6 @@ fn setup_terrain(
     //     .insert(Name::new(format!("Building ({building_id:?})")));
 }
 
-fn cleanup_terrain(mut terrain: ResMut<Terrain>, mut cmd: Commands) {
-    if let Some(entity) = terrain.ground {
-        cmd.entity(entity).despawn_recursive();
-    }
+fn cleanup_terrain(mut terrain: ResMut<Terrain>) {
     terrain.ground = None;
 }
