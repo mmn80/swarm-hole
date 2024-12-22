@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use avian3d::prelude::*;
+use bevy::prelude::*;
 
 use crate::{
     app::{AppState, RunState},
@@ -18,18 +18,19 @@ pub struct HealthPlugin;
 
 impl Plugin for HealthPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<TakeDamageEvent>().add_systems(
-            Update,
-            (
-                apply_skill_specs::<MaxHealth>,
-                apply_skill_specs::<HealthRegen>,
-                init_health,
-                take_damage,
-                regen_health,
-                die,
-            )
-                .run_if(in_state(AppState::Run)),
-        );
+        app.add_state_scoped_event::<TakeDamageEvent>(AppState::Run)
+            .add_systems(
+                Update,
+                (
+                    apply_skill_specs::<MaxHealth>,
+                    apply_skill_specs::<HealthRegen>,
+                    init_health,
+                    take_damage,
+                    regen_health,
+                    die,
+                )
+                    .run_if(in_state(AppState::Run)),
+            );
     }
 }
 

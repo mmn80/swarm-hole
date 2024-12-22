@@ -20,7 +20,6 @@ impl Plugin for LaserPlugin {
                 Update,
                 (
                     apply_skill_specs::<Laser>,
-                    init_laser_state,
                     (
                         (laser_target_npc, laser_target_player),
                         laser_shoot_ray,
@@ -76,6 +75,7 @@ fn setup_assets(
 }
 
 #[derive(Component, Reflect, Default)]
+#[require(LaserState)]
 pub struct Laser {
     pub range: f32,
     pub dps: f32,
@@ -89,17 +89,7 @@ impl IsSkill for Laser {
     }
 }
 
-fn init_laser_state(q_laser: Query<Entity, (With<Laser>, Without<LaserState>)>, mut cmd: Commands) {
-    for ent in &q_laser {
-        cmd.entity(ent).insert(LaserState {
-            target: None,
-            ray: None,
-            time_ended: 0.,
-        });
-    }
-}
-
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, Default)]
 pub struct LaserState {
     pub target: Option<Entity>,
     pub ray: Option<Entity>,
