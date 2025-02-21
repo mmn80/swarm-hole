@@ -2,7 +2,7 @@
 name = "swarm-hole"
 version = "0.1.0"
 authors = ["Călin Ardelean <mmn80cpu@gmail.com>"]
-edition = "2021"
+edition = "2024"
 
 publish = false
 
