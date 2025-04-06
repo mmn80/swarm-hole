@@ -20,7 +20,8 @@ pub struct Vfx {
 }
 
 fn setup_vfx(mut vfx: ResMut<Vfx>, mut effects: ResMut<Assets<EffectAsset>>, mut cmd: Commands) {
-    let spawner = Spawner::once(40.0.into(), false);
+    let spawner = SpawnerSettings::once(40.0.into())
+        .with_emit_on_start(false);
 
     let writer = ExprWriter::new();
     let age = writer.lit(0.).expr();
@@ -60,8 +61,11 @@ fn setup_vfx(mut vfx: ResMut<Vfx>, mut effects: ResMut<Assets<EffectAsset>>, mut
             }),
     );
 
-    cmd.spawn(ParticleEffectBundle::new(vfx.damage_particles.clone()))
-        .insert((EffectProperties::default(), Name::new("damage_particles")));
+    cmd.spawn((
+        ParticleEffect::new(vfx.damage_particles.clone()),
+        EffectProperties::default(),
+        Name::new("damage_particles"),
+    ));
 }
 
 #[derive(Event)]
@@ -75,11 +79,11 @@ fn update_vfx(
     mut ev_damage_particles: EventReader<DamageParticlesEvent>,
     mut effect: Query<(
         &mut EffectProperties,
-        &mut EffectInitializers,
+        &mut EffectSpawner,
         &mut Transform,
     )>,
 ) {
-    let Ok((mut effect, mut initializers, mut tr_effect)) = effect.get_single_mut() else {
+    let Ok((mut effect, mut effect_spawner, mut tr_effect)) = effect.get_single_mut() else {
         return;
     };
     for ev in ev_damage_particles.read() {
@@ -94,6 +98,6 @@ fn update_vfx(
         normal.y = 0.;
         effect.set("normal", normal.normalize().into());
 
-        initializers.reset();
+        effect_spawner.reset();
     }
 }
