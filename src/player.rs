@@ -181,7 +181,6 @@ impl Command for SpawnPlayer {
             RigidBody::Kinematic,
             Collider::capsule(pc.width, cap_h),
             CollisionLayers::new([Layer::Player], LayerMask::ALL),
-            CollisionEventsEnabled,
             ShapeCaster::new(
                 Collider::capsule(pc.width - 0.05, cap_h - 0.1),
                 Vector::ZERO,

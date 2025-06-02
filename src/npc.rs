@@ -160,7 +160,6 @@ impl Command for SpawnNpc {
                     RigidBody::Kinematic,
                     Collider::sphere(npc.radius),
                     CollisionLayers::new([Layer::NPC], LayerMask::ALL),
-                    CollisionEventsEnabled,
                     EquippedSkills::default(),
                     specs,
                     StateScoped(InGame),

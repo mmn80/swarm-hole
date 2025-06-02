@@ -47,7 +47,7 @@ fn main() {
                     synchronous_pipeline_compilation: false,
                     ..default()
                 }),
-            FrameTimeDiagnosticsPlugin,
+            FrameTimeDiagnosticsPlugin::default(),
         ))
         .add_plugins((
             PhysicsPlugins::default(),

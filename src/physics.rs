@@ -1,4 +1,4 @@
-use avian3d::{dynamics::solver::schedule::SubstepSolverSet, math::*, prelude::*};
+use avian3d::{math::*, prelude::*};
 use bevy::prelude::*;
 
 use crate::{app::AppState, player::Player};
@@ -10,9 +10,9 @@ impl Plugin for MainPhysicsPlugin {
         app.add_systems(Startup, setup_physics)
             .add_systems(Update, update_physics_paused)
             .add_systems(
-                SubstepSchedule,
+                PhysicsSchedule,
                 kinematic_collision
-                    .in_set(SubstepSolverSet::SolveUserConstraints)
+                    .in_set(NarrowPhaseSet::Last)
                     .run_if(in_state(AppState::Run)),
             );
     }
@@ -55,35 +55,37 @@ pub enum Layer {
 
 fn kinematic_collision(
     collisions: Collisions,
-    mut q_bodies: Query<(&RigidBody, &mut Position, &Rotation)>,
+    collider_rbs: Query<&ColliderOf, Without<Sensor>>,
+    mut q_bodies: Query<(&RigidBody, &mut Position)>,
     q_player: Query<&Transform, With<Player>>,
 ) {
     let player_pos = q_player.single().ok().map_or(Vec3::ZERO, |p| p.translation);
     for contacts in collisions.iter() {
-        if !contacts.during_current_frame {
+        let Ok([&ColliderOf { body: rb1 }, &ColliderOf { body: rb2 }]) =
+            collider_rbs.get_many([contacts.collider1, contacts.collider2])
+        else {
             continue;
-        }
-        if let Ok([(rb1, mut position1, rotation1), (rb2, mut position2, _)]) =
-            q_bodies.get_many_mut([contacts.entity1, contacts.entity2])
-        {
-            for manifold in contacts.manifolds.iter() {
-                for contact in manifold.points.iter() {
-                    if contact.penetration <= Scalar::EPSILON {
-                        continue;
-                    }
-                    if rb1.is_kinematic() && !rb2.is_kinematic() {
-                        position1.0 -= contact.global_normal1(rotation1) * contact.penetration;
-                    } else if rb2.is_kinematic() && !rb1.is_kinematic() {
-                        position2.0 += contact.global_normal1(rotation1) * contact.penetration;
-                    } else if rb1.is_kinematic() && rb2.is_kinematic() {
-                        let mut normal = contact.global_normal1(rotation1);
-                        normal.y = 0.;
-                        if (position1.0 - player_pos).length() < (position2.0 - player_pos).length()
-                        {
-                            position2.0 += normal * contact.penetration;
-                        } else {
-                            position1.0 -= normal * contact.penetration;
-                        }
+        };
+        let Ok([(rb1, mut position1), (rb2, mut position2)]) = q_bodies.get_many_mut([rb1, rb2])
+        else {
+            continue;
+        };
+        for manifold in contacts.manifolds.iter() {
+            for contact in manifold.points.iter() {
+                if contact.penetration <= Scalar::EPSILON {
+                    continue;
+                }
+                if rb1.is_kinematic() && !rb2.is_kinematic() {
+                    position1.0 -= manifold.normal * contact.penetration;
+                } else if rb2.is_kinematic() && !rb1.is_kinematic() {
+                    position2.0 += manifold.normal * contact.penetration;
+                } else if rb1.is_kinematic() && rb2.is_kinematic() {
+                    let mut normal = manifold.normal;
+                    normal.y = 0.;
+                    if (position1.0 - player_pos).length() < (position2.0 - player_pos).length() {
+                        position2.0 += normal * contact.penetration;
+                    } else {
+                        position1.0 -= normal * contact.penetration;
                     }
                 }
             }
