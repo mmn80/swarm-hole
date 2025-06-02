@@ -12,6 +12,7 @@ impl Plugin for MainLightsPlugin {
         app.insert_resource(AmbientLight {
             color: Color::WHITE,
             brightness: 80.,
+            ..default()
         })
         .insert_resource(DirectionalLightShadowMap { size: 4096 })
         .add_systems(Startup, spawn_main_lights)

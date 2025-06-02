@@ -1,5 +1,5 @@
 use avian3d::{dynamics::solver::schedule::SubstepSolverSet, math::*, prelude::*};
-use bevy::{ecs::world::Command, prelude::*};
+use bevy::prelude::*;
 
 use crate::{app::AppState, player::Player};
 
@@ -54,14 +54,11 @@ pub enum Layer {
 }
 
 fn kinematic_collision(
-    collisions: Res<Collisions>,
+    collisions: Collisions,
     mut q_bodies: Query<(&RigidBody, &mut Position, &Rotation)>,
     q_player: Query<&Transform, With<Player>>,
 ) {
-    let player_pos = q_player
-        .get_single()
-        .ok()
-        .map_or(Vec3::ZERO, |p| p.translation);
+    let player_pos = q_player.single().ok().map_or(Vec3::ZERO, |p| p.translation);
     for contacts in collisions.iter() {
         if !contacts.during_current_frame {
             continue;
@@ -70,7 +67,7 @@ fn kinematic_collision(
             q_bodies.get_many_mut([contacts.entity1, contacts.entity2])
         {
             for manifold in contacts.manifolds.iter() {
-                for contact in manifold.contacts.iter() {
+                for contact in manifold.points.iter() {
                     if contact.penetration <= Scalar::EPSILON {
                         continue;
                     }

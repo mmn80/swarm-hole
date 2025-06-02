@@ -1,12 +1,12 @@
 use std::f32::consts::PI;
 
-use bevy::prelude::*;
 use avian3d::prelude::*;
+use bevy::prelude::*;
 use rand::prelude::*;
 
 use crate::{app::AppState, player::Player};
 
-use super::{apply_skill_specs, IsSkill, Skill};
+use super::{IsSkill, Skill, apply_skill_specs};
 
 pub struct SwarmPlugin;
 
@@ -37,7 +37,7 @@ fn move_swarm(
     mut q_npc: Query<(&Swarm, &Position, &mut LinearVelocity)>,
     q_player: Query<&Position, With<Player>>,
 ) {
-    let Ok(player_pos) = q_player.get_single() else {
+    let Ok(player_pos) = q_player.single() else {
         for (_, _, mut lin_vel) in &mut q_npc {
             lin_vel.x = 0.;
             lin_vel.y = 0.;

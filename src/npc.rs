@@ -2,11 +2,10 @@ use std::f32::consts::PI;
 
 use avian3d::prelude::*;
 use bevy::{
-    asset::{io::Reader, AssetLoader, LoadContext},
-    ecs::world::Command,
+    asset::{AssetLoader, LoadContext, io::Reader},
     math::prelude::*,
+    platform::collections::HashMap,
     prelude::*,
-    utils::HashMap,
 };
 use rand::{distributions::WeightedIndex, prelude::*};
 use serde::Deserialize;
@@ -161,6 +160,7 @@ impl Command for SpawnNpc {
                     RigidBody::Kinematic,
                     Collider::sphere(npc.radius),
                     CollisionLayers::new([Layer::NPC], LayerMask::ALL),
+                    CollisionEventsEnabled,
                     EquippedSkills::default(),
                     specs,
                     StateScoped(InGame),

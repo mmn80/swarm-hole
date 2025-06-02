@@ -20,8 +20,7 @@ pub struct Vfx {
 }
 
 fn setup_vfx(mut vfx: ResMut<Vfx>, mut effects: ResMut<Assets<EffectAsset>>, mut cmd: Commands) {
-    let spawner = SpawnerSettings::once(40.0.into())
-        .with_emit_on_start(false);
+    let spawner = SpawnerSettings::once(40.0.into()).with_emit_on_start(false);
 
     let writer = ExprWriter::new();
     let age = writer.lit(0.).expr();
@@ -77,13 +76,9 @@ pub struct DamageParticlesEvent {
 
 fn update_vfx(
     mut ev_damage_particles: EventReader<DamageParticlesEvent>,
-    mut effect: Query<(
-        &mut EffectProperties,
-        &mut EffectSpawner,
-        &mut Transform,
-    )>,
+    mut effect: Query<(&mut EffectProperties, &mut EffectSpawner, &mut Transform)>,
 ) {
-    let Ok((mut effect, mut effect_spawner, mut tr_effect)) = effect.get_single_mut() else {
+    let Ok((mut effect, mut effect_spawner, mut tr_effect)) = effect.single_mut() else {
         return;
     };
     for ev in ev_damage_particles.read() {

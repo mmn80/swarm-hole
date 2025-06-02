@@ -2,9 +2,10 @@ use std::fmt;
 
 use bevy::{
     app::PluginGroupBuilder,
-    asset::{io::Reader, AssetLoader, LoadContext},
+    asset::{AssetLoader, LoadContext, io::Reader},
+    ecs::component::Mutable,
+    platform::collections::{HashMap, HashSet},
     prelude::*,
-    utils::{HashMap, HashSet},
 };
 use rand::prelude::*;
 use serde::Deserialize;
@@ -108,11 +109,7 @@ impl Value {
     }
 
     fn sign(n: f32) -> &'static str {
-        if n.is_sign_negative() {
-            ""
-        } else {
-            "+"
-        }
+        if n.is_sign_negative() { "" } else { "+" }
     }
 }
 
@@ -226,7 +223,7 @@ impl EquippedSkills {
     }
 }
 
-pub fn apply_skill_specs<T: Component + Struct + Default + IsSkill>(
+pub fn apply_skill_specs<T: Component<Mutability = Mutable> + Struct + Default + IsSkill>(
     skills_meta: Res<Skills>,
     q_no_skill: Query<(Entity, &SkillSpecs), Without<T>>,
     mut q_skill: Query<(Entity, &mut T, &mut EquippedSkills, &mut SkillSpecs)>,
@@ -469,7 +466,9 @@ fn skills_asset_on_load(
                                     specs.0.insert(*skill, (*level, new_spec));
                                 }
                             } else {
-                                error!("Hot reload: did not find level {level} upgrades for equipped skill {skill:?}.");
+                                error!(
+                                    "Hot reload: did not find level {level} upgrades for equipped skill {skill:?}."
+                                );
                             }
                         } else {
                             error!(

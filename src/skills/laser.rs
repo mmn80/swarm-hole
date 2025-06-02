@@ -13,7 +13,7 @@ use crate::{
     vfx::DamageParticlesEvent,
 };
 
-use super::{apply_skill_specs, health::TakeDamageEvent, IsSkill, Skill};
+use super::{IsSkill, Skill, apply_skill_specs, health::TakeDamageEvent};
 
 pub struct LaserPlugin;
 
@@ -286,14 +286,14 @@ fn laser_ray_update(
 
         if !ray.vfx_started {
             ray.vfx_started = true;
-            ev_damage_particles.send(DamageParticlesEvent {
+            ev_damage_particles.write(DamageParticlesEvent {
                 position: t - dir * 0.5,
                 normal: -dir,
                 color,
             });
         }
 
-        ev_take_damage.send(TakeDamageEvent {
+        ev_take_damage.write(TakeDamageEvent {
             target: ray.target,
             damage: time.delta_secs() * dps,
         });
@@ -308,7 +308,7 @@ fn laser_ray_despawn(
 ) {
     for (ray_ent, ray) in &q_ray {
         if ray.dead {
-            cmd.entity(ray_ent).despawn_recursive();
+            cmd.entity(ray_ent).despawn();
             if let Ok(mut laser) = q_laser.get_mut(ray.source) {
                 laser.ray = None;
                 laser.target = None;

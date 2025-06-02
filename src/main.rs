@@ -3,8 +3,8 @@ use bevy::{
     diagnostic::FrameTimeDiagnosticsPlugin,
     prelude::*,
     render::{
-        settings::{Backends, WgpuFeatures, WgpuSettings},
         RenderPlugin,
+        settings::{Backends, WgpuFeatures, WgpuSettings},
     },
 };
 use bevy_hanabi::prelude::*;
@@ -19,7 +19,7 @@ use swarm_hole::{
     player::PlayerPlugin,
     skills::SkillPluginGroup,
     terrain::TerrainPlugin,
-    ui::{MainUiPlugin, INFINITE_TEMP_COLOR},
+    ui::{INFINITE_TEMP_COLOR, MainUiPlugin},
     vfx::VfxPlugin,
 };
 
@@ -45,6 +45,7 @@ fn main() {
                 .set(RenderPlugin {
                     render_creation: wgpu_settings.into(),
                     synchronous_pipeline_compilation: false,
+                    ..default()
                 }),
             FrameTimeDiagnosticsPlugin,
         ))

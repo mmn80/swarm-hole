@@ -9,9 +9,8 @@ use crate::{
 };
 
 use super::{
-    apply_skill_specs,
+    EquippedSkills, IsSkill, Skill, apply_skill_specs,
     xp::{XpDrop, XpDrops},
-    EquippedSkills, IsSkill, Skill,
 };
 
 pub struct HealthPlugin;
@@ -135,7 +134,7 @@ fn die(
             } else if is_player {
                 next_state.set(AppState::Lost);
             }
-            cmd.entity(npc_ent).despawn_recursive();
+            cmd.entity(npc_ent).despawn();
         }
     }
 }

@@ -1,6 +1,5 @@
 use bevy::{
     app::AppExit,
-    ecs::world::Command,
     input::keyboard::{Key, KeyboardInput},
     prelude::*,
 };
@@ -200,7 +199,7 @@ fn process_debug_commands(
     mut time_since_hidden: Local<Option<f32>>,
     mut cmd: Commands,
 ) {
-    let Ok((mut text, mut node, mut outline)) = q_text.get_single_mut() else {
+    let Ok((mut text, mut node, mut outline)) = q_text.single_mut() else {
         return;
     };
 
@@ -350,7 +349,7 @@ impl Command for ToggleDebugHelp {
         {
             let mut q_text =
                 world.query_filtered::<(&mut Text, &mut Node), With<DebugHelpCommandText>>();
-            if let Ok((mut text, mut node)) = q_text.get_single_mut(world) {
+            if let Ok((mut text, mut node)) = q_text.single_mut(world) {
                 if node.display == Display::None {
                     text.0 = commands;
                     node.display = Display::Flex;
@@ -363,7 +362,7 @@ impl Command for ToggleDebugHelp {
         {
             let mut q_text =
                 world.query_filtered::<(&mut Text, &mut Node), With<DebugHelpDescriptionText>>();
-            if let Ok((mut text, mut node)) = q_text.get_single_mut(world) {
+            if let Ok((mut text, mut node)) = q_text.single_mut(world) {
                 if node.display == Display::None {
                     text.0 = help;
                     node.display = Display::Flex;

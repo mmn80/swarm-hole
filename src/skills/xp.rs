@@ -3,7 +3,7 @@ use bevy::prelude::*;
 
 use crate::{app::AppState, physics::Layer};
 
-use super::{apply_skill_specs, IsSkill, Skill};
+use super::{IsSkill, Skill, apply_skill_specs};
 
 pub struct XpPlugin;
 
@@ -56,11 +56,7 @@ impl XpDrop {
     }
 
     pub fn get_height(drop: u32) -> f32 {
-        if XpDrop::is_big(drop) {
-            0.4
-        } else {
-            0.2
-        }
+        if XpDrop::is_big(drop) { 0.4 } else { 0.2 }
     }
 }
 
@@ -138,7 +134,7 @@ fn gather_xp(
                 let mut delta = tr_gatherer.translation - tr_xp.translation;
                 if delta.length() < XpDrop::get_height(xp_drop.0) + 1. {
                     xp_gather_state.gather(xp_drop.0, XP_PER_LEVEL);
-                    cmd.entity(ent).despawn_recursive();
+                    cmd.entity(ent).despawn();
                 } else {
                     lin_vel.y = 0.;
                     let old_speed = lin_vel.length();

@@ -9,9 +9,9 @@ use crate::{
     app::{AppState, InGame, RunState},
     player::Player,
     skills::{
+        SkillUpgradeOptions, Skills,
         health::{Health, MaxHealth},
         xp::XpGatherState,
-        SkillUpgradeOptions, Skills,
     },
 };
 
@@ -249,16 +249,16 @@ fn update_player_ui(
     q_level_txt: Query<Entity, With<LevelText>>,
     mut writer: TextUiWriter,
 ) {
-    let Ok(txt_hp) = q_hp_txt.get_single() else {
+    let Ok(txt_hp) = q_hp_txt.single() else {
         return;
     };
-    let Ok(txt_xp) = q_xp_txt.get_single() else {
+    let Ok(txt_xp) = q_xp_txt.single() else {
         return;
     };
-    let Ok(txt_level) = q_level_txt.get_single() else {
+    let Ok(txt_level) = q_level_txt.single() else {
         return;
     };
-    let Ok((xp_gather_state, health, max_health)) = q_player.get_single() else {
+    let Ok((xp_gather_state, health, max_health)) = q_player.single() else {
         *writer.text(txt_hp, 1) = "-".to_string();
         *writer.text(txt_xp, 1) = "-".to_string();
         return;
@@ -290,7 +290,7 @@ fn update_player_ui(
 struct TimeText;
 
 fn update_run_time_ui(run_state: Res<RunState>, mut q_txt_time: Query<&mut Text, With<TimeText>>) {
-    let Ok(mut txt_time) = q_txt_time.get_single_mut() else {
+    let Ok(mut txt_time) = q_txt_time.single_mut() else {
         return;
     };
     if !run_state.run_time.is_zero() {
@@ -311,7 +311,7 @@ fn update_npcs_ui(
     q_txt: Query<Entity, With<NpcsText>>,
     mut writer: TextUiWriter,
 ) {
-    let Ok(txt_npcs) = q_txt.get_single() else {
+    let Ok(txt_npcs) = q_txt.single() else {
         return;
     };
     if run_state.live_npcs == 0 {
@@ -348,7 +348,7 @@ fn setup_fps_ui(mut cmd: Commands) {
 struct FpsText;
 
 fn update_fps(diagnostics: Res<DiagnosticsStore>, mut q_fps_txt: Query<&mut Text, With<FpsText>>) {
-    let Ok(mut txt_fps) = q_fps_txt.get_single_mut() else {
+    let Ok(mut txt_fps) = q_fps_txt.single_mut() else {
         return;
     };
     let mut fps = 0.0;
@@ -451,11 +451,10 @@ fn update_app_state_ui(
     mut q_app_state_root: Query<&mut Node, With<AppStateRoot>>,
     mut q_txt_app_state: Query<(&mut Text, &mut TextColor, &mut AppStateText)>,
 ) {
-    let Ok(mut node) = q_app_state_root.get_single_mut() else {
+    let Ok(mut node) = q_app_state_root.single_mut() else {
         return;
     };
-    let Ok((mut txt_run_state, mut txt_run_state_color, mut marker)) =
-        q_txt_app_state.get_single_mut()
+    let Ok((mut txt_run_state, mut txt_run_state_color, mut marker)) = q_txt_app_state.single_mut()
     else {
         return;
     };
@@ -517,7 +516,7 @@ fn setup_upgrade_ui(mut cmd: Commands) {
     });
 }
 
-fn add_skill_upgrade_button(parent: &mut ChildBuilder<'_>, index: usize) {
+fn add_skill_upgrade_button(parent: &mut ChildSpawnerCommands<'_>, index: usize) {
     if index > 0 {
         parent.spawn(Node {
             height: Val::Px(50.),

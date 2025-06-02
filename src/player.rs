@@ -1,9 +1,8 @@
 use avian3d::{math::*, prelude::*};
 use bevy::{
-    asset::{io::Reader, AssetLoader, LoadContext},
-    ecs::world::Command,
+    asset::{AssetLoader, LoadContext, io::Reader},
+    platform::collections::HashMap,
     prelude::*,
-    utils::HashMap,
 };
 use serde::Deserialize;
 use thiserror::Error;
@@ -57,15 +56,17 @@ fn setup_player_handles(
 
     let (height, width) = (2., 0.3);
     let cap_h = height - 2. * width;
-    pc_handles.meshes = vec![meshes.add(
-        Capsule3d::new(width, cap_h)
-            .mesh()
-            .rings(0)
-            .latitudes(16)
-            .longitudes(32)
-            .uv_profile(bevy::render::mesh::CapsuleUvProfile::Aspect)
-            .build(),
-    )];
+    pc_handles.meshes = vec![
+        meshes.add(
+            Capsule3d::new(width, cap_h)
+                .mesh()
+                .rings(0)
+                .latitudes(16)
+                .longitudes(32)
+                .uv_profile(bevy::render::mesh::CapsuleUvProfile::Aspect)
+                .build(),
+        ),
+    ];
     pc_handles.materials = vec![materials.add(StandardMaterial {
         base_color: Color::BLACK,
         metallic: 0.0,
@@ -180,6 +181,7 @@ impl Command for SpawnPlayer {
             RigidBody::Kinematic,
             Collider::capsule(pc.width, cap_h),
             CollisionLayers::new([Layer::Player], LayerMask::ALL),
+            CollisionEventsEnabled,
             ShapeCaster::new(
                 Collider::capsule(pc.width - 0.05, cap_h - 0.1),
                 Vector::ZERO,
@@ -245,7 +247,7 @@ fn move_player(
         linear_velocity.z = vel.y;
         linear_velocity.y *= 0.98;
 
-        ev_refocus.send(MainCameraFocusEvent {
+        ev_refocus.write(MainCameraFocusEvent {
             focus: player_tr.translation,
         });
     }

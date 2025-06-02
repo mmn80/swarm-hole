@@ -3,7 +3,7 @@ use bevy::prelude::*;
 
 use crate::{app::AppState, npc::Npc, physics::Layer};
 
-use super::{apply_skill_specs, health::TakeDamageEvent, IsSkill, Skill};
+use super::{IsSkill, Skill, apply_skill_specs, health::TakeDamageEvent};
 
 pub struct MeleePlugin;
 
@@ -42,7 +42,7 @@ fn update_melee(
             Quat::default(),
             &SpatialQueryFilter::from_mask([Layer::Player]),
         ) {
-            ev_take_damage.send(TakeDamageEvent {
+            ev_take_damage.write(TakeDamageEvent {
                 target: player_ent,
                 damage: time.delta_secs() * melee.dps as f32,
             });

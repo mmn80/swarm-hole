@@ -92,7 +92,9 @@ fn main_camera(
         delta = Vec2::ZERO;
     }
     let (cursor_pos, yaw, pitch) = {
-        let win = q_window.single();
+        let Ok(win) = q_window.single() else {
+            return;
+        };
         (
             win.cursor_position(),
             Quat::from_rotation_y(-delta.x / win.width() * TWO_PI),

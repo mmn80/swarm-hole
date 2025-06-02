@@ -96,7 +96,7 @@ fn update_app_state(
         }
         AppState::Menu => {
             if esc {
-                exit.send(AppExit::Success);
+                exit.write(AppExit::Success);
             } else if enter {
                 next_state.set(AppState::Run);
             }
